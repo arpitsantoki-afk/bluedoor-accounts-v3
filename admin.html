@@ -153,20 +153,13 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 </head>
 <body>
 
-<!-- LOGIN -->
-<div id="login">
-  <div class="login-box">
-    <h2>🔷 BlueDoor</h2>
-    <p>Accounts V3 — sign in</p>
-    <div id="lerr" class="badge b-red hidden" style="display:none;margin-bottom:12px;padding:8px 12px;border-radius:8px;font-size:13px;width:100%"></div>
-    <div class="field"><label>Username</label><input id="lu" placeholder="Arpit" autofocus></div>
-    <div class="field"><label>Password</label><input id="lp" type="password" placeholder="••••••••"></div>
-    <button class="btn btn-primary" style="width:100%;justify-content:center;margin-top:4px" onclick="doLogin()">Sign In</button>
-  </div>
+<!-- AUTH CHECK — redirects to index.html if no session -->
+<div id="auth-check" style="position:fixed;inset:0;background:#0d0f14;display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:#64748b">
+  <span>🔷 Loading...</span>
 </div>
 
 <!-- APP -->
-<div id="app" class="hidden" style="display:flex;flex-direction:column;height:100dvh">
+<div id="app" style="display:none;flex-direction:column;height:100dvh">
 
   <!-- Top bar -->
   <div id="topbar">
@@ -353,31 +346,33 @@ function toast(msg, type='ok') {
   setTimeout(()=>el.remove(), 3000);
 }
 
-// ── Auth ──────────────────────────────────────────────────────────────────────
-async function doLogin() {
-  const u=document.getElementById('lu').value.trim(), p=document.getElementById('lp').value;
-  const errEl=document.getElementById('lerr');
-  errEl.style.display='none';
-  if(!u||!p){showErr(errEl,'Enter credentials');return;}
-  const res = await api('login',{username:u,password:p});
-  if(!res.ok){showErr(errEl,res.error||'Login failed');return;}
-  S.token=res.token; S.user=res.user;
-  document.getElementById('login').classList.add('hidden');
-  document.getElementById('app').classList.remove('hidden');
-  document.getElementById('um-name').textContent=res.user.username;
-  document.getElementById('um-role').textContent=res.user.role;
-  document.getElementById('user-btn').onclick=()=>toggleMenu('user-menu');
-  loadMasters().then(()=>{ initView(); });
+// ── Auth — session from index.html via sessionStorage ─────────────────────────
+function checkSession() {
+  const token = sessionStorage.getItem('bd_token');
+  const userRaw = sessionStorage.getItem('bd_user');
+  if (!token || !userRaw) {
+    window.location.href = 'index.html'; return;
+  }
+  try {
+    const user = JSON.parse(userRaw);
+    if (user.role !== 'Admin') { window.location.href = 'app.html'; return; }
+    S.token = token; S.user = user;
+    document.getElementById('auth-check').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('um-name').textContent = user.username;
+    document.getElementById('um-role').textContent = user.role;
+    document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
+    loadMasters().then(() => { initView(); });
+  } catch(e) { window.location.href = 'index.html'; }
 }
-function showErr(el,msg){el.textContent=msg;el.style.display='block';}
 async function doLogout(){
   await api('logout');
-  S={token:null,user:null};
-  document.getElementById('app').classList.add('hidden');
-  document.getElementById('login').classList.remove('hidden');
-  document.getElementById('lp').value='';
+  sessionStorage.removeItem('bd_token');
+  sessionStorage.removeItem('bd_user');
+  window.location.href = 'index.html';
 }
-document.getElementById('lp').addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
+// Boot
+window.addEventListener('DOMContentLoaded', checkSession);
 
 // ── Menus ─────────────────────────────────────────────────────────────────────
 function toggleMenu(id) {
@@ -960,7 +955,7 @@ function renderMasters(){
 let _wb=null, _preview=null;
 const SHEET_MAP={
   Companies:{table:'companies',map:r=>({company_id:s(r.CompanyID),company_name:s(r.CompanyName),drive_folder:s(r.DriveFolder)||'',active:String(r.Active).toLowerCase()==='true'?1:0})},
-  Users:{table:'users',map:r=>({user_id:`USR_${s(r.Username).toUpperCase()}`,username:s(r.Username),password:'BlueDoor@2024',role:s(r.Role)==='Admin'?'Admin':s(r.Role),active:String(r.Active).toLowerCase()==='true'?1:0,companies:s(r.Companies)||'[]'})},
+  Users:{table:'users',map:r=>({user_id:`USR_${s(r.Username).toUpperCase()}`,username:s(r.Username),password:'BlueDoor@2024',role:s(r.Role)==='Admin'?'Admin':s(r.Role),active:String(r.Active).toLowerCase()==='true'?1:0,companies:s(r.Companies)||'[]',google_email:s(r.GoogleEmail)||''})},
   ChartOfAccounts:{table:'chart_of_accounts',map:r=>({ac_key:s(r.AccountKey),ac_code:s(r.Code),ac_name:s(r.Name),ac_type:s(r.Type),category:s(r.NormalBalance)||''})},
   EntryTypes:{table:'entry_types',map:r=>({et_key:s(r.EntryKey),label:s(r.Label),category:s(r.Category),dr:s(r.DebitAccount),cr:s(r.CreditAccount),needs_ch:String(r.NeedsCostHead).toLowerCase()==='true'?1:0,active:String(r.Active).toLowerCase()==='true'?1:0})},
   CostHeads:{table:'cost_heads',map:r=>({ch_id:s(r.CostHeadID),ch_name:s(r.Name),ac_key:s(r.AccountKey)||''})},
