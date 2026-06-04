@@ -356,7 +356,7 @@ function checkSession() {
       // If still on this page after 500ms, redirect failed — show inline login
       showInlineLogin();
     }, 500);
-    window.location.href = '/bluedoor-accounts-v3/index.html'; return;
+    window.location.href = '/bluedoor-accounts-v3/index.html?logout=1'; return;
   }
   try {
     const user = JSON.parse(userRaw);
@@ -368,13 +368,13 @@ function checkSession() {
     document.getElementById('um-role').textContent = user.role;
     document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
     loadMasters().then(() => { initView(); });
-  } catch(e) { window.location.href = '/bluedoor-accounts-v3/index.html'; }
+  } catch(e) { window.location.href = '/bluedoor-accounts-v3/index.html?logout=1'; }
 }
 async function doLogout(){
   await api('logout');
   localStorage.removeItem('bd_token');
   localStorage.removeItem('bd_user');
-  window.location.href = '/bluedoor-accounts-v3/index.html';
+  window.location.href = '/bluedoor-accounts-v3/index.html?logout=1';
 }
 // Boot
 window.addEventListener('DOMContentLoaded', checkSession);
