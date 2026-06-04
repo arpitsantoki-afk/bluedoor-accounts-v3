@@ -109,6 +109,47 @@ async function route(action, params, req, env, ctx) {
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ AUTH ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+// ── Google OAuth Login ─────────────────────────────────────────────────────
+async function handleGoogleLogin({ id_token }, env) {
+  if (!id_token) return err('id_token required');
+  try {
+    // Decode JWT payload (middle part, base64url encoded)
+    const parts = id_token.split('.');
+    if (parts.length !== 3) return err('Invalid token format', 401);
+    // base64url decode
+    const b64 = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+    const pad = b64 + '='.repeat((4 - b64.length % 4) % 4);
+    const payload = JSON.parse(atob(pad));
+
+    // Verify this token is for our app
+    const CLIENT_ID = '449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.googleusercontent.com';
+    if (payload.aud !== CLIENT_ID) return err('Token not for this app', 401);
+    if (!payload.email_verified) return err('Email not verified', 401);
+
+    // Check expiry
+    if (payload.exp && payload.exp < Date.now() / 1000) return err('Token expired', 401);
+
+    const email = (payload.email || '').toLowerCase();
+    if (!email) return err('No email in token', 401);
+
+    // Look up user by google_email
+    const user = await env.DB.prepare(
+      "SELECT * FROM users WHERE LOWER(google_email) = ? AND active = 1"
+    ).bind(email).first();
+
+    if (!user) return err('No account linked to ' + email + '. Contact admin.', 401);
+
+    const token = genToken();
+    const companies = user.companies ? JSON.parse(user.companies) : [];
+    const sessData = { user_id: user.user_id, username: user.username, role: user.role, companies, email };
+    await env.SESSIONS.put(`sess:${token}`, JSON.stringify(sessData), { expirationTtl: 28800 });
+    return ok({ token, user: { user_id: user.user_id, username: user.username, role: user.role, companies, email } });
+  } catch (e) {
+    return err('Google auth error: ' + e.message, 500);
+  }
+}
+
 async function handleLogin({ username, password }, env) {
   if (!username || !password) return err('username and password required');
   const user = await env.DB.prepare('SELECT * FROM users WHERE username = ? AND active = 1').bind(username).first();
