@@ -6,976 +6,1675 @@
 <title>BlueDoor Admin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-:root {
-  --bg:#0d0f14; --card:#161920; --border:#232630; --accent:#4f8ef7;
-  --green:#22c55e; --red:#ef4444; --amber:#f59e0b; --purple:#a78bfa;
-  --text:#e2e8f0; --muted:#64748b; --nav-h:56px; --top-h:52px;
+:root{
+  --bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
-
-/* ── Top bar ── */
-#topbar{height:var(--top-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 16px;flex-shrink:0;gap:8px}
-#topbar h1{font-size:15px;font-weight:700;color:var(--accent);white-space:nowrap}
-.top-pills{display:flex;gap:6px;align-items:center}
-.pill{font-size:11px;padding:3px 10px;border-radius:20px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
-.pill.co-pill{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
-#topbar-right{display:flex;align-items:center;gap:8px}
-.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;font-size:18px;padding:4px;line-height:1}
-
-/* ── Scroll area ── */
+#topbar{height:var(--top-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;gap:8px}
+#topbar h1{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
+.top-pills{display:flex;gap:5px}
+.pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
+.pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
 #scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
 .view{display:none;padding:12px}
 .view.active{display:block}
-
-/* ── Bottom nav ── */
 #nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
-.nav-btn{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
-.nav-btn .ni{font-size:20px;line-height:1}
-.nav-btn.active{color:var(--accent)}
-
-/* ── Cards ── */
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
+.nb .ni{font-size:20px;line-height:1}
+.nb.active{color:var(--accent)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
-.card-hd{padding:12px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
-.card-hd h3{font-size:13px;font-weight:600}
-.card-bd{padding:14px 16px}
-
-/* ── Stat grid ── */
+.chd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chd h3{font-size:13px;font-weight:600}
+.cbd{padding:13px 14px}
 .stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:14px}
-.stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.stat .sv{font-size:22px;font-weight:700}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.stat .sv{font-size:20px;font-weight:700}
 .stat .ss{font-size:11px;color:var(--muted);margin-top:2px}
-
-/* ── Tables ── */
-.tbl-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch;border-radius:8px}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:360px}
-th{text-align:left;padding:8px 10px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:9px 10px;border-bottom:1px solid rgba(35,38,48,.7);vertical-align:top}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
+th{text-align:left;padding:7px 9px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid rgba(35,38,48,.7);vertical-align:top}
 tr:last-child td{border-bottom:none}
-tr:active td{background:rgba(79,142,247,.05)}
-
-/* ── Badges ── */
 .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
-.b-green{background:rgba(34,197,94,.12);color:var(--green)}
-.b-red{background:rgba(239,68,68,.12);color:var(--red)}
-.b-amber{background:rgba(245,158,11,.12);color:var(--amber)}
-.b-blue{background:rgba(79,142,247,.12);color:var(--accent)}
-.b-purple{background:rgba(167,139,250,.12);color:var(--purple)}
-.b-gray{background:rgba(100,116,139,.12);color:var(--muted)}
-
-/* ── Buttons ── */
-.btn{display:inline-flex;align-items:center;gap:5px;padding:8px 14px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;line-height:1}
-.btn-primary{background:var(--accent);color:#fff}
-.btn-primary:active{background:#3b7de8}
-.btn-success{background:var(--green);color:#fff}
-.btn-danger{background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red)}
-.btn-outline{background:transparent;border:1px solid var(--border);color:var(--text)}
+.bg{background:rgba(34,197,94,.12);color:var(--green)}
+.br{background:rgba(239,68,68,.12);color:var(--red)}
+.ba{background:rgba(245,158,11,.12);color:var(--amber)}
+.bb{background:rgba(79,142,247,.12);color:var(--accent)}
+.bx{background:rgba(100,116,139,.12);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;line-height:1}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:active{background:#3b7de8}
+.btn-s{background:var(--green);color:#fff}
+.btn-d{background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red)}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
 .btn-sm{padding:5px 10px;font-size:12px}
 .btn-xs{padding:3px 8px;font-size:11px}
-
-/* ── Forms ── */
-.field{margin-bottom:12px}
-.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none;transition:border .15s;-webkit-appearance:none}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;transition:border .15s;-webkit-appearance:none}
 .field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
 .field select option{background:var(--bg)}
-.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-
-/* ── Add entry tabs ── */
-.cat-tabs{display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:14px;scrollbar-width:none}
-.cat-tabs::-webkit-scrollbar{display:none}
-.cat-tab{flex-shrink:0;padding:6px 14px;border-radius:20px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);white-space:nowrap;transition:all .15s}
-.cat-tab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-/* ── Filters ── */
-.filters{display:flex;gap-x:8px;gap-y:8px;flex-wrap:wrap;margin-bottom:12px}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+/* SearchSelect (combo dropdown) */
+.ss-wrap{position:relative}
+.ss-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;cursor:pointer}
+.ss-input:focus{border-color:var(--accent)}
+.ss-drop{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:220px;overflow-y:auto;margin-top:2px;display:none}
+.ss-drop.open{display:block}
+.ss-opt{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(35,38,48,.5)}
+.ss-opt:last-child{border-bottom:none}
+.ss-opt:hover,.ss-opt.hi{background:rgba(79,142,247,.1);color:var(--accent)}
+.ss-empty{padding:10px 11px;color:var(--muted);font-size:12px}
+/* Tabs */
+.ctabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;scrollbar-width:none}
+.ctabs::-webkit-scrollbar{display:none}
+.ctab{flex-shrink:0;padding:6px 13px;border-radius:18px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);white-space:nowrap;transition:all .15s}
+.ctab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+/* Entry type grid */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.type-opt{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all .15s}
+.type-opt:active,.type-opt.sel{border-color:var(--accent);background:rgba(79,142,247,.08)}
+.type-opt .tol{font-size:12px;font-weight:600}
+.type-opt .toh{font-size:10px;color:var(--muted);margin-top:2px}
+/* Filters */
+.frow{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}
 .flt{flex:1;min-width:120px}
-.flt select,.flt input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;-webkit-appearance:none}
-.filter-row{display:flex;gap:8px;margin-bottom:10px;flex-wrap:wrap}
-.filter-row .flt{min-width:0}
-
-/* ── Import ── */
-.dropzone{border:2px dashed var(--border);border-radius:12px;padding:32px 16px;text-align:center;cursor:pointer;position:relative;transition:all .2s}
-.dropzone:active,.dropzone.drag{border-color:var(--accent);background:rgba(79,142,247,.05)}
-.dropzone input{position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%}
-.dropzone .dz-icon{font-size:36px;margin-bottom:8px}
-.dropzone .dz-t{font-size:14px;font-weight:600;margin-bottom:3px}
-.dropzone .dz-s{font-size:12px;color:var(--muted)}
-.imp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:12px 0}
-.imp-card{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px 12px}
-.imp-card .it{font-size:12px;font-weight:600}
-.imp-card .ic{font-size:11px;color:var(--muted)}
-.imp-card .is{font-size:12px;margin-top:4px}
-.log-box{background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:180px;overflow-y:auto;font-family:monospace;font-size:11px;margin-top:12px}
-.log-ok{color:var(--green)}.log-err{color:var(--red)}.log-info{color:var(--accent)}
-
-/* ── Raw data viewer ── */
-.table-sel{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
-.tsel-btn{padding:5px 12px;border-radius:16px;font-size:11px;border:1px solid var(--border);background:var(--card);color:var(--muted);cursor:pointer;transition:all .15s}
-.tsel-btn.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-
-/* ── Misc ── */
-.empty{text-align:center;padding:32px 16px;color:var(--muted);font-size:13px}
+.flt input,.flt select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;-webkit-appearance:none}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.center{align-items:center}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
+.modal.center{border-radius:16px;margin:16px}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
+/* Debug console */
+#debug-panel{position:fixed;bottom:var(--nav-h);left:0;right:0;background:#0a0c10;border-top:2px solid var(--accent);z-index:150;height:200px;display:none;flex-direction:column}
+#debug-panel.open{display:flex}
+#debug-log{flex:1;overflow-y:auto;padding:6px 10px;font-family:monospace;font-size:11px}
+#debug-log .dl{padding:2px 0;border-bottom:1px solid rgba(35,38,48,.5)}
+#debug-log .dl-err{color:var(--red)}
+#debug-log .dl-ok{color:var(--green)}
+#debug-log .dl-info{color:var(--accent)}
+#debug-log .dl-warn{color:var(--amber)}
+#debug-toolbar{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);background:#0d0f14}
+/* Misc */
+.empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px}
 .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
 @keyframes spin{to{transform:rotate(360deg)}}
-.sep{height:1px;background:var(--border);margin:12px 0}
-.row{display:flex;align-items:center;gap:8px}
-.row-sb{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mt-2{margin-top:8px}.mt-3{margin-top:12px}.mt-4{margin-top:16px}
-.hidden{display:none!important}
-.amount{font-weight:600;font-family:monospace}
-.cr-amt{color:var(--red)}.dr-amt{color:var(--green)}
+.amt{font-weight:600;font-family:monospace;font-size:12px}
+.dr{color:var(--green)}.cr{color:var(--red)}
 code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radius:4px;color:var(--accent)}
-#toast{position:fixed;bottom:calc(var(--nav-h) + 10px);left:50%;transform:translateX(-50%);z-index:999;pointer-events:none}
-.t-item{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;margin-top:6px;text-align:center}
-.t-ok{border-left:3px solid var(--green)}.t-err{border-left:3px solid var(--red)}
-@keyframes tup{from{transform:translateY(8px);opacity:0}to{transform:translateY(0);opacity:1}}
-
-/* ── Login ── */
-#login{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;padding:16px}
-.login-box{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:100%;max-width:360px}
-.login-box h2{font-size:18px;font-weight:700;margin-bottom:2px}
-.login-box p{color:var(--muted);font-size:13px;margin-bottom:20px}
-
-/* ── Section subheaders ── */
-.sec-hd{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:16px 0 8px;padding:0 2px}
-
-/* Pending action btns */
-.action-row{display:flex;gap:6px;flex-wrap:wrap;margin-top:6px}
-
-/* Entry detail expand */
-.entry-row td{cursor:pointer}
-.entry-detail{background:rgba(79,142,247,.04);font-size:12px}
-.entry-detail td{padding:6px 10px;color:var(--muted)}
+.sh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;padding:0 2px}
+.row{display:flex;align-items:center;gap:8px}
+.rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mt2{margin-top:8px}.mt3{margin-top:12px}
+.hidden{display:none!important}
+#toast{position:fixed;bottom:calc(var(--nav-h)+10px);left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;text-align:center}
+.ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;margin-top:5px;display:inline-block}
+.ti-ok{border-left:3px solid var(--green)}.ti-err{border-left:3px solid var(--red)}
+@keyframes tup{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+#auth-check{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted)}
 </style>
 </head>
 <body>
 
-<!-- AUTH CHECK — redirects to index.html if no session -->
-<div id="auth-check" style="position:fixed;inset:0;background:#0d0f14;display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:#64748b">
-  <span>🔷 Loading...</span>
-</div>
+<div id="auth-check"><span class="spin"></span>&nbsp; Loading...</div>
 
-<!-- APP -->
 <div id="app" style="display:none;flex-direction:column;height:100dvh">
-
-  <!-- Top bar -->
+  <!-- Topbar -->
   <div id="topbar">
     <h1>🔷 BlueDoor</h1>
     <div class="top-pills">
-      <span class="pill" id="fy-pill" onclick="toggleFYMenu()">FY2627 ▾</span>
-      <span class="pill co-pill" id="co-pill" onclick="toggleCoMenu()">All ▾</span>
+      <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
+      <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
-    <div id="topbar-right">
-      <button class="icon-btn" id="user-btn" title="Account">👤</button>
+    <div class="row" style="gap:6px">
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" onclick="toggleDebug()" title="Debug">🐞</button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" id="user-btn">👤</button>
     </div>
   </div>
 
-  <!-- FY dropdown -->
-  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);right:80px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:140px;padding:6px 0">
-    <div style="padding:6px 14px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:4px">Financial Year</div>
+  <!-- Dropdowns -->
+  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);right:70px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:130px;padding:5px 0">
+    <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Financial Year</div>
     <div id="fy-list"></div>
   </div>
-
-  <!-- Company dropdown -->
-  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:160px;padding:6px 0">
-    <div style="padding:6px 14px;font-size:11px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:4px">Company</div>
+  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:160px;padding:5px 0">
+    <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Company</div>
     <div id="co-list"></div>
   </div>
-
-  <!-- User menu -->
   <div id="user-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:180px;padding:8px 0">
-    <div style="padding:8px 16px;border-bottom:1px solid var(--border);margin-bottom:4px">
+    <div style="padding:7px 14px;border-bottom:1px solid var(--border);margin-bottom:4px">
       <div style="font-weight:600;font-size:13px" id="um-name">—</div>
       <div style="font-size:11px;color:var(--muted)" id="um-role">—</div>
     </div>
-    <div style="padding:4px 8px 8px">
-      <button class="btn btn-danger btn-sm" style="width:100%;justify-content:center" onclick="doLogout()">Sign Out</button>
+    <div style="padding:4px 8px 6px">
+      <button class="btn btn-d btn-sm" style="width:100%;justify-content:center" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
 
-  <!-- Scroll content -->
+  <!-- Debug Panel -->
+  <div id="debug-panel">
+    <div id="debug-toolbar">
+      <span style="font-size:11px;color:var(--accent);font-weight:600">🐞 Debug Console</span>
+      <button class="btn-xs btn-o" onclick="clearDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer">Clear</button>
+      <button class="btn-xs btn-o" onclick="toggleDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer">✕</button>
+    </div>
+    <div id="debug-log"></div>
+  </div>
+
+  <!-- Scroll area -->
   <div id="scroll">
 
-    <!-- ── HOME ── -->
+    <!-- HOME -->
     <div id="v-home" class="view active">
-      <div class="stats" id="dash-stats">
+      <div class="stats">
         <div class="stat"><div class="sl">Entries</div><div class="sv" id="d-entries">—</div></div>
         <div class="stat"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)" id="d-pending">—</div></div>
-        <div class="stat"><div class="sl">Total Income</div><div class="sv" style="color:var(--green);font-size:16px" id="d-income">—</div></div>
-        <div class="stat"><div class="sl">Total Expense</div><div class="sv" style="color:var(--red);font-size:16px" id="d-expense">—</div></div>
-      </div>
-      <div class="card" id="dash-pending-card">
-        <div class="card-hd"><h3>⏳ Pending Approvals</h3><span class="badge b-amber" id="d-pcount">0</span></div>
-        <div id="dash-pending-list"></div>
+        <div class="stat"><div class="sl">Income</div><div class="sv dr" id="d-income" style="font-size:15px">—</div></div>
+        <div class="stat"><div class="sl">Expense</div><div class="sv cr" id="d-expense" style="font-size:15px">—</div></div>
       </div>
       <div class="card">
-        <div class="card-hd"><h3>📝 Recent Entries</h3></div>
+        <div class="chd"><h3>⏳ Pending Approvals</h3><span class="badge ba" id="d-pcount">0</span></div>
+        <div id="dash-pending"></div>
+      </div>
+      <div class="card">
+        <div class="chd"><h3>📝 Recent Entries</h3></div>
         <div id="dash-recent"></div>
       </div>
     </div>
 
-    <!-- ── LEDGER ── -->
+    <!-- LEDGER -->
     <div id="v-ledger" class="view">
-      <div class="filter-row">
-        <div class="flt"><select id="lf-co" onchange="renderLedger()"><option value="">All Companies</option></select></div>
-        <div class="flt"><select id="lf-type" onchange="syncAccFilter()"><option value="">All Types</option><option>Asset</option><option>Liability</option><option>Income</option><option>Expense</option><option>Contra-Equity</option></select></div>
+      <!-- Filters -->
+      <div class="frow">
+        <div class="flt" style="min-width:140px"><div class="ss-wrap" id="lf-ac-wrap"></div></div>
+        <div class="flt" style="min-width:120px"><div class="ss-wrap" id="lf-proj-wrap"></div></div>
       </div>
-      <div class="filter-row">
-        <div class="flt"><select id="lf-ac" onchange="renderLedger()"><option value="">All Accounts</option></select></div>
-        <div class="flt"><select id="lf-proj" onchange="renderLedger()"><option value="">All Projects</option></select></div>
-      </div>
-      <div class="filter-row">
-        <div class="flt"><input type="date" id="lf-from" onchange="renderLedger()" placeholder="From"></div>
-        <div class="flt"><input type="date" id="lf-to" onchange="renderLedger()" placeholder="To"></div>
-      </div>
-      <div class="row-sb" style="margin-bottom:8px">
-        <span id="ledger-summary" style="font-size:12px;color:var(--muted)"></span>
-        <div class="row">
-          <button class="btn btn-outline btn-xs" onclick="resetLedgerFilters()">Reset</button>
-          <button class="btn btn-outline btn-xs" onclick="downloadLedgerCSV()">⬇ CSV</button>
+      <div class="frow">
+        <div class="flt" style="min-width:120px"><div class="ss-wrap" id="lf-vendor-wrap"></div></div>
+        <div class="flt" style="min-width:120px">
+          <select id="lf-daterange" onchange="onLedgerDateRange()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;-webkit-appearance:none">
+            <option value="">All Dates</option>
+            <option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option>
+            <option value="60">Last 60 Days</option>
+            <option value="90">Last 90 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
         </div>
       </div>
-      <div class="tbl-wrap">
-        <table id="ledger-table">
-          <thead><tr><th>Date</th><th>Account</th><th>DR/CR</th><th>Amount ₹</th><th>Narration</th><th>Co</th></tr></thead>
+      <div class="frow" id="lf-custom-dates" style="display:none">
+        <div class="flt"><input type="date" id="lf-from" onchange="renderLedger()"></div>
+        <div class="flt"><input type="date" id="lf-to" onchange="renderLedger()"></div>
+      </div>
+      <div class="rsb" style="margin-bottom:8px">
+        <span id="ledger-sum" style="font-size:11px;color:var(--muted)"></span>
+        <div class="row" style="gap:5px">
+          <button class="btn btn-o btn-xs" onclick="resetLedgerFilters()">Reset</button>
+          <button class="btn btn-o btn-xs" onclick="downloadLedgerXLS()">⬇ XLS</button>
+          <button class="btn btn-o btn-xs" onclick="printLedger()">🖨 Print</button>
+        </div>
+      </div>
+      <div class="tw">
+        <table>
+          <thead><tr><th>Date</th><th>Company</th><th>Account</th><th>Narration</th><th style="text-align:right">Debit ₹</th><th style="text-align:right">Credit ₹</th></tr></thead>
           <tbody id="ledger-body"></tbody>
+          <tfoot id="ledger-foot"></tfoot>
         </table>
       </div>
-      <div id="ledger-ob" style="margin-top:12px"></div>
     </div>
 
-    <!-- ── ADD ENTRY ── -->
+    <!-- ADD -->
     <div id="v-add" class="view">
-      <div class="cat-tabs" id="cat-tabs">
-        <div class="cat-tab active" onclick="setCat('client')">Client</div>
-        <div class="cat-tab" onclick="setCat('vendor')">Vendor</div>
-        <div class="cat-tab" onclick="setCat('expense')">Expense</div>
-        <div class="cat-tab" onclick="setCat('transfer')">Transfer</div>
-        <div class="cat-tab" onclick="setCat('drawings')">Drawings</div>
+      <div class="ctabs" id="add-tabs">
+        <div class="ctab active" onclick="setAddTab('entry',this)">Entry</div>
+        <div class="ctab" onclick="setAddTab('project',this)">Project</div>
+        <div class="ctab" onclick="setAddTab('vendor',this)">Vendor</div>
+        <div class="ctab" onclick="setAddTab('opening',this)">Opening Bal</div>
+        <div class="ctab" onclick="setAddTab('bankimport',this)">Bank Import</div>
       </div>
-      <div class="card">
-        <div class="card-bd">
-          <div class="grid2">
-            <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
-            <div class="field"><label>Company *</label><select id="ae-co"></select></div>
+      <!-- Entry sub-tab -->
+      <div id="at-entry">
+        <div class="sh">Category</div>
+        <div class="ctabs" id="entry-cats">
+          <div class="ctab active" onclick="setEntryCat('client',this)">Client</div>
+          <div class="ctab" onclick="setEntryCat('vendor',this)">Vendor</div>
+          <div class="ctab" onclick="setEntryCat('expense',this)">Expense</div>
+          <div class="ctab" onclick="setEntryCat('transfer',this)">Transfer</div>
+          <div class="ctab" onclick="setEntryCat('drawings',this)">Drawings</div>
+        </div>
+        <div class="sh">Entry Type</div>
+        <div class="type-grid" id="type-grid"><div class="empty" style="padding:12px">Loading...</div></div>
+        <div class="card">
+          <div class="cbd">
+            <div class="g2">
+              <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
+              <div class="field"><label>Company *</label><select id="ae-co"></select></div>
+            </div>
+            <div class="field">
+              <label>Project <span id="ae-proj-req" style="color:var(--red)">*</span></label>
+              <div class="ss-wrap" id="ae-proj-wrap"></div>
+            </div>
+            <div class="field hidden" id="ae-vendor-f">
+              <label>Vendor / Party</label>
+              <div class="ss-wrap" id="ae-vendor-wrap"></div>
+            </div>
+            <div class="field hidden" id="ae-ch-f">
+              <label>Cost Head *</label>
+              <div class="ss-wrap" id="ae-ch-wrap"></div>
+            </div>
+            <div class="field"><label>Amount ₹ *</label><input type="number" id="ae-amt" placeholder="0.00" step="0.01" inputmode="decimal"></div>
+            <div class="field"><label>Narration</label><input id="ae-narr" placeholder="Brief note..."></div>
+            <div class="field hidden" id="ae-doc-f">
+              <label>Document / Bill <span style="color:var(--muted);font-size:10px">(optional)</span></label>
+              <input type="text" id="ae-doc-url" placeholder="Drive URL or file name">
+            </div>
+            <div id="ae-preview" style="font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px;background:rgba(79,142,247,.05);border-radius:7px;display:none"></div>
+            <button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
           </div>
-          <div class="field"><label>Entry Type *</label><select id="ae-type" onchange="onTypeChange()"><option value="">Select type...</option></select></div>
-          <div class="field" id="ae-proj-wrap"><label>Project</label><select id="ae-proj"><option value="">No project</option></select></div>
-          <div class="field hidden" id="ae-vendor-wrap"><label>Vendor</label><select id="ae-vendor"><option value="">Select vendor...</option></select></div>
-          <div class="field hidden" id="ae-ch-wrap"><label>Cost Head *</label><select id="ae-ch"><option value="">Select cost head...</option></select></div>
-          <div class="field"><label>Amount ₹ *</label><input type="number" id="ae-amt" placeholder="0" step="0.01"></div>
-          <div class="field"><label>Narration</label><input id="ae-narration" placeholder="Description..."></div>
-          <button class="btn btn-primary" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
         </div>
       </div>
+      <!-- Project sub-tab -->
+      <div id="at-project" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <input id="proj-search" placeholder="Search projects..." style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:13px;outline:none;flex:1" oninput="filterProjects(this.value)">
+          <button class="btn btn-p btn-sm" onclick="showProjectForm()">+ Add</button>
+        </div>
+        <div id="proj-list"></div>
+      </div>
+      <!-- Vendor sub-tab -->
+      <div id="at-vendor" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <input id="vendor-search" placeholder="Search vendors..." style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:13px;outline:none;flex:1" oninput="filterVendors(this.value)">
+          <button class="btn btn-p btn-sm" onclick="showVendorForm()">+ Add</button>
+        </div>
+        <div id="vendor-list"></div>
+      </div>
+      <!-- Opening Balance sub-tab -->
+      <div id="at-opening" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600">Opening Balances — <span id="ob-fy-label"></span></span>
+          <div class="row" style="gap:5px">
+            <button class="btn btn-o btn-xs" onclick="exportOBXLS()">⬇ XLS</button>
+            <button class="btn btn-o btn-xs" onclick="printOB()">🖨 PDF</button>
+          </div>
+        </div>
+        <div class="sh">Account Balances</div>
+        <div id="ob-accounts"></div>
+        <div class="sh" style="margin-top:16px">Vendor Balances</div>
+        <div id="ob-vendors"></div>
+      </div>
+      <!-- Bank Import sub-tab -->
+      <div id="at-bankimport" class="hidden">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(79,142,247,.06);border-radius:8px;border:1px solid rgba(79,142,247,.15)">
+          Upload your bank statement (.xlsx). Duplicate entries are auto-detected. Imported rows go to Pending Entries.
+        </div>
+        <div class="field"><label>Bank Statement File</label><input type="file" id="bank-file" accept=".xlsx,.xls" style="color:var(--text)" onchange="parseBankFile(this)"></div>
+        <div id="bank-status" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+        <div id="bank-preview"></div>
+        <button class="btn btn-p" id="bank-import-btn" style="width:100%;justify-content:center;display:none" onclick="doImportBank()">Import to Pending Entries</button>
+      </div>
     </div>
 
-    <!-- ── REPORTS ── -->
+    <!-- REPORTS -->
     <div id="v-reports" class="view">
-      <div class="cat-tabs">
-        <div class="cat-tab active" onclick="setRpt('pl')">P&L</div>
-        <div class="cat-tab" onclick="setRpt('bs')">Balance Sheet</div>
-        <div class="cat-tab" onclick="setRpt('vendor')">Vendor</div>
-        <div class="cat-tab" onclick="setRpt('project')">Project</div>
-        <div class="cat-tab" onclick="setRpt('trial')">Trial Balance</div>
+      <div class="ctabs">
+        <div class="ctab active" onclick="setRpt('pl',this)">P&amp;L</div>
+        <div class="ctab" onclick="setRpt('bs',this)">Balance Sheet</div>
+        <div class="ctab" onclick="setRpt('vendor',this)">Vendor</div>
+        <div class="ctab" onclick="setRpt('project',this)">Project</div>
+        <div class="ctab" onclick="setRpt('trial',this)">Trial Balance</div>
       </div>
-      <div id="rpt-content"></div>
+      <div id="rpt-out"></div>
     </div>
 
-    <!-- ── MORE ── -->
+    <!-- MORE -->
     <div id="v-more" class="view">
-      <div class="cat-tabs" id="more-tabs">
-        <div class="cat-tab active" onclick="setMore('pending')">Pending</div>
-        <div class="cat-tab" onclick="setMore('projects')">Projects</div>
-        <div class="cat-tab" onclick="setMore('vendors')">Vendors</div>
-        <div class="cat-tab" onclick="setMore('users')">Users</div>
-        <div class="cat-tab" onclick="setMore('opening')">Opening Bal</div>
-        <div class="cat-tab" onclick="setMore('rawdata')">Raw Data</div>
-        <div class="cat-tab" onclick="setMore('import')">Import</div>
-        <div class="cat-tab" onclick="setMore('masters')">Masters</div>
+      <div class="ctabs" id="more-tabs">
+        <div class="ctab active" onclick="setMore('pending',this)">Pending</div>
+        <div class="ctab" onclick="setMore('users',this)">Users</div>
+        <div class="ctab" onclick="setMore('masters',this)">Masters</div>
+        <div class="ctab" onclick="setMore('rawdata',this)">Raw Data</div>
+        <div class="ctab" onclick="setMore('import',this)">Import</div>
       </div>
-      <div id="more-content"></div>
+      <div id="more-out"></div>
     </div>
 
   </div><!-- /scroll -->
 
-  <!-- Bottom Nav -->
   <div id="nav">
-    <button class="nav-btn active" onclick="showView('home')" id="nb-home"><span class="ni">🏠</span>Home</button>
-    <button class="nav-btn" onclick="showView('ledger')" id="nb-ledger"><span class="ni">📋</span>Ledger</button>
-    <button class="nav-btn" onclick="showView('add')" id="nb-add"><span class="ni">➕</span>Add</button>
-    <button class="nav-btn" onclick="showView('reports')" id="nb-reports"><span class="ni">📈</span>Reports</button>
-    <button class="nav-btn" onclick="showView('more')" id="nb-more"><span class="ni">⋯</span>More</button>
+    <button class="nb active" onclick="showView('home')" id="nb-home"><span class="ni">🏠</span>Home</button>
+    <button class="nb" onclick="showView('ledger')" id="nb-ledger"><span class="ni">📋</span>Ledger</button>
+    <button class="nb" onclick="showView('add')" id="nb-add"><span class="ni">➕</span>Add</button>
+    <button class="nb" onclick="showView('reports')" id="nb-reports"><span class="ni">📈</span>Reports</button>
+    <button class="nb" onclick="showView('more')" id="nb-more"><span class="ni">⋯</span>More</button>
+  </div>
+</div>
+
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-bg center hidden">
+  <div class="modal center">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:18px"></p>
+    <div class="row" style="justify-content:flex-end;gap:8px">
+      <button class="btn btn-o" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-d" id="confirm-ok-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Modal -->
+<div id="edit-modal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="rsb" style="margin-bottom:14px">
+      <h3 id="edit-modal-title">Edit</h3>
+      <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeEditModal()">✕</button>
+    </div>
+    <div id="edit-modal-body"></div>
   </div>
 </div>
 
 <div id="toast"></div>
 
 <script>
-// ── Config ────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════════════
 const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
 const MIG = 'https://bluedoor-accounts.info-unikraft.workers.dev/migrate';
 const MIG_SECRET = 'migrate_bluedoor_2024';
 let S = { token:null, user:null };
 let curFY = 'FY2627', curCo = '';
-let _companies=[], _projects=[], _vendors=[], _costHeads=[], _entryTypes=[], _accounts=[];
-let _ledger=[], _ledgerFiltered=[];
-let _curView='home', _curMore='pending', _curRpt='pl', _curCat='client';
+let _cos=[], _projs=[], _vendors=[], _chs=[], _ets=[], _acs=[];
+let _ledgerRows=[], _curView='home', _curMore='pending', _curRpt='pl', _curAddTab='entry', _curEntryCat='client';
+let _selType=null;
+let _bankRows=[];
+let _ss = {}; // SearchSelect instances
 
-// ── API / Migrate helpers ─────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// DEBUG CONSOLE
+// ═══════════════════════════════════════════════════════════════
+let _debugOpen = false;
+function dbg(msg, type='info') {
+  const log = document.getElementById('debug-log');
+  if (!log) return;
+  const d = new Date();
+  const ts = d.toLocaleTimeString('en-IN', {hour12:false}) + '.' + String(d.getMilliseconds()).padStart(3,'0');
+  const div = document.createElement('div');
+  div.className = `dl dl-${type}`;
+  div.textContent = `[${ts}] ${typeof msg === 'object' ? JSON.stringify(msg) : msg}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+function toggleDebug() {
+  _debugOpen = !_debugOpen;
+  document.getElementById('debug-panel').classList.toggle('open', _debugOpen);
+}
+function clearDebug() {
+  document.getElementById('debug-log').innerHTML = '';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HELPERS
+// ═══════════════════════════════════════════════════════════════
 async function api(action, params={}) {
-  const r = await fetch(API, {method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':S.token||''}, body:JSON.stringify({action,...params})});
-  return r.json();
+  dbg(`→ ${action} ${JSON.stringify(params).substring(0,80)}`);
+  try {
+    const r = await fetch(API, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','X-Session-Token':S.token||''},
+      body: JSON.stringify({action,...params})
+    });
+    const j = await r.json();
+    if (!j.ok) dbg(`✗ ${action}: ${j.error}`, 'err');
+    else dbg(`✓ ${action}`, 'ok');
+    return j;
+  } catch(e) {
+    dbg(`✗ ${action} network: ${e.message}`, 'err');
+    return {ok:false, error:e.message};
+  }
 }
 async function mig(payload) {
-  const r = await fetch(MIG, {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({secret:MIG_SECRET,...payload})});
+  const r = await fetch(MIG,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({secret:MIG_SECRET,...payload})});
   return r.json();
 }
-const fmt = n => Number(n||0).toLocaleString('en-IN');
-const fmtAmt = n => '₹'+fmt(n);
-const s = v => v==null?'':String(v).trim();
 
+// Date formatting: always dd-mm-yyyy
+function fmtDate(v) {
+  if (!v) return '—';
+  const s = String(v).trim();
+  // Already dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}$/.test(s)) return s;
+  // yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) {
+    const [y,m,d] = s.substring(0,10).split('-');
+    return `${d}-${m}-${y}`;
+  }
+  try {
+    const d = new Date(s);
+    if (!isNaN(d)) return `${String(d.getDate()).padStart(2,'0')}-${String(d.getMonth()+1).padStart(2,'0')}-${d.getFullYear()}`;
+  } catch(e){}
+  return s;
+}
+// Convert dd-mm-yyyy or yyyy-mm-dd to yyyy-mm-dd for inputs
+function toISO(v) {
+  if (!v) return '';
+  if (/^\d{2}-\d{2}-\d{4}$/.test(v)) { const [d,m,y]=v.split('-'); return `${y}-${m}-${d}`; }
+  return v.substring(0,10);
+}
+const fmt = n => Number(n||0).toLocaleString('en-IN', {maximumFractionDigits:2});
+const fmtAmt = n => '₹' + fmt(n);
+const s = v => v==null?'':String(v).trim();
 function toast(msg, type='ok') {
   const el = document.createElement('div');
-  el.className = `t-item t-${type}`;
+  el.className = `ti ti-${type}`;
   el.textContent = msg;
   document.getElementById('toast').appendChild(el);
   setTimeout(()=>el.remove(), 3000);
 }
+function confirm2(title, msg, onOk) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok-btn').onclick = () => { closeConfirm(); onOk(); };
+  document.getElementById('confirm-modal').classList.remove('hidden');
+}
+function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); }
+function showEditModal(title, bodyHTML) {
+  document.getElementById('edit-modal-title').textContent = title;
+  document.getElementById('edit-modal-body').innerHTML = bodyHTML;
+  document.getElementById('edit-modal').classList.remove('hidden');
+}
+function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
-// ── Auth — session from index.html via localStorage ─────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// SEARCH-SELECT (combo dropdown)
+// ═══════════════════════════════════════════════════════════════
+function createSS(containerId, opts, placeholder, onChange) {
+  const container = document.getElementById(containerId);
+  if (!container) return null;
+  let selVal = '', selLabel = '';
+  container.innerHTML = `
+    <input class="ss-input" id="${containerId}-inp" placeholder="${placeholder}" autocomplete="off" readonly>
+    <div class="ss-drop" id="${containerId}-drop"></div>`;
+  const inp = document.getElementById(containerId+'-inp');
+  const drop = document.getElementById(containerId+'-drop');
+  let allOpts = opts;
+
+  function renderOpts(filter='') {
+    const fl = filter.toLowerCase();
+    const filtered = fl ? allOpts.filter(o=>o.label.toLowerCase().includes(fl)||o.value.toLowerCase().includes(fl)) : allOpts;
+    drop.innerHTML = filtered.length
+      ? filtered.map(o=>`<div class="ss-opt" data-v="${o.value}" data-l="${o.label}" onclick="__ssClick('${containerId}',this)">${o.label}</div>`).join('')
+      : `<div class="ss-empty">No results</div>`;
+  }
+
+  inp.addEventListener('click', () => {
+    inp.readOnly = false;
+    inp.value = selLabel;
+    renderOpts('');
+    drop.classList.add('open');
+    inp.select();
+  });
+  inp.addEventListener('input', () => renderOpts(inp.value));
+  inp.addEventListener('blur', () => setTimeout(()=>{
+    drop.classList.remove('open');
+    inp.readOnly = true;
+    inp.value = selLabel;
+  }, 200));
+
+  _ss[containerId] = {
+    get: ()=>selVal,
+    set: (v,l) => { selVal=v||''; selLabel=l||v||''; inp.value=selLabel; inp.readOnly=true; },
+    setOpts: (newOpts) => { allOpts=newOpts; },
+    clear: () => { selVal=''; selLabel=''; inp.value=''; }
+  };
+  // Store onChange
+  _ss[containerId].onChange = onChange||function(){};
+  return _ss[containerId];
+}
+window.__ssClick = function(id, el) {
+  const v = el.dataset.v, l = el.dataset.l;
+  if (_ss[id]) {
+    _ss[id].set(v,l);
+    document.getElementById(id+'-drop')?.classList.remove('open');
+    _ss[id].onChange(v,l);
+  }
+};
+function ssGet(id) { return _ss[id]?.get()||''; }
+function ssSet(id,v,l) { if(_ss[id]) _ss[id].set(v,l); }
+function ssClear(id) { if(_ss[id]) _ss[id].clear(); }
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
 function checkSession() {
   const token = localStorage.getItem('bd_token');
   const userRaw = localStorage.getItem('bd_user');
-
-  // No token at all — show inline login immediately, no redirect
   if (!token || !userRaw) { showInlineLogin(); return; }
-
-  // Verify token is live with the server
-  fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-    body: JSON.stringify({ action: 'getMe' })
-  }).then(r => r.json()).then(data => {
+  fetch(API, {
+    method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':token},
+    body: JSON.stringify({action:'getMe'})
+  }).then(r=>r.json()).then(data => {
     if (!data.ok || !data.user) {
-      localStorage.removeItem('bd_token');
-      localStorage.removeItem('bd_user');
+      localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
       showInlineLogin(); return;
     }
     const user = data.user;
-    if (user.role !== 'Admin') { window.location.href = '/bluedoor-accounts-v3/app.html'; return; }
-    S.token = token; S.user = user;
-    document.getElementById('auth-check').style.display = 'none';
-    document.getElementById('app').style.display = 'flex';
-    document.getElementById('um-name').textContent = user.username;
-    document.getElementById('um-role').textContent = user.role;
-    document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
-    loadMasters().then(() => { initView(); });
-  }).catch(() => {
-    // Network error — use cached session optimistically
+    S.token=token; S.user=user;
+    document.getElementById('auth-check').style.display='none';
+    document.getElementById('app').style.display='flex';
+    document.getElementById('um-name').textContent=user.username;
+    document.getElementById('um-role').textContent=user.role;
+    document.getElementById('user-btn').onclick=()=>toggleMenu('user-menu');
+    loadMasters().then(()=>initView());
+  }).catch(()=>{
     try {
-      const user = JSON.parse(userRaw);
-      S.token = token; S.user = user;
-      document.getElementById('auth-check').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-      document.getElementById('um-name').textContent = user.username;
-      document.getElementById('um-role').textContent = user.role;
-      document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
-      loadMasters().then(() => { initView(); });
+      const user=JSON.parse(userRaw); S.token=token; S.user=user;
+      document.getElementById('auth-check').style.display='none';
+      document.getElementById('app').style.display='flex';
+      document.getElementById('um-name').textContent=user.username;
+      document.getElementById('um-role').textContent=user.role;
+      document.getElementById('user-btn').onclick=()=>toggleMenu('user-menu');
+      loadMasters().then(()=>initView());
     } catch(e) { showInlineLogin(); }
   });
 }
+
+function showInlineLogin() {
+  document.getElementById('auth-check').innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:calc(100%-32px);max-width:340px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">🔷</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">BlueDoor Admin</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Sign in to continue</div>
+      <div id="il-err" style="display:none;font-size:12px;color:var(--red);margin-bottom:10px;padding:6px;background:rgba(239,68,68,.1);border-radius:6px"></div>
+      <div style="margin-bottom:10px;text-align:left">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
+        <input id="il-u" placeholder="Arpit" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none">
+      </div>
+      <div style="margin-bottom:16px;text-align:left">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Password</div>
+        <input id="il-p" type="password" placeholder="••••••••" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none"
+          onkeydown="if(event.key==='Enter')doInlineLogin()">
+      </div>
+      <button onclick="doInlineLogin()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
+    </div>`;
+}
+
+async function doInlineLogin() {
+  const u=document.getElementById('il-u')?.value.trim(), p=document.getElementById('il-p')?.value;
+  const errEl=document.getElementById('il-err');
+  if (!u||!p) { errEl.textContent='Enter credentials'; errEl.style.display='block'; return; }
+  const data = await fetch(API,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({action:'login',username:u,password:p})}).then(r=>r.json());
+  if (!data.ok) { errEl.textContent=data.error||'Login failed'; errEl.style.display='block'; return; }
+  localStorage.setItem('bd_token', data.token);
+  localStorage.setItem('bd_user', JSON.stringify(data.user));
+  S.token=data.token; S.user=data.user;
+  document.getElementById('auth-check').style.display='none';
+  document.getElementById('app').style.display='flex';
+  document.getElementById('um-name').textContent=data.user.username;
+  document.getElementById('um-role').textContent=data.user.role;
+  document.getElementById('user-btn').onclick=()=>toggleMenu('user-menu');
+  loadMasters().then(()=>initView());
+}
+
 async function doLogout() {
   await api('logout').catch(()=>{});
-  localStorage.removeItem('bd_token');
-  localStorage.removeItem('bd_user');
-  window.location.href = '/bluedoor-accounts-v3/index.html?logout=1';
+  localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
+  window.location.href='/bluedoor-accounts-v3/index.html?logout=1';
 }
-// Boot
+
 window.addEventListener('DOMContentLoaded', checkSession);
 
-
+// ═══════════════════════════════════════════════════════════════
+// MENUS
+// ═══════════════════════════════════════════════════════════════
 function toggleMenu(id) {
-  ['fy-menu','co-menu','user-menu'].forEach(m=>{
-    document.getElementById(m).classList.toggle('hidden', m!==id);
-    if(m!==id) document.getElementById(m).classList.add('hidden');
+  ['fy-menu','co-menu','user-menu'].forEach(m => {
+    if (m===id) document.getElementById(m).classList.toggle('hidden');
+    else document.getElementById(m).classList.add('hidden');
   });
 }
-function toggleFYMenu(){toggleMenu('fy-menu');}
-function toggleCoMenu(){toggleMenu('co-menu');}
-document.addEventListener('click',e=>{
-  if(!e.target.closest('#topbar')&&!e.target.closest('[id$="-menu"]'))
+document.addEventListener('click', e => {
+  if (!e.target.closest('#topbar') && !e.target.closest('[id$="-menu"]'))
     ['fy-menu','co-menu','user-menu'].forEach(m=>document.getElementById(m).classList.add('hidden'));
 });
-function setFY(fy){curFY=fy;document.getElementById('fy-pill').textContent=fy+' ▾';document.getElementById('fy-menu').classList.add('hidden');refreshCurrentView();}
-function setCo(co,label){curCo=co;document.getElementById('co-pill').textContent=(label||'All')+' ▾';document.getElementById('co-menu').classList.add('hidden');refreshCurrentView();}
+function setFY(fy) {
+  curFY=fy; document.getElementById('fy-pill').textContent=fy+' ▾';
+  document.getElementById('fy-menu').classList.add('hidden');
+  refreshView();
+}
+function setCo(id, label) {
+  curCo=id; document.getElementById('co-pill').textContent=(label||'All')+' ▾';
+  document.getElementById('co-menu').classList.add('hidden');
+  refreshView();
+}
 
-// ── Masters load ──────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// MASTERS
+// ═══════════════════════════════════════════════════════════════
 async function loadMasters() {
+  dbg('Loading masters...');
   const [c,p,v,ch,et,ac] = await Promise.all([
     api('listCompanies'), api('listProjects'), api('listVendors'),
     api('listCostHeads'), api('listEntryTypes'), api('listAccounts')
   ]);
-  _companies = c.companies||[];
-  _projects = p.projects||[];
-  _vendors = v.vendors||[];
-  _costHeads = ch.cost_heads||[];
-  _entryTypes = et.entry_types||[];
-  _accounts = ac.accounts||[];
+  _cos=c.companies||[]; _projs=p.projects||[]; _vendors=v.vendors||[];
+  _chs=ch.cost_heads||[]; _ets=et.entry_types||[]; _acs=ac.accounts||[];
 
   // FY menu
-  const fyL = document.getElementById('fy-list');
-  ['FY2526','FY2627','FY2728'].forEach(fy=>{
-    fyL.innerHTML += `<div style="padding:6px 14px;font-size:13px;cursor:pointer" onclick="setFY('${fy}')">${fy==='FY2627'?'✓ ':''}${fy}</div>`;
-  });
+  const fyL=document.getElementById('fy-list');
+  fyL.innerHTML=['FY2526','FY2627','FY2728'].map(fy=>`<div style="padding:6px 13px;font-size:13px;cursor:pointer" onclick="setFY('${fy}')">${fy}</div>`).join('');
 
-  // Company menu
-  const coL = document.getElementById('co-list');
-  coL.innerHTML = `<div style="padding:6px 14px;font-size:13px;cursor:pointer" onclick="setCo('','All')">✓ All Companies</div>`;
-  _companies.forEach(co=>{
-    coL.innerHTML += `<div style="padding:6px 14px;font-size:13px;cursor:pointer" onclick="setCo('${co.company_id}','${co.company_name}')">${co.company_name}</div>`;
-  });
+  // Co menu
+  const coL=document.getElementById('co-list');
+  coL.innerHTML=`<div style="padding:6px 13px;font-size:13px;cursor:pointer" onclick="setCo('','All')">All Companies</div>`;
+  _cos.forEach(co=>coL.innerHTML+=`<div style="padding:6px 13px;font-size:13px;cursor:pointer" onclick="setCo('${co.company_id}','${co.company_name}')">${co.company_name}</div>`);
 
-  // Add entry selects
-  fillSel('ae-co', _companies, c=>[c.company_id, c.company_name]);
-  fillSel('ae-proj', _projects.filter(p=>p.fyid===curFY), p=>[p.project_id, p.project_name], true);
-  fillSel('ae-vendor', _vendors, v=>[v.vendor_id, v.vendor_name], true);
-  fillSel('ae-ch', _costHeads, c=>[c.ch_id, c.ch_name], true);
-  fillSel('lf-co', _companies, c=>[c.company_id, c.company_name], true);
-  fillSel('lf-proj', _projects, p=>[p.project_id, p.project_name], true);
-  fillSel('lf-ac', _accounts, a=>[a.ac_code, `${a.ac_code} — ${a.ac_name}`], true);
+  // Init SearchSelects for filters
+  createSS('lf-ac-wrap', [{value:'',label:'All Accounts'},..._acs.map(a=>({value:a.ac_code,label:`${a.ac_code} — ${a.ac_name}`}))], 'All Accounts', ()=>renderLedger());
+  createSS('lf-proj-wrap', [{value:'',label:'All Projects'},..._projs.map(p=>({value:p.project_id,label:p.project_name}))], 'All Projects', ()=>renderLedger());
+  createSS('lf-vendor-wrap', [{value:'',label:'All Vendors'},..._vendors.map(v=>({value:v.vendor_id,label:v.vendor_name}))], 'All Vendors', ()=>renderLedger());
+
+  // Init entry form SSes
+  createSS('ae-proj-wrap', [{value:'',label:'— No Project —'},..._projs.map(p=>({value:p.project_id,label:`${p.project_name} · ${p.client||''}`}))], '— Select Project —');
+  createSS('ae-vendor-wrap', [{value:'',label:'— Optional —'},..._vendors.map(v=>({value:v.vendor_id,label:v.vendor_name}))], '— Select Vendor —');
+  createSS('ae-ch-wrap', _chs.map(c=>({value:c.ch_id,label:c.ch_name})), '— Select Cost Head —');
+
+  // Company select for entry
+  const co = document.getElementById('ae-co');
+  co.innerHTML = _cos.map(c=>`<option value="${c.company_id}">${c.company_name}</option>`).join('');
 
   // Set today
-  document.getElementById('ae-date').value = new Date().toISOString().slice(0,10);
-  setCat('client');
+  const today = new Date().toISOString().slice(0,10);
+  document.getElementById('ae-date').value = today;
+
+  // Load entry cat
+  setEntryCat('client', document.querySelector('#entry-cats .ctab'));
+
+  dbg('Masters loaded ✓', 'ok');
 }
 
-function fillSel(id, arr, fn, blank=false) {
-  const el = document.getElementById(id); if(!el) return;
-  const cur = el.value;
-  el.innerHTML = blank ? '<option value="">—</option>' : '';
-  arr.forEach(item=>{ const [v,l]=fn(item); el.innerHTML+=`<option value="${v}">${l}</option>`; });
-  if(cur) el.value=cur;
-}
-
-// ── View navigation ───────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
 function showView(v) {
   document.querySelectorAll('.view').forEach(el=>el.classList.remove('active'));
-  document.querySelectorAll('.nav-btn').forEach(el=>el.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(el=>el.classList.remove('active'));
   document.getElementById(`v-${v}`).classList.add('active');
   document.getElementById(`nb-${v}`).classList.add('active');
   _curView=v;
   document.getElementById('scroll').scrollTop=0;
   renderView(v);
 }
-function refreshCurrentView(){renderView(_curView);}
-function initView(){showView('home');}
-function renderView(v){
-  if(v==='home') renderHome();
-  else if(v==='ledger') renderLedger();
-  else if(v==='add') setCat(_curCat);
-  else if(v==='reports') setRpt(_curRpt);
-  else if(v==='more') setMore(_curMore);
+function refreshView() { renderView(_curView); }
+function initView() { showView('home'); }
+function renderView(v) {
+  if (v==='home') renderHome();
+  else if (v==='ledger') renderLedger();
+  else if (v==='add') renderAddTab(_curAddTab);
+  else if (v==='reports') renderRpt(_curRpt);
+  else if (v==='more') renderMore(_curMore);
 }
 
-// ── HOME ──────────────────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════════════
 async function renderHome() {
-  const [dash, pending, entries] = await Promise.all([
-    api('getDashboard', {fyid:curFY, company_id:curCo}),
-    api('listPending', {fyid:curFY, company_id:curCo}),
-    api('listEntries', {fyid:curFY, company_id:curCo, limit:10})
+  const [dash, pending, entries, tb] = await Promise.all([
+    api('getDashboard',{fyid:curFY,company_id:curCo}),
+    api('listPending',{fyid:curFY,company_id:curCo}),
+    api('listEntries',{fyid:curFY,company_id:curCo,limit:15}),
+    api('getTrialBalance',{fyid:curFY,company_id:curCo})
   ]);
+  document.getElementById('d-entries').textContent=dash.entries_count||0;
+  document.getElementById('d-pending').textContent=dash.pending_count||0;
 
-  document.getElementById('d-entries').textContent = dash.entries_count||0;
-  document.getElementById('d-pending').textContent = dash.pending_count||0;
-
-  // Calc income/expense from ledger
-  const tb = await api('getTrialBalance', {fyid:curFY, company_id:curCo});
-  let income=0, expense=0;
+  let income=0,expense=0;
   (tb.trial_balance||[]).forEach(row=>{
-    const ac = _accounts.find(a=>a.ac_code===row.ac_code);
-    if(ac?.ac_type==='Income') income += parseFloat(row.total_cr||0)-parseFloat(row.total_dr||0);
-    if(ac?.ac_type==='Expense') expense += parseFloat(row.total_dr||0)-parseFloat(row.total_cr||0);
+    const ac=_acs.find(a=>a.ac_code===row.ac_code);
+    if(ac?.ac_type==='Income') income+=parseFloat(row.total_cr||0)-parseFloat(row.total_dr||0);
+    if(ac?.ac_type==='Expense') expense+=parseFloat(row.total_dr||0)-parseFloat(row.total_cr||0);
   });
-  document.getElementById('d-income').textContent = fmtAmt(income);
-  document.getElementById('d-expense').textContent = fmtAmt(expense);
+  document.getElementById('d-income').textContent=fmtAmt(income);
+  document.getElementById('d-expense').textContent=fmtAmt(expense);
 
-  const ps = pending.pending||[];
-  document.getElementById('d-pcount').textContent = ps.length;
-  const pl = document.getElementById('dash-pending-list');
-  if(!ps.length){pl.innerHTML='<div class="empty">No pending entries</div>';}
-  else{
-    pl.innerHTML=`<div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>By</th><th></th></tr></thead><tbody>
-    ${ps.slice(0,5).map(p=>`<tr>
-      <td>${p.date}</td>
-      <td><code>${p.entry_type}</code></td>
-      <td class="amount">${fmtAmt(p.amount)}</td>
-      <td>${p.submitted_by}</td>
-      <td><button class="btn btn-success btn-xs" onclick="quickApprove('${p.entry_id}')">✓</button></td>
-    </tr>`).join('')}
-    </tbody></table></div>`;
+  const ps=pending.pending||[];
+  document.getElementById('d-pcount').textContent=ps.length;
+  document.getElementById('dash-pending').innerHTML=ps.length?`
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>DR/CR</th><th>Amount</th><th>By</th><th></th></tr></thead>
+      <tbody>${ps.slice(0,5).map(p=>{
+        const et=_ets.find(t=>t.et_key===p.entry_type);
+        return`<tr>
+          <td>${fmtDate(p.date)}</td>
+          <td><code style="font-size:10px">${et?.label||p.entry_type}</code></td>
+          <td><span class="badge bb">${et?.dr||'—'}</span>→<span class="badge bb">${et?.cr||'—'}</span></td>
+          <td class="amt dr">${fmtAmt(p.amount)}</td>
+          <td style="font-size:11px">${p.submitted_by}</td>
+          <td><button class="btn btn-s btn-xs" onclick="quickApprove('${p.entry_id}')">✓</button></td>
+        </tr>`}).join('')}
+      </tbody></table></div>`:'<div class="empty">No pending entries</div>';
+
+  const es=entries.entries||[];
+  document.getElementById('dash-recent').innerHTML=es.length?`
+    <div class="tw"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>DR</th><th>CR</th><th>Amount</th><th>Co</th><th>By</th></tr></thead>
+      <tbody>${es.map(e=>{
+        const et=_ets.find(t=>t.et_key===e.entry_type);
+        return`<tr>
+          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td><code style="font-size:10px">${et?.label||e.entry_type}</code></td>
+          <td><span class="badge bx" style="font-size:9px">${et?.dr||'—'}</span></td>
+          <td><span class="badge bx" style="font-size:9px">${et?.cr||'—'}</span></td>
+          <td class="amt dr">${fmtAmt(e.amount)}</td>
+          <td style="font-size:11px">${e.company_id}</td>
+          <td style="font-size:11px;color:var(--muted)">${e.created_by}</td>
+        </tr>`}).join('')}
+      </tbody></table></div>`:'<div class="empty">No entries yet — import data first</div>';
+}
+async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
+
+// ═══════════════════════════════════════════════════════════════
+// LEDGER
+// ═══════════════════════════════════════════════════════════════
+function onLedgerDateRange() {
+  const v=document.getElementById('lf-daterange').value;
+  const customDiv=document.getElementById('lf-custom-dates');
+  customDiv.style.display=v==='custom'?'flex':'none';
+  if (v!=='custom') {
+    const to=new Date(), from=new Date();
+    if (v==='30') from.setDate(to.getDate()-30);
+    else if (v==='60') from.setDate(to.getDate()-60);
+    else if (v==='90') from.setDate(to.getDate()-90);
+    else if (v==='mtd') from.setDate(1);
+    document.getElementById('lf-from').value = v ? from.toISOString().slice(0,10) : '';
+    document.getElementById('lf-to').value = v ? to.toISOString().slice(0,10) : '';
+    renderLedger();
+  }
+}
+
+async function renderLedger() {
+  const tbody=document.getElementById('ledger-body');
+  tbody.innerHTML='<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
+  const params={fyid:curFY};
+  if(curCo) params.company_id=curCo;
+  const ac=ssGet('lf-ac-wrap'); if(ac) params.ac_code=ac;
+  const from=document.getElementById('lf-from').value; if(from) params.date_from=from;
+  const to=document.getElementById('lf-to').value; if(to) params.date_to=to;
+  const res=await api('getLedger',params);
+  let rows=res.ledger||[];
+
+  // Client-side filters
+  const proj=ssGet('lf-proj-wrap'); if(proj) rows=rows.filter(r=>r.project_id===proj);
+  const vendor=ssGet('lf-vendor-wrap'); if(vendor) rows=rows.filter(r=>r.vendor_id===vendor);
+
+  // Opening balance if account selected
+  let obAmt=0, obDrCr='DR';
+  if (ac) {
+    const obRes=await api('listOpeningBalances',{fyid:curFY,company_id:curCo||undefined});
+    const ob=(obRes.opening_balances||[]).find(o=>o.ac_code===ac||o.ac_key===ac);
+    if(ob){obAmt=parseFloat(ob.amount||0);obDrCr=ob.dr_cr;}
   }
 
-  const es = entries.entries||[];
-  document.getElementById('dash-recent').innerHTML = es.length ? `
-    <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Co</th></tr></thead><tbody>
-    ${es.map(e=>`<tr>
-      <td>${e.date}</td><td><code>${e.entry_type}</code></td>
-      <td class="amount">${fmtAmt(e.amount)}</td><td>${e.company_id}</td>
-    </tr>`).join('')}
-    </tbody></table></div>` : '<div class="empty">No entries yet</div>';
-}
+  // Sort descending by date (most recent first)
+  rows.sort((a,b)=>new Date(b.date)-new Date(a.date));
+  _ledgerRows=rows;
 
-async function quickApprove(id){
-  const r=await api('approvePending',{entry_id:id});
-  if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');
-}
+  let totDr=0,totCr=0;
+  rows.forEach(r=>{totDr+=parseFloat(r.debit||0);totCr+=parseFloat(r.credit||0);});
+  const net=totDr-totCr;
+  document.getElementById('ledger-sum').textContent=`${rows.length} rows | DR: ${fmtAmt(totDr)} | CR: ${fmtAmt(totCr)} | Net: ${fmtAmt(Math.abs(net))} ${net>0?'DR':'CR'}`;
 
-// ── LEDGER ────────────────────────────────────────────────────────────────────
-async function renderLedger() {
-  const tbody = document.getElementById('ledger-body');
-  tbody.innerHTML = '<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
+  if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No entries found</td></tr>'; return; }
 
-  const res = await api('getLedger',{fyid:curFY, company_id:curCo||document.getElementById('lf-co').value, ac_code:document.getElementById('lf-ac').value||undefined, date_from:document.getElementById('lf-from').value||undefined, date_to:document.getElementById('lf-to').value||undefined});
-  let rows = res.ledger||[];
-
-  const proj = document.getElementById('lf-proj').value;
-  if(proj) rows = rows.filter(r=>r.project_id===proj);
-
-  _ledgerFiltered = rows;
-
-  let totalDr=0, totalCr=0;
-  rows.forEach(r=>{totalDr+=parseFloat(r.debit||0);totalCr+=parseFloat(r.credit||0);});
-  document.getElementById('ledger-summary').textContent = `${rows.length} rows | DR: ${fmtAmt(totalDr)} | CR: ${fmtAmt(totalCr)}`;
-
-  if(!rows.length){tbody.innerHTML='<tr><td colspan="6" class="empty">No entries</td></tr>';return;}
-  tbody.innerHTML = rows.map(r=>`<tr>
-    <td style="white-space:nowrap">${r.date}</td>
-    <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
-    <td><span class="badge ${r.dr_cr==='DR'?'b-green':'b-red'}">${r.dr_cr}</span></td>
-    <td class="amount">${r.dr_cr==='DR'?fmtAmt(r.debit):fmtAmt(r.credit)}</td>
-    <td style="font-size:11px;max-width:120px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.narration||'—'}</td>
+  tbody.innerHTML=rows.map(r=>`<tr>
+    <td style="white-space:nowrap">${fmtDate(r.date)}</td>
     <td style="font-size:11px">${r.company_id}</td>
+    <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
+    <td style="font-size:11px;max-width:150px">${r.narration||'—'}</td>
+    <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
+    <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
   </tr>`).join('');
 
-  // Opening balance for selected account
-  const ac = document.getElementById('lf-ac').value;
+  // Footer totals + opening balance
+  const foot=document.getElementById('ledger-foot');
+  let footHTML='';
+  if(ac && obAmt>0) footHTML+=`<tr style="background:rgba(79,142,247,.06)"><td colspan="4" style="font-size:11px;font-style:italic">Opening Balance</td><td class="amt" style="text-align:right">${obDrCr==='DR'?fmtAmt(obAmt):''}</td><td class="amt" style="text-align:right">${obDrCr==='CR'?fmtAmt(obAmt):''}</td></tr>`;
+  footHTML+=`<tr style="border-top:2px solid var(--border);font-weight:700"><td colspan="4">Total</td><td class="amt dr" style="text-align:right">${fmtAmt(totDr)}</td><td class="amt cr" style="text-align:right">${fmtAmt(totCr)}</td></tr>`;
   if(ac) {
-    const ob = await api('listOpeningBalances',{fyid:curFY});
-    const row = (ob.opening_balances||[]).find(o=>o.ac_code===ac||o.ac_key===ac);
-    document.getElementById('ledger-ob').innerHTML = row
-      ? `<div class="badge b-blue">Opening Balance: ${row.dr_cr} ${fmtAmt(row.amount)}</div>`
-      : '';
+    const closing = obDrCr==='DR' ? (obAmt+totDr-totCr) : (totCr-totDr-obAmt);
+    footHTML+=`<tr style="background:rgba(34,197,94,.06)"><td colspan="4" style="font-size:11px;font-style:italic">Closing Balance</td><td class="amt" style="text-align:right">${closing>=0?fmtAmt(Math.abs(closing)):''}</td><td class="amt cr" style="text-align:right">${closing<0?fmtAmt(Math.abs(closing)):''}</td></tr>`;
   }
+  foot.innerHTML=footHTML;
 }
 
-function syncAccFilter(){
-  const type = document.getElementById('lf-type').value;
-  const sel = document.getElementById('lf-ac');
-  sel.innerHTML='<option value="">All Accounts</option>';
-  _accounts.filter(a=>!type||a.ac_type===type).forEach(a=>{
-    sel.innerHTML+=`<option value="${a.ac_code}">${a.ac_code} — ${a.ac_name}</option>`;
+function resetLedgerFilters() {
+  ssClear('lf-ac-wrap'); ssClear('lf-proj-wrap'); ssClear('lf-vendor-wrap');
+  document.getElementById('lf-from').value=''; document.getElementById('lf-to').value='';
+  document.getElementById('lf-daterange').value='';
+  document.getElementById('lf-custom-dates').style.display='none';
+  renderLedger();
+}
+
+function downloadLedgerXLS() {
+  if(!_ledgerRows.length){toast('No data','err');return;}
+  const ws=XLSX.utils.json_to_sheet(_ledgerRows.map(r=>({
+    Date:fmtDate(r.date),Company:r.company_id,AccountCode:r.ac_code,AccountName:r.ac_name,
+    DrCr:r.dr_cr,Debit:r.debit||0,Credit:r.credit||0,Narration:r.narration||'',
+    Project:r.project_id||'',Vendor:r.vendor_id||''
+  })));
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Ledger');
+  XLSX.writeFile(wb,`Ledger_${curFY}.xlsx`);
+  toast('XLS downloaded');
+}
+
+function printLedger() {
+  const w=window.open('','_blank');
+  const rows=_ledgerRows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.company_id}</td><td>${r.ac_name}</td><td>${r.narration||''}</td><td style="text-align:right">${r.debit>0?'₹'+fmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?'₹'+fmt(r.credit):''}</td></tr>`).join('');
+  w.document.write(`<html><head><title>Ledger ${curFY}</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}th{background:#f5f5f5}</style></head><body><h2>BlueDoor Ledger — ${curFY}</h2><table><thead><tr><th>Date</th><th>Co</th><th>Account</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody></table></body></html>`);
+  w.print();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADD TAB
+// ═══════════════════════════════════════════════════════════════
+function setAddTab(tab, el) {
+  _curAddTab=tab;
+  document.querySelectorAll('#add-tabs .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  ['entry','project','vendor','opening','bankimport'].forEach(t=>{
+    document.getElementById(`at-${t}`)?.classList.toggle('hidden',t!==tab);
   });
-  renderLedger();
+  if(tab==='project') loadProjects();
+  else if(tab==='vendor') loadVendors();
+  else if(tab==='opening') loadOpeningBalances();
 }
-function resetLedgerFilters(){
-  ['lf-co','lf-type','lf-ac','lf-proj'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  ['lf-from','lf-to'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
-  renderLedger();
-}
-function downloadLedgerCSV(){
-  if(!_ledgerFiltered.length){toast('No data','err');return;}
-  const header=['Date','EntryID','Account Code','Account Name','DR/CR','Debit','Credit','Project','Narration','Company'];
-  const rows=_ledgerFiltered.map(r=>[r.date,r.entry_id,r.ac_code,r.ac_name,r.dr_cr,r.debit,r.credit,r.project_id,r.narration,r.company_id].map(v=>`"${s(v)}"`).join(','));
-  const csv=[header.join(','),...rows].join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`ledger_${curFY}.csv`;a.click();
+function renderAddTab(tab) {
+  // Just show the correct tab
+  document.querySelectorAll('#add-tabs .ctab').forEach((t,i)=>{
+    const tabs=['entry','project','vendor','opening','bankimport'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  setAddTab(tab);
 }
 
-// ── ADD ENTRY ─────────────────────────────────────────────────────────────────
-function setCat(cat){
-  _curCat=cat;
-  document.querySelectorAll('#cat-tabs .cat-tab').forEach(el=>el.classList.toggle('active',el.textContent===cat.charAt(0).toUpperCase()+cat.slice(1)));
-  // Filter entry types by category
-  const types = _entryTypes.filter(t=>t.category===cat&&t.active);
-  fillSel('ae-type', types, t=>[t.et_key, t.label]);
-  document.getElementById('ae-type').value='';
-  onTypeChange();
+// ── ENTRY ─────────────────────────────────────────────────────
+function setEntryCat(cat, el) {
+  _curEntryCat=cat; _selType=null;
+  document.querySelectorAll('#entry-cats .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  const types=_ets.filter(t=>t.category===cat&&t.active);
+  const grid=document.getElementById('type-grid');
+  if(!types.length){grid.innerHTML='<div class="empty">No entry types</div>';return;}
+  grid.innerHTML=types.map(t=>`
+    <div class="type-opt" onclick="pickType(this,'${t.et_key}')">
+      <div class="tol">${t.label}</div>
+      <div class="toh">${t.dr} → ${t.cr}</div>
+    </div>`).join('');
 }
-function onTypeChange(){
-  const et = _entryTypes.find(t=>t.et_key===document.getElementById('ae-type').value);
-  document.getElementById('ae-vendor-wrap').classList.toggle('hidden', !et||et.category!=='vendor');
-  document.getElementById('ae-ch-wrap').classList.toggle('hidden', !et||!et.needs_ch);
+
+function pickType(el, key) {
+  document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  _selType=_ets.find(t=>t.et_key===key);
+  if(!_selType) return;
+  // Show/hide conditional fields
+  document.getElementById('ae-vendor-f').classList.toggle('hidden', _selType.category!=='vendor');
+  document.getElementById('ae-ch-f').classList.toggle('hidden', !_selType.needs_ch);
+  const showDoc=_selType.category==='vendor'||(_selType.category==='expense'&&key!=='expense_petty_cash');
+  document.getElementById('ae-doc-f').classList.toggle('hidden',!showDoc);
+  // Preview DR/CR
+  const prev=document.getElementById('ae-preview');
+  prev.style.display='block';
+  prev.innerHTML=`<span class="badge bg">DR: ${_selType.dr}</span> &nbsp; <span class="badge br">CR: ${_selType.cr}</span> &nbsp; <span style="font-size:11px;color:var(--muted)">${_selType.label}</span>`;
 }
-async function saveEntry(){
+
+async function saveEntry() {
+  if(!_selType){toast('Select an entry type first','err');return;}
   const date=document.getElementById('ae-date').value;
   const co=document.getElementById('ae-co').value;
-  const et=document.getElementById('ae-type').value;
   const amt=parseFloat(document.getElementById('ae-amt').value);
-  if(!date||!co||!et||!amt){toast('Fill required fields','err');return;}
-  const res = await api('addEntry',{
-    date, company_id:co, fyid:curFY,
-    entry_type:et,
-    project_id:document.getElementById('ae-proj').value||'',
-    vendor_id:document.getElementById('ae-vendor').value||'',
-    cost_head_id:document.getElementById('ae-ch').value||'',
-    amount:amt,
-    narration:document.getElementById('ae-narration').value.trim()
+  const narr=document.getElementById('ae-narr').value.trim();
+  const proj=ssGet('ae-proj-wrap');
+  const vendor=ssGet('ae-vendor-wrap');
+  const ch=ssGet('ae-ch-wrap');
+  if(!date){toast('Select a date','err');return;}
+  if(!co){toast('Select company','err');return;}
+  if(!amt||amt<=0){toast('Enter valid amount','err');return;}
+  if(_selType.needs_ch&&!ch){toast('Select cost head','err');return;}
+
+  const res=await api('addEntry',{
+    date,fyid:curFY,company_id:co,entry_type:_selType.et_key,
+    project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr
   });
   if(res.ok){
     toast('Entry saved ✓');
     document.getElementById('ae-amt').value='';
-    document.getElementById('ae-narration').value='';
+    document.getElementById('ae-narr').value='';
+    document.getElementById('ae-doc-url').value='';
+    document.getElementById('ae-preview').style.display='none';
+    document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
+    _selType=null;
   } else toast(res.error,'err');
 }
 
-// ── REPORTS ───────────────────────────────────────────────────────────────────
-function setRpt(r){
-  _curRpt=r;
-  document.querySelectorAll('#v-reports .cat-tab').forEach(el=>{
-    const map={pl:'P&L',bs:'Balance Sheet',vendor:'Vendor',project:'Project',trial:'Trial Balance'};
-    el.classList.toggle('active',el.textContent===map[r]);
-  });
-  renderReport(r);
+// ── PROJECTS ─────────────────────────────────────────────────
+let _allProjs=[];
+async function loadProjects() {
+  const res=await api('listProjects',{fyid:curFY});
+  _allProjs=res.projects||[];
+  renderProjects(_allProjs);
 }
-async function renderReport(r){
-  const el=document.getElementById('rpt-content');
+function filterProjects(q) {
+  const fl=q.toLowerCase();
+  renderProjects(fl?_allProjs.filter(p=>p.project_name.toLowerCase().includes(fl)||p.client?.toLowerCase().includes(fl)):_allProjs);
+}
+function renderProjects(projs) {
+  document.getElementById('proj-list').innerHTML=projs.length?projs.map(p=>`
+    <div class="card" style="margin-bottom:8px">
+      <div class="cbd">
+        <div class="rsb">
+          <div>
+            <div style="font-weight:600;font-size:13px">${p.project_name}</div>
+            <div style="font-size:11px;color:var(--muted)">${p.client||'—'} · ${p.location||'—'} · ${fmtDate(p.start_date)||'—'}</div>
+          </div>
+          <span class="badge ${p.status==='Active'?'bg':'bx'}">${p.status}</span>
+        </div>
+        <div class="row mt2" style="gap:6px">
+          <button class="btn btn-o btn-xs" onclick="editProject('${p.project_id}')">✏️ Edit</button>
+          <button class="btn btn-d btn-xs" onclick="confirm2('Delete Project','Delete ${p.project_name}?',()=>deleteProject('${p.project_id}'))">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="empty">No projects</div>';
+}
+function showProjectForm(proj={}) {
+  showEditModal(proj.project_id?'Edit Project':'Add Project',`
+    <div class="field"><label>Project Name *</label><input id="pf-name" value="${proj.project_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Client</label><input id="pf-client" value="${proj.client||''}"></div>
+      <div class="field"><label>Location</label><input id="pf-loc" value="${proj.location||''}"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Start Date</label><input type="date" id="pf-date" value="${toISO(proj.start_date)||''}"></div>
+      <div class="field"><label>Status</label>
+        <select id="pf-status"><option ${proj.status==='Active'?'selected':''}>Active</option><option ${proj.status==='On Hold'?'selected':''}>On Hold</option><option ${proj.status==='Completed'?'selected':''}>Completed</option></select>
+      </div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveProject('${proj.project_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveProject(pid) {
+  const name=document.getElementById('pf-name').value.trim();
+  if(!name){toast('Project name required','err');return;}
+  const payload={project_name:name,client:document.getElementById('pf-client').value.trim(),location:document.getElementById('pf-loc').value.trim(),status:document.getElementById('pf-status').value,start_date:document.getElementById('pf-date').value,fyid:curFY};
+  const res=pid?await api('updateProject',{project_id:pid,...payload}):await api('addProject',payload);
+  if(res.ok){toast(pid?'Project updated':'Project added');closeEditModal();loadProjects();}else toast(res.error,'err');
+}
+function editProject(id){const p=_allProjs.find(x=>x.project_id===id);if(p)showProjectForm(p);}
+async function deleteProject(id){const r=await api('deleteProject',{project_id:id});if(r.ok){toast('Deleted');loadProjects();}else toast(r.error||'Cannot delete — entries exist','err');}
+
+// ── VENDORS ──────────────────────────────────────────────────
+let _allVendors=[];
+async function loadVendors(){
+  const res=await api('listVendors');
+  _allVendors=res.vendors||[];
+  renderVendors(_allVendors);
+}
+function filterVendors(q){const fl=q.toLowerCase();renderVendors(fl?_allVendors.filter(v=>v.vendor_name.toLowerCase().includes(fl)):_allVendors);}
+function renderVendors(vs){
+  document.getElementById('vendor-list').innerHTML=vs.length?vs.map(v=>`
+    <div class="card" style="margin-bottom:8px">
+      <div class="cbd rsb">
+        <div>
+          <div style="font-weight:600;font-size:13px">${v.vendor_name}</div>
+          <div style="font-size:11px;color:var(--muted)">${v.vendor_type||'—'} · ${v.contact||'—'}</div>
+        </div>
+        <div class="row" style="gap:5px">
+          <button class="btn btn-o btn-xs" onclick="editVendor('${v.vendor_id}')">✏️</button>
+          <button class="btn btn-d btn-xs" onclick="confirm2('Delete Vendor','Delete ${v.vendor_name}?',()=>deleteVendor('${v.vendor_id}'))">🗑</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="empty">No vendors</div>';
+}
+function showVendorForm(v={}){
+  showEditModal(v.vendor_id?'Edit Vendor':'Add Vendor',`
+    <div class="field"><label>Name *</label><input id="vf-name" value="${v.vendor_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Type</label><select id="vf-type"><option ${v.vendor_type==='Supplier'?'selected':''}>Supplier</option><option ${v.vendor_type==='Contractor'?'selected':''}>Contractor</option><option ${v.vendor_type==='Labour'?'selected':''}>Labour</option><option ${v.vendor_type==='Consultant'?'selected':''}>Consultant</option><option ${v.vendor_type==='Other'?'selected':''}>Other</option></select></div>
+      <div class="field"><label>Contact</label><input id="vf-contact" type="tel" value="${v.contact||''}"></div>
+    </div>
+    <div class="field"><label>GSTIN</label><input id="vf-gstin" value="${v.gstin||''}"></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveVendor('${v.vendor_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveVendor(vid){
+  const name=document.getElementById('vf-name').value.trim();
+  if(!name){toast('Vendor name required','err');return;}
+  const payload={vendor_name:name,vendor_type:document.getElementById('vf-type').value,contact:document.getElementById('vf-contact').value.trim(),gstin:document.getElementById('vf-gstin').value.trim()};
+  const res=vid?await api('updateVendor',{vendor_id:vid,...payload}):await api('addVendor',{vendor_id:`V${Date.now()}`,...payload});
+  if(res.ok){toast(vid?'Vendor updated':'Vendor added');closeEditModal();loadVendors();}else toast(res.error,'err');
+}
+function editVendor(id){const v=_allVendors.find(x=>x.vendor_id===id);if(v)showVendorForm(v);}
+async function deleteVendor(id){const r=await api('deleteVendor',{vendor_id:id});if(r.ok){toast('Deleted');loadVendors();}else toast(r.error||'Cannot delete','err');}
+
+// ── OPENING BALANCES ──────────────────────────────────────────
+async function loadOpeningBalances(){
+  document.getElementById('ob-fy-label').textContent=curFY;
+  const [obRes,vobRes,tbRes,vtbRes]=await Promise.all([
+    api('listOpeningBalances',{fyid:curFY}),
+    api('listVendorOpeningBalances',{fyid:curFY}),
+    api('getTrialBalance',{fyid:curFY}),
+    api('getLedger',{fyid:curFY})
+  ]);
+  const obs=obRes.opening_balances||[];
+  const vobs=vobRes.vendor_opening_balances||[];
+  const tbRows=tbRes.trial_balance||[];
+  const ledRows=vtbRes.ledger||[];
+
+  // Build account closing balances
+  document.getElementById('ob-accounts').innerHTML=`
+    <div class="tw"><table>
+      <thead><tr><th>Account</th><th>Key</th><th>Co</th><th>OB DR</th><th>OB CR</th><th>Closing DR</th><th>Closing CR</th><th></th></tr></thead>
+      <tbody>${_acs.map(ac=>{
+        const ob=obs.find(o=>o.ac_key===ac.ac_key)||{};
+        const tb=tbRows.find(t=>t.ac_code===ac.ac_code)||{};
+        const obDr=ob.dr_cr==='DR'?parseFloat(ob.amount||0):0;
+        const obCr=ob.dr_cr==='CR'?parseFloat(ob.amount||0):0;
+        const actDr=parseFloat(tb.total_dr||0);
+        const actCr=parseFloat(tb.total_cr||0);
+        const closeDr=obDr+actDr;
+        const closeCr=obCr+actCr;
+        return`<tr>
+          <td><strong style="font-size:12px">${ac.ac_name}</strong></td>
+          <td><code>${ac.ac_key}</code></td>
+          <td style="font-size:11px">${ob.company_id||'—'}</td>
+          <td class="amt dr">${obDr>0?fmtAmt(obDr):''}</td>
+          <td class="amt cr">${obCr>0?fmtAmt(obCr):''}</td>
+          <td class="amt dr">${closeDr>closeCr?fmtAmt(closeDr-closeCr):''}</td>
+          <td class="amt cr">${closeCr>closeDr?fmtAmt(closeCr-closeDr):''}</td>
+          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${ob.dr_cr||'DR'}','${ob.amount||0}','${ob.company_id||''}')">✏️</button></td>
+        </tr>`;}).join('')}
+      </tbody></table></div>`;
+
+  // Vendor balances
+  document.getElementById('ob-vendors').innerHTML=`
+    <div class="tw"><table>
+      <thead><tr><th>Vendor</th><th>Co</th><th>OB DR</th><th>OB CR</th><th>Activity DR</th><th>Activity CR</th><th></th></tr></thead>
+      <tbody>${_vendors.map(v=>{
+        const ob=vobs.find(o=>o.vendor_id===v.vendor_id)||{};
+        const vLed=ledRows.filter(l=>l.vendor_id===v.vendor_id);
+        const actDr=vLed.reduce((s,l)=>s+parseFloat(l.debit||0),0);
+        const actCr=vLed.reduce((s,l)=>s+parseFloat(l.credit||0),0);
+        const obDr=ob.dr_cr==='DR'?parseFloat(ob.amount||0):0;
+        const obCr=ob.dr_cr==='CR'?parseFloat(ob.amount||0):0;
+        return`<tr>
+          <td><strong style="font-size:12px">${v.vendor_name}</strong></td>
+          <td style="font-size:11px">${ob.company_id||'—'}</td>
+          <td class="amt dr">${obDr>0?fmtAmt(obDr):''}</td>
+          <td class="amt cr">${obCr>0?fmtAmt(obCr):''}</td>
+          <td class="amt dr">${actDr>0?fmtAmt(actDr):''}</td>
+          <td class="amt cr">${actCr>0?fmtAmt(actCr):''}</td>
+          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${ob.dr_cr||'CR'}','${ob.amount||0}','${ob.company_id||''}')">✏️</button></td>
+        </tr>`;}).join('')}
+      </tbody></table></div>`;
+}
+
+function editOB(acKey,acName,drCr,amount,coId){
+  showEditModal('Edit Opening Balance',`
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">${acName} <code>${acKey}</code></div>
+    <div class="g2">
+      <div class="field"><label>DR / CR</label><select id="ob-drcr"><option value="DR" ${drCr==='DR'?'selected':''}>DR (Debit)</option><option value="CR" ${drCr==='CR'?'selected':''}>CR (Credit)</option></select></div>
+      <div class="field"><label>Amount ₹</label><input type="number" id="ob-amt" value="${amount}" step="0.01"></div>
+    </div>
+    <div class="field"><label>Company</label><select id="ob-co">${_cos.map(c=>`<option value="${c.company_id}" ${coId===c.company_id?'selected':''}>${c.company_name}</option>`).join('')}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveOB('${acKey}','${acName}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveOB(acKey,acName){
+  const r=await api('saveOpeningBalance',{fyid:curFY,ac_key:acKey,ac_name:acName,dr_cr:document.getElementById('ob-drcr').value,amount:parseFloat(document.getElementById('ob-amt').value)||0,company_id:document.getElementById('ob-co').value});
+  if(r.ok){toast('Opening balance saved');closeEditModal();loadOpeningBalances();}else toast(r.error,'err');
+}
+function editVOB(vid,vname,drCr,amount,coId){
+  showEditModal('Edit Vendor Opening Balance',`
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">${vname}</div>
+    <div class="g2">
+      <div class="field"><label>DR / CR</label><select id="vob-drcr"><option value="DR" ${drCr==='DR'?'selected':''}>DR (Debit)</option><option value="CR" ${drCr==='CR'?'selected':''}>CR (Credit)</option></select></div>
+      <div class="field"><label>Amount ₹</label><input type="number" id="vob-amt" value="${amount}" step="0.01"></div>
+    </div>
+    <div class="field"><label>Company</label><select id="vob-co">${_cos.map(c=>`<option value="${c.company_id}" ${coId===c.company_id?'selected':''}>${c.company_name}</option>`).join('')}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveVOB('${vid}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveVOB(vid){
+  const r=await api('saveVendorOpeningBalance',{fyid:curFY,vendor_id:vid,dr_cr:document.getElementById('vob-drcr').value,amount:parseFloat(document.getElementById('vob-amt').value)||0,company_id:document.getElementById('vob-co').value});
+  if(r.ok){toast('Saved');closeEditModal();loadOpeningBalances();}else toast(r.error,'err');
+}
+function exportOBXLS(){
+  const rows=[];
+  document.querySelectorAll('#ob-accounts tr[class!=""]').forEach(tr=>{
+    const tds=[...tr.querySelectorAll('td')].map(td=>td.textContent.trim());
+    if(tds.length>1) rows.push({Account:tds[0],Key:tds[1],Company:tds[2],'OB DR':tds[3],'OB CR':tds[4],'Closing DR':tds[5],'Closing CR':tds[6]});
+  });
+  if(!rows.length){toast('No data','err');return;}
+  const ws=XLSX.utils.json_to_sheet(rows);
+  const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Opening Balances');
+  XLSX.writeFile(wb,`OpeningBalances_${curFY}.xlsx`);
+}
+function printOB(){
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>Opening Balances ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Opening & Closing Balances — ${curFY}</h2>${document.getElementById('ob-accounts').innerHTML}${document.getElementById('ob-vendors').innerHTML}</body></html>`);
+  w.print();
+}
+
+// ── BANK IMPORT ───────────────────────────────────────────────
+function parseBankFile(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('bank-status').textContent='Parsing...';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parseBankRows(raw);
+    }catch(e){document.getElementById('bank-status').textContent='Error: '+e.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parseBankRows(raw){
+  _bankRows=[];
+  let hIdx=-1;
+  for(let i=0;i<raw.length;i++){
+    const r=raw[i].join('|').toLowerCase();
+    if(r.includes('date')&&(r.includes('narration')||r.includes('description'))&&(r.includes('withdrawal')||r.includes('debit'))){hIdx=i;break;}
+  }
+  if(hIdx===-1){document.getElementById('bank-status').textContent='Header row not found. Expected columns: Date, Narration, Withdrawal/Debit, Deposit/Credit';return;}
+  const hdrs=raw[hIdx].map(h=>s(h).toLowerCase());
+  const iDate=hdrs.findIndex(h=>h.includes('date')&&!h.includes('value'));
+  const iNarr=hdrs.findIndex(h=>h.includes('narration')||h.includes('description'));
+  const iRef=hdrs.findIndex(h=>h.includes('chq')||h.includes('ref')||h.includes('reference'));
+  const iWD=hdrs.findIndex(h=>h.includes('withdrawal')||h.includes('debit'));
+  const iDep=hdrs.findIndex(h=>h.includes('deposit')||h.includes('credit'));
+  const iBal=hdrs.findIndex(h=>h.includes('balance'));
+
+  for(let i=hIdx+1;i<raw.length;i++){
+    const row=raw[i];
+    const dateRaw=row[iDate];
+    if(!dateRaw) continue;
+    let dateStr='';
+    if(dateRaw instanceof Date) dateStr=dateRaw.toISOString().slice(0,10);
+    else { try{const d=new Date(dateRaw);if(!isNaN(d))dateStr=d.toISOString().slice(0,10);}catch(e){} }
+    if(!dateStr) continue;
+    const narr=s(row[iNarr]);
+    const wd=parseFloat(s(row[iWD]).replace(/,/g,''))||0;
+    const dep=parseFloat(s(row[iDep]).replace(/,/g,''))||0;
+    const bal=iBal>=0?parseFloat(s(row[iBal]).replace(/,/g,''))||null:null;
+    const ref=iRef>=0?s(row[iRef]):'';
+    if(!narr||(wd===0&&dep===0)) continue;
+    _bankRows.push({date:dateStr,narration:narr,reference:ref,withdrawal:wd,deposit:dep,balance:bal,_hash:`${dateStr}|${narr}|${wd}|${dep}`});
+  }
+
+  // Remove duplicates (same date+narration+amount already in entries)
+  document.getElementById('bank-status').textContent=`Parsed ${_bankRows.length} rows. Checking duplicates...`;
+  api('listEntries',{fyid:curFY,limit:1000}).then(res=>{
+    const existing=new Set((res.entries||[]).map(e=>`${e.date}|${e.narration}|${e.amount}`));
+    const before=_bankRows.length;
+    _bankRows=_bankRows.filter(r=>!existing.has(`${r.date}|${r.narration}|${r.withdrawal||r.deposit}`));
+    const dups=before-_bankRows.length;
+    document.getElementById('bank-status').textContent=`${_bankRows.length} rows ready (${dups} duplicates removed)`;
+    renderBankPreview();
+    document.getElementById('bank-import-btn').style.display=_bankRows.length?'block':'none';
+  });
+}
+function renderBankPreview(){
+  document.getElementById('bank-preview').innerHTML=_bankRows.length?`
+    <div class="tw"><table style="min-width:300px">
+      <thead><tr><th>Date</th><th>Narration</th><th class="cr">Withdrawal</th><th class="dr">Deposit</th></tr></thead>
+      <tbody>${_bankRows.slice(0,20).map(r=>`<tr>
+        <td>${fmtDate(r.date)}</td>
+        <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.narration}</td>
+        <td class="amt cr" style="text-align:right">${r.withdrawal>0?fmtAmt(r.withdrawal):''}</td>
+        <td class="amt dr" style="text-align:right">${r.deposit>0?fmtAmt(r.deposit):''}</td>
+      </tr>`).join('')}
+      </tbody></table></div>
+    ${_bankRows.length>20?`<div style="font-size:11px;color:var(--muted);padding:6px">...and ${_bankRows.length-20} more</div>`:''}`:'';}
+
+async function doImportBank(){
+  if(!_bankRows.length){toast('No rows','err');return;}
+  const btn=document.getElementById('bank-import-btn');
+  btn.disabled=true; btn.textContent='Importing...';
+  let imported=0,failed=0;
+  for(const row of _bankRows){
+    const entry_type=row.deposit>0?'Bank_payment_received':'expense_bank';
+    const amount=row.deposit>0?row.deposit:row.withdrawal;
+    const res=await api('submitPending',{date:row.date,fyid:curFY,entry_type,amount,narration:row.narration,company_id:_cos[0]?.company_id||''});
+    if(res.ok) imported++; else failed++;
+  }
+  btn.disabled=false; btn.textContent='Import to Pending Entries';
+  toast(`Imported ${imported} rows${failed?', '+failed+' failed':''}`);
+  _bankRows=[]; document.getElementById('bank-file').value='';
+  document.getElementById('bank-status').textContent='Done.';
+  document.getElementById('bank-preview').innerHTML='';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════════════════════════════
+function setRpt(r,el){
+  _curRpt=r;
+  document.querySelectorAll('#v-reports .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderRpt(r);
+}
+async function renderRpt(r){
+  const el=document.getElementById('rpt-out');
   el.innerHTML='<div class="empty"><span class="spin"></span></div>';
   if(r==='pl') await renderPL(el);
   else if(r==='bs') await renderBS(el);
   else if(r==='trial') await renderTrial(el);
-  else if(r==='vendor') await renderVendorRpt(el);
-  else if(r==='project') await renderProjectRpt(el);
+  else if(r==='vendor') renderVendorRptPicker(el);
+  else if(r==='project') renderProjectRptPicker(el);
 }
+
+function rptActions(exportFn, printFn) {
+  return `<div class="row" style="gap:6px;margin-bottom:12px">
+    <button class="btn btn-o btn-xs" onclick="${exportFn}()">⬇ XLS</button>
+    <button class="btn btn-o btn-xs" onclick="${printFn}()">🖨 Print/PDF</button>
+  </div>`;
+}
+
 async function renderPL(el){
   const res=await api('getPL',{fyid:curFY,company_id:curCo});
+  const tbRes=await api('getTrialBalance',{fyid:curFY,company_id:curCo});
   const rows=res.pl||[];
-  let income=0,expense=0;
+  const tb=tbRes.trial_balance||[];
+
+  // Advances received from client = ADV_RECV account (credit side = income-like)
+  // Advances paid to vendor = ADV_PAID account (debit side = expense-like)
+  const getNet=(acType,side)=>tb.filter(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_type===acType;}).reduce((s,r)=>s+parseFloat(side==='cr'?r.total_cr:r.total_dr||0),0);
+
   const incRows=rows.filter(r=>r.ac_type==='Income');
   const expRows=rows.filter(r=>r.ac_type==='Expense');
-  incRows.forEach(r=>income+=parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0));
-  expRows.forEach(r=>expense+=parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0));
+  // Add advance received as income
+  const advRecv=tb.find(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_key==='ADV_RECV';});
+  const advPaid=tb.find(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_key==='ADV_PAID';});
+  const advRecvAmt=advRecv?parseFloat(advRecv.total_cr||0)-parseFloat(advRecv.total_dr||0):0;
+  const advPaidAmt=advPaid?parseFloat(advPaid.total_dr||0)-parseFloat(advPaid.total_cr||0):0;
+
+  let income=incRows.reduce((s,r)=>s+parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0),0)+advRecvAmt;
+  let expense=expRows.reduce((s,r)=>s+parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0),0)+advPaidAmt;
   const net=income-expense;
-  el.innerHTML=`
-    <div class="card"><div class="card-hd"><h3>Income</h3><span class="badge b-green">${fmtAmt(income)}</span></div>
-      <div class="tbl-wrap"><table><tbody>
-        ${incRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amount" style="text-align:right">${fmtAmt(parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0))}</td></tr>`).join('')}
+
+  const html=`
+    ${rptActions('exportPLXLS','printPL')}
+    <div class="card"><div class="chd"><h3>Income</h3><span class="badge bg">${fmtAmt(income)}</span></div>
+      <div class="tw"><table><tbody>
+        ${incRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amt dr" style="text-align:right">${fmtAmt(parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0))}</td></tr>`).join('')}
+        ${advRecvAmt>0?`<tr><td>Advances Received (Client)</td><td class="amt dr" style="text-align:right">${fmtAmt(advRecvAmt)}</td></tr>`:''}
       </tbody></table></div></div>
-    <div class="card"><div class="card-hd"><h3>Expense</h3><span class="badge b-red">${fmtAmt(expense)}</span></div>
-      <div class="tbl-wrap"><table><tbody>
-        ${expRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amount" style="text-align:right">${fmtAmt(parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0))}</td></tr>`).join('')}
+    <div class="card"><div class="chd"><h3>Expenses</h3><span class="badge br">${fmtAmt(expense)}</span></div>
+      <div class="tw"><table><tbody>
+        ${expRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amt cr" style="text-align:right">${fmtAmt(parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0))}</td></tr>`).join('')}
+        ${advPaidAmt>0?`<tr><td>Advances Paid (Vendors)</td><td class="amt cr" style="text-align:right">${fmtAmt(advPaidAmt)}</td></tr>`:''}
       </tbody></table></div></div>
-    <div class="card"><div class="card-bd row-sb">
-      <strong>Net Profit / Loss</strong>
-      <span class="amount" style="color:${net>=0?'var(--green)':'var(--red)'}">${fmtAmt(net)}</span>
-    </div></div>`;
+    <div class="card"><div class="cbd rsb"><strong>Net Profit / Loss</strong><span class="amt ${net>=0?'dr':'cr'}" style="font-size:16px">${fmtAmt(Math.abs(net))} ${net>=0?'Profit':'Loss'}</span></div></div>`;
+  el.innerHTML=html;
+  window._plData={income,expense,net,incRows,expRows};
 }
+
+function exportPLXLS(){
+  const d=window._plData||{}; if(!d.incRows) return;
+  const rows=[...d.incRows.map(r=>({Category:'Income',Account:r.ac_name,Amount:parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0)})),...d.expRows.map(r=>({Category:'Expense',Account:r.ac_name,Amount:parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0)})),{Category:'NET',Account:'Net Profit/Loss',Amount:d.net}];
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'P&L');
+  XLSX.writeFile(wb,`PL_${curFY}.xlsx`);
+}
+function printPL(){
+  const w=window.open('','_blank');
+  w.document.write(`<html><head><title>P&L ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}h2,h3{margin:10px 0 5px}</style></head><body><h2>Profit & Loss Statement — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}</body></html>`);
+  w.print();
+}
+
 async function renderBS(el){
   const res=await api('getBS',{fyid:curFY,company_id:curCo});
+  const obRes=await api('listOpeningBalances',{fyid:curFY,company_id:curCo||undefined});
   const rows=res.balance_sheet||[];
-  const types=['Asset','Liability','Equity','Contra-Equity'];
-  el.innerHTML=types.map(t=>{
-    const tr=rows.filter(r=>r.ac_type===t);
-    if(!tr.length)return'';
-    const tot=tr.reduce((s,r)=>s+parseFloat(t==='Asset'||t==='Contra-Equity'?r.total_dr||0:r.total_cr||0),0);
-    return `<div class="card"><div class="card-hd"><h3>${t}</h3><span class="badge b-blue">${fmtAmt(tot)}</span></div>
-      <div class="tbl-wrap"><table><tbody>
-        ${tr.map(r=>`<tr><td>${r.ac_name}</td><td class="amount" style="text-align:right">${fmtAmt(t==='Asset'||t==='Contra-Equity'?r.total_dr:r.total_cr)}</td></tr>`).join('')}
-      </tbody></table></div></div>`;
-  }).join('');
+  const obs=obRes.opening_balances||[];
+
+  // Group by type — Indian double-entry format: Assets on left, Liabilities+Equity on right
+  const assets=rows.filter(r=>r.ac_type==='Asset');
+  const liab=rows.filter(r=>r.ac_type==='Liability');
+  const equity=rows.filter(r=>r.ac_type==='Equity'||r.ac_type==='Contra-Equity');
+
+  const sumAmt=(arr,side)=>arr.reduce((s,r)=>s+parseFloat(side==='dr'?r.total_dr:r.total_cr||0),0);
+  const totalAssets=sumAmt(assets,'dr')+obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Asset'}).reduce((s,o)=>s+parseFloat(o.amount||0),0);
+  const totalLiab=sumAmt(liab,'cr')+obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Liability'}).reduce((s,o)=>s+parseFloat(o.amount||0),0);
+  const totalEq=sumAmt(equity,'cr');
+
+  const colStyle='width:50%;vertical-align:top;padding:8px';
+  el.innerHTML=`
+    ${rptActions('exportBSXLS','printBS')}
+    <div class="card"><div class="cbd">
+      <table style="min-width:0"><tbody><tr>
+        <td style="${colStyle};border-right:2px solid var(--border)">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent)">ASSETS</div>
+          ${assets.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt dr">${fmtAmt(r.total_dr)}</span></div>`).join('')}
+          ${obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Asset'}).map(o=>`<div class="rsb" style="padding:4px 0;font-style:italic;font-size:11px;color:var(--muted)"><span>OB: ${o.ac_name}</span><span class="amt dr">${fmtAmt(o.amount)}</span></div>`).join('')}
+          <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total Assets</span><span class="amt dr">${fmtAmt(totalAssets)}</span></div>
+        </td>
+        <td style="${colStyle}">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--red)">LIABILITIES & EQUITY</div>
+          ${liab.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt cr">${fmtAmt(r.total_cr)}</span></div>`).join('')}
+          ${equity.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt cr">${fmtAmt(r.total_cr)}</span></div>`).join('')}
+          <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total L+E</span><span class="amt cr">${fmtAmt(totalLiab+totalEq)}</span></div>
+        </td>
+      </tr></tbody></table>
+      <div class="rsb" style="padding:8px;background:${Math.abs(totalAssets-(totalLiab+totalEq))<1?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)'};border-radius:6px;margin-top:8px">
+        <span style="font-size:12px">Balance Check</span>
+        <span class="badge ${Math.abs(totalAssets-(totalLiab+totalEq))<1?'bg':'br'}">${Math.abs(totalAssets-(totalLiab+totalEq))<1?'✓ Balanced':'✗ Diff: '+fmtAmt(Math.abs(totalAssets-(totalLiab+totalEq)))}</span>
+      </div>
+    </div></div>`;
+  window._bsData={assets,liab,equity};
 }
+function exportBSXLS(){
+  const d=window._bsData||{};
+  const rows=[...( d.assets||[]).map(r=>({Side:'Assets',Account:r.ac_name,DR:r.total_dr,CR:''})),...(d.liab||[]).map(r=>({Side:'Liabilities',Account:r.ac_name,DR:'',CR:r.total_cr})),...(d.equity||[]).map(r=>({Side:'Equity',Account:r.ac_name,DR:'',CR:r.total_cr}))];
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Balance Sheet');
+  XLSX.writeFile(wb,`BalanceSheet_${curFY}.xlsx`);
+}
+function printBS(){const w=window.open('','_blank');w.document.write(`<html><head><title>Balance Sheet ${curFY}</title><style>body{font-family:Arial;font-size:11px}</style></head><body><h2>Balance Sheet — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}</body></html>`);w.print();}
+
+function renderVendorRptPicker(el){
+  el.innerHTML=`<div class="field"><label>Select Vendor</label><div class="ss-wrap" id="rpt-v-wrap"></div></div><div id="vendor-rpt-out"></div>`;
+  createSS('rpt-v-wrap',_vendors.map(v=>({value:v.vendor_id,label:v.vendor_name})),'— Select Vendor —',loadVendorRpt);
+}
+async function loadVendorRpt(vid){
+  if(!vid) return;
+  const el=document.getElementById('vendor-rpt-out');
+  el.innerHTML='<span class="spin"></span>';
+  const [res,obRes]=await Promise.all([api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo}),api('listVendorOpeningBalances',{fyid:curFY})]);
+  const v=res.vendor||{}; const es=res.entries||[];
+  const ob=(obRes.vendor_opening_balances||[]).find(o=>o.vendor_id===vid);
+  const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=ob?.dr_cr||'CR';
+  let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
+  el.innerHTML=`
+    <div class="rsb" style="margin-bottom:8px"><span style="font-weight:600">${v.vendor_name||vid}</span>
+      <div class="row" style="gap:5px"><button class="btn btn-o btn-xs" onclick="exportVendorXLS('${vid}')">⬇ XLS</button><button class="btn btn-o btn-xs" onclick="window.print()">🖨 Print</button></div></div>
+    <div class="tw"><table style="min-width:350px">
+      <thead><tr><th>Date</th><th>Narration</th><th>DR</th><th>CR</th></tr></thead>
+      <tbody>
+        ${obAmt>0?`<tr style="background:rgba(79,142,247,.06)"><td>—</td><td style="font-style:italic;color:var(--muted)">Opening Balance</td><td class="amt dr" style="text-align:right">${obDrCr==='DR'?fmtAmt(obAmt):''}</td><td class="amt cr" style="text-align:right">${obDrCr==='CR'?fmtAmt(obAmt):''}</td></tr>`:''}
+        ${es.map(e=>{
+          const et=_ets.find(t=>t.et_key===e.entry_type);
+          // Determine if this affects vendor as DR or CR
+          const isDr=et?.dr==='PAYABLE'||et?.dr==='ADV_PAID';
+          return`<tr>
+            <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+            <td style="font-size:11px">${e.narration||et?.label||e.entry_type}</td>
+            <td class="amt dr" style="text-align:right">${isDr?fmtAmt(e.amount):''}</td>
+            <td class="amt cr" style="text-align:right">${!isDr?fmtAmt(e.amount):''}</td>
+          </tr>`;}).join('')}
+      </tbody>
+      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)"><td colspan="2">Closing Balance</td>
+        <td class="amt dr" style="text-align:right">${fmtAmt(res.total)}</td><td></td></tr></tfoot>
+    </table></div>`;
+  window._vendorRptData={vendor:v,entries:es,ob};
+}
+function exportVendorXLS(vid){
+  const d=window._vendorRptData||{};
+  const rows=(d.entries||[]).map(e=>({Date:fmtDate(e.date),Narration:e.narration||e.entry_type,EntryType:e.entry_type,Amount:e.amount}));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Vendor Ledger');
+  XLSX.writeFile(wb,`Vendor_${vid}_${curFY}.xlsx`);
+}
+
+function renderProjectRptPicker(el){
+  el.innerHTML=`<div class="field"><label>Select Project</label><div class="ss-wrap" id="rpt-p-wrap"></div></div><div id="proj-rpt-out"></div>`;
+  createSS('rpt-p-wrap',_projs.map(p=>({value:p.project_id,label:p.project_name})),'— Select Project —',loadProjectRpt);
+}
+async function loadProjectRpt(pid){
+  if(!pid) return;
+  const el=document.getElementById('proj-rpt-out');
+  el.innerHTML='<span class="spin"></span>';
+  const res=await api('getProjectReport',{project_id:pid,fyid:curFY});
+  const p=res.project||{}; const es=res.entries||[];
+  el.innerHTML=`
+    <div class="rsb" style="margin-bottom:8px"><span style="font-weight:600">${p.project_name||pid} · ${p.client||''}</span>
+      <div class="row" style="gap:5px"><button class="btn btn-o btn-xs" onclick="exportProjXLS('${pid}')">⬇ XLS</button><button class="btn btn-o btn-xs" onclick="window.print()">🖨 Print</button></div></div>
+    <div class="tw"><table style="min-width:350px">
+      <thead><tr><th>Date</th><th>Type</th><th>Narration</th><th>DR Account</th><th>CR Account</th><th>Amount</th></tr></thead>
+      <tbody>${es.map(e=>{
+        const et=_ets.find(t=>t.et_key===e.entry_type);
+        return`<tr>
+          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td><code style="font-size:10px">${et?.label||e.entry_type}</code></td>
+          <td style="font-size:11px">${e.narration||'—'}</td>
+          <td><span class="badge bx" style="font-size:9px">${et?.dr||'—'}</span></td>
+          <td><span class="badge bx" style="font-size:9px">${et?.cr||'—'}</span></td>
+          <td class="amt dr" style="text-align:right">${fmtAmt(e.amount)}</td>
+        </tr>`;}).join('')}
+      </tbody>
+      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)"><td colspan="5">Total</td><td class="amt dr" style="text-align:right">${fmtAmt(res.total)}</td></tr></tfoot>
+    </table></div>`;
+  window._projRptData={project:p,entries:es};
+}
+function exportProjXLS(pid){
+  const d=window._projRptData||{};
+  const rows=(d.entries||[]).map(e=>({Date:fmtDate(e.date),Type:e.entry_type,Narration:e.narration||'',Amount:e.amount,Company:e.company_id}));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Project');
+  XLSX.writeFile(wb,`Project_${pid}_${curFY}.xlsx`);
+}
+
 async function renderTrial(el){
   const res=await api('getTrialBalance',{fyid:curFY,company_id:curCo});
   const rows=res.trial_balance||[];
-  let tDr=0,tCr=0;rows.forEach(r=>{tDr+=parseFloat(r.total_dr||0);tCr+=parseFloat(r.total_cr||0);});
-  el.innerHTML=`<div class="card"><div class="card-hd"><h3>Trial Balance</h3></div>
-    <div class="tbl-wrap"><table>
-      <thead><tr><th>Account</th><th>Total DR</th><th>Total CR</th><th>Net</th></tr></thead>
-      <tbody>
-        ${rows.map(r=>{const net=parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0);return`<tr>
-          <td><strong>${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
-          <td class="amount">${fmtAmt(r.total_dr)}</td>
-          <td class="amount">${fmtAmt(r.total_cr)}</td>
-          <td class="amount" style="color:${net>0?'var(--green)':net<0?'var(--red)':'var(--muted)'}">${fmtAmt(Math.abs(net))} ${net>0?'DR':net<0?'CR':''}</td>
-        </tr>`;}).join('')}
-        <tr style="border-top:1px solid var(--border)">
-          <td><strong>Total</strong></td>
-          <td class="amount"><strong>${fmtAmt(tDr)}</strong></td>
-          <td class="amount"><strong>${fmtAmt(tCr)}</strong></td>
-          <td class="amount" style="color:${Math.abs(tDr-tCr)<0.01?'var(--green)':'var(--red)'}">
-            ${Math.abs(tDr-tCr)<0.01?'✓ Balanced':'✗ Diff '+fmtAmt(Math.abs(tDr-tCr))}
-          </td>
-        </tr>
-      </tbody>
-    </table></div></div>`;
+  let tDr=0,tCr=0; rows.forEach(r=>{tDr+=parseFloat(r.total_dr||0);tCr+=parseFloat(r.total_cr||0);});
+  el.innerHTML=`
+    ${rptActions('exportTrialXLS','printTrial')}
+    <div class="tw"><table>
+      <thead><tr><th>Account Code</th><th>Account Name</th><th>Total DR</th><th>Total CR</th><th>Net</th></tr></thead>
+      <tbody>${rows.map(r=>{const net=parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0);return`<tr>
+        <td><code>${r.ac_code}</code></td><td>${r.ac_name}</td>
+        <td class="amt dr" style="text-align:right">${fmtAmt(r.total_dr)}</td>
+        <td class="amt cr" style="text-align:right">${fmtAmt(r.total_cr)}</td>
+        <td class="amt ${net>0?'dr':'cr'}" style="text-align:right">${fmtAmt(Math.abs(net))} ${net>0?'DR':net<0?'CR':''}</td>
+      </tr>`;}).join('')}</tbody>
+      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)">
+        <td colspan="2"><strong>TOTAL</strong></td>
+        <td class="amt dr" style="text-align:right"><strong>${fmtAmt(tDr)}</strong></td>
+        <td class="amt cr" style="text-align:right"><strong>${fmtAmt(tCr)}</strong></td>
+        <td class="badge ${Math.abs(tDr-tCr)<1?'bg':'br'}">${Math.abs(tDr-tCr)<1?'✓ Balanced':'✗ '+fmtAmt(Math.abs(tDr-tCr))}</td>
+      </tr></tfoot>
+    </table></div>`;
+  window._trialData=rows;
 }
-async function renderVendorRpt(el){
-  el.innerHTML=`<div class="field" style="margin:0 0 12px"><label>Select Vendor</label>
-    <select id="rpt-vendor-sel" onchange="loadVendorRpt()"><option value="">— pick vendor —</option>
-    ${_vendors.map(v=>`<option value="${v.vendor_id}">${v.vendor_name}</option>`).join('')}
-    </select></div><div id="vendor-rpt-out"></div>`;
+function exportTrialXLS(){
+  const rows=(window._trialData||[]).map(r=>({Code:r.ac_code,Account:r.ac_name,'Total DR':r.total_dr,'Total CR':r.total_cr,Net:parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0)}));
+  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Trial Balance');
+  XLSX.writeFile(wb,`TrialBalance_${curFY}.xlsx`);
 }
-async function loadVendorRpt(){
-  const vid=document.getElementById('rpt-vendor-sel').value;
-  if(!vid)return;
-  const res=await api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo});
-  const el=document.getElementById('vendor-rpt-out');
-  const es=res.entries||[];
-  el.innerHTML=`<div class="card"><div class="card-hd"><h3>${res.vendor?.vendor_name||vid}</h3>
-    <span class="badge b-blue">Total: ${fmtAmt(res.total)}</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Narration</th></tr></thead>
-    <tbody>${es.map(e=>`<tr><td>${e.date}</td><td><code>${e.entry_type}</code></td>
-      <td class="amount">${fmtAmt(e.amount)}</td><td style="font-size:11px">${e.narration||'—'}</td></tr>`).join('')}
-    </tbody></table></div></div>`;
-}
-async function renderProjectRpt(el){
-  el.innerHTML=`<div class="field" style="margin:0 0 12px"><label>Select Project</label>
-    <select id="rpt-proj-sel" onchange="loadProjectRpt()"><option value="">— pick project —</option>
-    ${_projects.filter(p=>p.fyid===curFY||!p.fyid).map(p=>`<option value="${p.project_id}">${p.project_name}</option>`).join('')}
-    </select></div><div id="proj-rpt-out"></div>`;
-}
-async function loadProjectRpt(){
-  const pid=document.getElementById('rpt-proj-sel').value;
-  if(!pid)return;
-  const res=await api('getProjectReport',{project_id:pid,fyid:curFY});
-  const el=document.getElementById('proj-rpt-out');
-  const es=res.entries||[];
-  el.innerHTML=`<div class="card"><div class="card-hd"><h3>${res.project?.project_name||pid}</h3>
-    <span class="badge b-blue">Total: ${fmtAmt(res.total)}</span></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Narration</th></tr></thead>
-    <tbody>${es.map(e=>`<tr><td>${e.date}</td><td><code>${e.entry_type}</code></td>
-      <td class="amount">${fmtAmt(e.amount)}</td><td style="font-size:11px">${e.narration||'—'}</td></tr>`).join('')}
-    </tbody></table></div></div>`;
-}
+function printTrial(){const w=window.open('','_blank');w.document.write(`<html><head><title>Trial Balance ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Trial Balance — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}</body></html>`);w.print();}
 
-// ── MORE ──────────────────────────────────────────────────────────────────────
-function setMore(tab){
+// ═══════════════════════════════════════════════════════════════
+// MORE
+// ═══════════════════════════════════════════════════════════════
+function setMore(tab,el){
   _curMore=tab;
-  document.querySelectorAll('#more-tabs .cat-tab').forEach(el=>{
-    const map={pending:'Pending',projects:'Projects',vendors:'Vendors',users:'Users',opening:'Opening Bal',rawdata:'Raw Data',import:'Import',masters:'Masters'};
-    el.classList.toggle('active',el.textContent===map[tab]);
-  });
+  document.querySelectorAll('#more-tabs .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
   renderMore(tab);
 }
-function renderMore(tab){
-  if(tab==='pending') renderPending();
-  else if(tab==='projects') renderProjects();
-  else if(tab==='vendors') renderVendors();
-  else if(tab==='users') renderUsers();
-  else if(tab==='opening') renderOpening();
+async function renderMore(tab){
+  if(tab==='pending') await renderPending();
+  else if(tab==='users') await renderUsers();
+  else if(tab==='masters') renderMasters();
   else if(tab==='rawdata') renderRawData();
   else if(tab==='import') renderImport();
-  else if(tab==='masters') renderMasters();
 }
 
 // Pending
 async function renderPending(){
-  const el=document.getElementById('more-content');
+  const el=document.getElementById('more-out');
   el.innerHTML='<div class="empty"><span class="spin"></span></div>';
   const res=await api('listPending',{fyid:curFY,company_id:curCo});
   const rows=res.pending||[];
+  // Note: bank imports go to pending — don't show all entries as pending, only actual pending_entries
   if(!rows.length){el.innerHTML='<div class="empty">No pending entries</div>';return;}
-  el.innerHTML=rows.map(p=>`
-    <div class="card" style="margin-bottom:10px">
-      <div class="card-bd">
-        <div class="row-sb">
-          <div>
-            <div style="font-size:13px;font-weight:600">${p.entry_type} — ${fmtAmt(p.amount)}</div>
-            <div style="font-size:11px;color:var(--muted)">${p.date} · ${p.submitted_by} · ${p.company_id}</div>
-            ${p.narration?`<div style="font-size:12px;margin-top:3px">${p.narration}</div>`:''}
-          </div>
-          <span class="badge b-amber">${p.status}</span>
+  el.innerHTML=rows.map(p=>{
+    const et=_ets.find(t=>t.et_key===p.entry_type);
+    return`<div class="card" style="margin-bottom:9px"><div class="cbd">
+      <div class="rsb">
+        <div>
+          <div style="font-weight:600;font-size:13px">${et?.label||p.entry_type} — <span class="amt dr">${fmtAmt(p.amount)}</span></div>
+          <div style="font-size:11px;color:var(--muted)">${fmtDate(p.date)} · ${p.submitted_by} · ${p.company_id}</div>
+          ${p.narration?`<div style="font-size:12px;margin-top:3px">${p.narration}</div>`:''}
+          <div style="font-size:10px;margin-top:3px"><span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span></div>
         </div>
-        <div class="action-row">
-          <button class="btn btn-success btn-sm" onclick="approvePending('${p.entry_id}')">✓ Approve</button>
-          <button class="btn btn-danger btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
-        </div>
+        <span class="badge ba">${p.status}</span>
       </div>
-    </div>`).join('');
+      <div class="row mt2" style="gap:6px">
+        <button class="btn btn-s btn-sm" onclick="approvePending('${p.entry_id}')">✓ Approve</button>
+        <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
+        <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
+      </div>
+    </div></div>`;}).join('');
 }
 async function approvePending(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderPending();}else toast(r.error,'err');}
 async function rejectPending(id){const reason=prompt('Reason (optional):')||'';const r=await api('rejectPending',{entry_id:id,reject_reason:reason});if(r.ok){toast('Rejected');renderPending();}else toast(r.error,'err');}
-
-// Projects
-async function renderProjects(){
-  const el=document.getElementById('more-content');
-  el.innerHTML='<div class="empty"><span class="spin"></span></div>';
-  const res=await api('listProjects',{fyid:curFY});
-  const rows=res.projects||[];
-  el.innerHTML=`<button class="btn btn-primary btn-sm" style="margin-bottom:12px" onclick="showAddProject()">+ Add Project</button>
-    <div id="add-proj-form" class="card hidden" style="margin-bottom:12px"><div class="card-bd">
-      <div class="grid2"><div class="field"><label>Name *</label><input id="np-name"></div><div class="field"><label>Client</label><input id="np-client"></div></div>
-      <div class="grid2"><div class="field"><label>Location</label><input id="np-loc"></div><div class="field"><label>Status</label><select id="np-status"><option>Active</option><option>On Hold</option><option>Completed</option></select></div></div>
-      <div class="field"><label>FY</label><input id="np-fy" value="${curFY}"></div>
-      <div class="row"><button class="btn btn-success btn-sm" onclick="addProject()">Save</button><button class="btn btn-outline btn-sm" onclick="document.getElementById('add-proj-form').classList.add('hidden')">Cancel</button></div>
-    </div></div>
-    ${rows.map(p=>`<div class="card" style="margin-bottom:8px"><div class="card-bd">
-      <div class="row-sb">
-        <div><div style="font-weight:600;font-size:13px">${p.project_name}</div>
-          <div style="font-size:11px;color:var(--muted)">${p.client||'—'} · ${p.location||'—'} · ${p.fyid}</div></div>
-        <span class="badge ${p.status==='Active'?'b-green':'b-gray'}">${p.status}</span>
-      </div></div></div>`).join('')}`;
-}
-function showAddProject(){document.getElementById('add-proj-form').classList.remove('hidden');}
-async function addProject(){
-  const r=await api('addProject',{project_name:document.getElementById('np-name').value.trim(),client:document.getElementById('np-client').value.trim(),location:document.getElementById('np-loc').value.trim(),status:document.getElementById('np-status').value,fyid:document.getElementById('np-fy').value.trim()});
-  if(r.ok){toast('Project added');_projects.push({project_id:r.project_id,project_name:document.getElementById('np-name').value});renderProjects();}else toast(r.error,'err');
-}
-
-// Vendors
-async function renderVendors(){
-  const el=document.getElementById('more-content');
-  const res=await api('listVendors');
-  const rows=res.vendors||[];
-  el.innerHTML=`<button class="btn btn-primary btn-sm" style="margin-bottom:12px" onclick="showAddVendor()">+ Add Vendor</button>
-    <div id="add-vendor-form" class="card hidden" style="margin-bottom:12px"><div class="card-bd">
-      <div class="grid2"><div class="field"><label>Name *</label><input id="nv-name"></div><div class="field"><label>Type</label><select id="nv-type"><option>Supplier</option><option>Contractor</option><option>Labour</option><option>Consultant</option><option>Other</option></select></div></div>
-      <div class="grid2"><div class="field"><label>Contact</label><input id="nv-contact" type="tel"></div><div class="field"><label>GSTIN</label><input id="nv-gstin"></div></div>
-      <div class="row"><button class="btn btn-success btn-sm" onclick="addVendor()">Save</button><button class="btn btn-outline btn-sm" onclick="document.getElementById('add-vendor-form').classList.add('hidden')">Cancel</button></div>
-    </div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>Name</th><th>Type</th><th>Contact</th></tr></thead><tbody>
-    ${rows.map(v=>`<tr><td><strong>${v.vendor_name}</strong></td><td><span class="badge b-gray">${v.vendor_type||'—'}</span></td><td style="font-size:11px">${v.contact||'—'}</td></tr>`).join('')}
-    </tbody></table></div>`;
-}
-function showAddVendor(){document.getElementById('add-vendor-form').classList.remove('hidden');}
-async function addVendor(){
-  const r=await api('addVendor',{vendor_id:`V${Date.now()}`,vendor_name:document.getElementById('nv-name').value.trim(),vendor_type:document.getElementById('nv-type').value,contact:document.getElementById('nv-contact').value.trim(),gstin:document.getElementById('nv-gstin').value.trim()});
-  if(r.ok){toast('Vendor added');renderVendors();}else toast(r.error,'err');
-}
+async function deletePending(id){confirm2('Delete','Delete this pending entry?',async()=>{const r=await api('deletePending',{entry_id:id});if(r.ok){toast('Deleted');renderPending();}else toast(r.error,'err');});}
 
 // Users
 async function renderUsers(){
-  const el=document.getElementById('more-content');
+  const el=document.getElementById('more-out');
   const res=await api('listUsers');
   const rows=res.users||[];
-  el.innerHTML=`<button class="btn btn-primary btn-sm" style="margin-bottom:12px" onclick="showAddUser()">+ Add User</button>
-    <div id="add-user-form" class="card hidden" style="margin-bottom:12px"><div class="card-bd">
-      <div class="grid2"><div class="field"><label>Username *</label><input id="nu-name"></div><div class="field"><label>Password *</label><input id="nu-pass" type="password"></div></div>
-      <div class="field"><label>Role</label><select id="nu-role"><option value="Staff">Staff</option><option value="Admin">Admin</option></select></div>
-      <div class="row"><button class="btn btn-success btn-sm" onclick="addUser()">Create</button><button class="btn btn-outline btn-sm" onclick="document.getElementById('add-user-form').classList.add('hidden')">Cancel</button></div>
-    </div></div>
-    <div class="tbl-wrap"><table><thead><tr><th>User</th><th>Role</th><th>Status</th><th></th></tr></thead><tbody>
+  el.innerHTML=`
+    <button class="btn btn-p btn-sm" style="margin-bottom:12px" onclick="showUserForm()">+ Add User</button>
+    <div class="tw"><table><thead><tr><th>User</th><th>Role</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(u=>`<tr>
       <td><strong>${u.username}</strong></td>
-      <td><span class="badge ${u.role==='Admin'?'b-blue':'b-gray'}">${u.role}</span></td>
-      <td><span class="badge ${u.active?'b-green':'b-red'}">${u.active?'Active':'Off'}</span></td>
-      <td><button class="btn btn-outline btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button></td>
+      <td><span class="badge ${u.role==='Admin'?'bb':'bx'}">${u.role}</span></td>
+      <td style="font-size:11px">${u.google_email||'—'}</td>
+      <td><span class="badge ${u.active?'bg':'br'}">${u.active?'Active':'Off'}</span></td>
+      <td><button class="btn btn-o btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button></td>
     </tr>`).join('')}
     </tbody></table></div>`;
 }
-function showAddUser(){document.getElementById('add-user-form').classList.remove('hidden');}
-async function addUser(){const r=await api('addUser',{username:document.getElementById('nu-name').value.trim(),password:document.getElementById('nu-pass').value,role:document.getElementById('nu-role').value});if(r.ok){toast('User created');renderUsers();}else toast(r.error,'err');}
+function showUserForm(){
+  showEditModal('Add User',`
+    <div class="g2">
+      <div class="field"><label>Username *</label><input id="uf-name"></div>
+      <div class="field"><label>Password *</label><input id="uf-pass" type="password"></div>
+    </div>
+    <div class="field"><label>Role</label><select id="uf-role"><option value="Staff">Staff</option><option value="Admin">Admin</option></select></div>
+    <div class="field"><label>Google Email (for Google Sign-In)</label><input id="uf-email" type="email" placeholder="user@gmail.com"></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function addUser(){
+  const n=document.getElementById('uf-name').value.trim(), p=document.getElementById('uf-pass').value;
+  if(!n||!p){toast('Username and password required','err');return;}
+  const r=await api('addUser',{username:n,password:p,role:document.getElementById('uf-role').value});
+  if(r.ok){
+    // Also update google_email if provided
+    const email=document.getElementById('uf-email').value.trim();
+    if(email) await api('updateUser',{user_id:r.user_id,google_email:email});
+    toast('User created');closeEditModal();renderUsers();
+  }else toast(r.error,'err');
+}
 async function toggleUser(id,active){const r=await api('updateUser',{user_id:id,active:!active});if(r.ok){toast('Updated');renderUsers();}else toast(r.error,'err');}
 
-// Opening Balances
-async function renderOpening(){
-  const el=document.getElementById('more-content');
-  const [ob,vob]=await Promise.all([api('listOpeningBalances',{fyid:curFY}),api('listVendorOpeningBalances',{fyid:curFY})]);
-  const obs=ob.opening_balances||[], vobs=vob.vendor_opening_balances||[];
-  el.innerHTML=`
-    <div class="sec-hd">Account Opening Balances (${obs.length})</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Account</th><th>DR/CR</th><th>Amount</th><th>Co</th></tr></thead><tbody>
-    ${obs.map(o=>`<tr><td><strong style="font-size:12px">${o.ac_name}</strong><br><code>${o.ac_key}</code></td>
-      <td>${o.dr_cr}</td><td class="amount">${fmtAmt(o.amount)}</td><td>${o.company_id}</td></tr>`).join('')}
-    </tbody></table></div>
-    <div class="sec-hd" style="margin-top:16px">Vendor Opening Balances (${vobs.length})</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Vendor ID</th><th>DR/CR</th><th>Amount</th><th>Co</th></tr></thead><tbody>
-    ${vobs.map(v=>`<tr><td><code>${v.vendor_id}</code></td><td>${v.dr_cr}</td><td class="amount">${fmtAmt(v.amount)}</td><td>${v.company_id}</td></tr>`).join('')}
-    </tbody></table></div>`;
-}
-
-// ── RAW DATA VIEWER ───────────────────────────────────────────────────────────
-const RAW_TABLES = ['companies','users','chart_of_accounts','entry_types','cost_heads','vendors','projects','entries','pending_entries','opening_balances','vendor_opening_balances','ledger'];
-let _rawTable = 'entries';
-
-async function renderRawData(){
-  const el=document.getElementById('more-content');
-  el.innerHTML=`
-    <div class="table-sel" id="raw-tsel">
-      ${RAW_TABLES.map(t=>`<button class="tsel-btn${t===_rawTable?' active':''}" onclick="loadRawTable('${t}')">${t}</button>`).join('')}
-    </div>
-    <div id="raw-info" style="font-size:11px;color:var(--muted);margin-bottom:8px"></div>
-    <div id="raw-out"></div>`;
-  loadRawTable(_rawTable);
-}
-
-async function loadRawTable(t){
-  _rawTable=t;
-  document.querySelectorAll('.tsel-btn').forEach(el=>el.classList.toggle('active',el.textContent===t));
-  const infoEl=document.getElementById('raw-info');
-  const outEl=document.getElementById('raw-out');
-  outEl.innerHTML='<div class="empty"><span class="spin"></span></div>';
-
-  // Get rows via appropriate API action
-  let rows=[], cols=[];
-  try{
-    if(t==='entries'){const r=await api('listEntries',{fyid:curFY,limit:500});rows=r.entries||[];}
-    else if(t==='ledger'){const r=await api('getLedger',{fyid:curFY});rows=r.ledger||[];}
-    else if(t==='pending_entries'){const r=await api('listPending',{fyid:curFY});rows=r.pending||[];}
-    else if(t==='companies'){const r=await api('listCompanies');rows=r.companies||[];}
-    else if(t==='users'){const r=await api('listUsers');rows=r.users||[];}
-    else if(t==='projects'){const r=await api('listProjects');rows=r.projects||[];}
-    else if(t==='vendors'){const r=await api('listVendors');rows=r.vendors||[];}
-    else if(t==='chart_of_accounts'){const r=await api('listAccounts');rows=r.accounts||[];}
-    else if(t==='cost_heads'){const r=await api('listCostHeads');rows=r.cost_heads||[];}
-    else if(t==='entry_types'){const r=await api('listEntryTypes');rows=r.entry_types||[];}
-    else if(t==='opening_balances'){const r=await api('listOpeningBalances',{fyid:curFY});rows=r.opening_balances||[];}
-    else if(t==='vendor_opening_balances'){const r=await api('listVendorOpeningBalances',{fyid:curFY});rows=r.vendor_opening_balances||[];}
-    // Also fetch counts via migrate endpoint
-    const c=await mig({step:'counts'});
-    const cnt=c.counts?.[t]??rows.length;
-    infoEl.textContent=`${t} — ${cnt} total rows${rows.length<cnt?' (showing '+rows.length+')':''}`;
-  }catch(e){outEl.innerHTML=`<div class="empty">Error: ${e.message}</div>`;return;}
-
-  if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
-  cols=Object.keys(rows[0]);
-
-  outEl.innerHTML=`
-    <div class="row" style="margin-bottom:8px;gap:6px">
-      <button class="btn btn-outline btn-xs" onclick="downloadRawCSV()">⬇ CSV</button>
-      <span style="font-size:11px;color:var(--muted)">${rows.length} rows</span>
-    </div>
-    <div class="tbl-wrap">
-      <table id="raw-table">
-        <thead><tr>${cols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-        <tbody>${rows.map(r=>`<tr>${cols.map(c=>`<td style="max-width:180px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px">${s(r[c])}</td>`).join('')}</tr>`).join('')}</tbody>
-      </table>
-    </div>`;
-  window._rawRows=rows; window._rawCols=cols;
-}
-
-function downloadRawCSV(){
-  const rows=window._rawRows||[], cols=window._rawCols||[];
-  if(!rows.length)return;
-  const csv=[cols.join(','),...rows.map(r=>cols.map(c=>`"${s(r[c]).replace(/"/g,'""')}"`).join(','))].join('\n');
-  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);
-  a.download=`${_rawTable}_export.csv`;a.click();
-  toast('CSV downloaded');
-}
-
-// ── MASTERS ───────────────────────────────────────────────────────────────────
+// Masters (read-only reference)
 function renderMasters(){
-  const el=document.getElementById('more-content');
+  const el=document.getElementById('more-out');
   el.innerHTML=`
-    <div class="sec-hd">Chart of Accounts (${_accounts.length})</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Code</th><th>Name</th><th>Type</th></tr></thead><tbody>
-    ${_accounts.map(a=>`<tr><td><code>${a.ac_code}</code></td><td>${a.ac_name}</td><td><span class="badge b-gray">${a.ac_type}</span></td></tr>`).join('')}
+    <div class="sh">Chart of Accounts (${_acs.length})</div>
+    <div class="tw"><table><thead><tr><th>Code</th><th>Key</th><th>Name</th><th>Type</th></tr></thead><tbody>
+    ${_acs.map(a=>`<tr><td><code>${a.ac_code}</code></td><td><code>${a.ac_key}</code></td><td>${a.ac_name}</td><td><span class="badge bx">${a.ac_type}</span></td></tr>`).join('')}
     </tbody></table></div>
-    <div class="sec-hd" style="margin-top:16px">Cost Heads (${_costHeads.length})</div>
-    <div class="tbl-wrap"><table><thead><tr><th>ID</th><th>Name</th><th>Account</th></tr></thead><tbody>
-    ${_costHeads.map(c=>`<tr><td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td></tr>`).join('')}
+    <div class="sh" style="margin-top:14px">Cost Heads (${_chs.length})</div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Name</th><th>Account</th></tr></thead><tbody>
+    ${_chs.map(c=>`<tr><td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td></tr>`).join('')}
     </tbody></table></div>
-    <div class="sec-hd" style="margin-top:16px">Entry Types (${_entryTypes.length})</div>
-    <div class="tbl-wrap"><table><thead><tr><th>Key</th><th>Label</th><th>Cat</th><th>DR</th><th>CR</th></tr></thead><tbody>
-    ${_entryTypes.map(e=>`<tr><td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td><td><span class="badge b-gray">${e.category}</span></td><td><code>${e.dr}</code></td><td><code>${e.cr}</code></td></tr>`).join('')}
+    <div class="sh" style="margin-top:14px">Entry Types (${_ets.length})</div>
+    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th></tr></thead><tbody>
+    ${_ets.map(e=>`<tr><td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td><td><span class="badge bx">${e.category}</span></td><td><code>${e.dr}</code></td><td><code>${e.cr}</code></td><td>${e.needs_ch?'✓':''}</td></tr>`).join('')}
     </tbody></table></div>`;
 }
 
-// ── IMPORT ────────────────────────────────────────────────────────────────────
-let _wb=null, _preview=null;
+// Raw Data viewer
+const RAW_TABLES=['companies','users','chart_of_accounts','entry_types','cost_heads','vendors','projects','entries','pending_entries','opening_balances','vendor_opening_balances','ledger'];
+let _rawTbl='entries', _rawRows=[], _rawCols=[];
+function renderRawData(){
+  const el=document.getElementById('more-out');
+  el.innerHTML=`
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="raw-btns">
+      ${RAW_TABLES.map(t=>`<button class="btn btn-o btn-xs ${t===_rawTbl?'btn-p':''}" onclick="loadRawTable('${t}')">${t}</button>`).join('')}
+    </div>
+    <div id="raw-info" style="font-size:11px;color:var(--muted);margin-bottom:6px"></div>
+    <div class="row" style="gap:6px;margin-bottom:8px">
+      <button class="btn btn-o btn-xs" onclick="downloadRawCSV()">⬇ CSV</button>
+      <button class="btn btn-o btn-xs" onclick="downloadRawXLS()">⬇ XLS</button>
+    </div>
+    <div id="raw-out"></div>`;
+  loadRawTable(_rawTbl);
+}
+async function loadRawTable(t){
+  _rawTbl=t;
+  document.querySelectorAll('#raw-btns .btn').forEach(b=>{b.classList.toggle('btn-p',b.textContent===t);b.classList.toggle('btn-o',b.textContent!==t);});
+  const infoEl=document.getElementById('raw-info'),outEl=document.getElementById('raw-out');
+  outEl.innerHTML='<span class="spin"></span>';
+  try {
+    let rows=[];
+    if(t==='entries') rows=(await api('listEntries',{fyid:curFY,limit:500})).entries||[];
+    else if(t==='ledger') rows=(await api('getLedger',{fyid:curFY})).ledger||[];
+    else if(t==='pending_entries') rows=(await api('listPending',{fyid:curFY})).pending||[];
+    else if(t==='companies') rows=(await api('listCompanies')).companies||[];
+    else if(t==='users') rows=(await api('listUsers')).users||[];
+    else if(t==='projects') rows=(await api('listProjects')).projects||[];
+    else if(t==='vendors') rows=(await api('listVendors')).vendors||[];
+    else if(t==='chart_of_accounts') rows=(await api('listAccounts')).accounts||[];
+    else if(t==='cost_heads') rows=(await api('listCostHeads')).cost_heads||[];
+    else if(t==='entry_types') rows=(await api('listEntryTypes')).entry_types||[];
+    else if(t==='opening_balances') rows=(await api('listOpeningBalances',{fyid:curFY})).opening_balances||[];
+    else if(t==='vendor_opening_balances') rows=(await api('listVendorOpeningBalances',{fyid:curFY})).vendor_opening_balances||[];
+
+    const cnt=(await mig({step:'counts'})).counts?.[t]??rows.length;
+    infoEl.textContent=`${t} — ${cnt} total${rows.length<cnt?' (showing '+rows.length+')':''}`;
+
+    if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
+    _rawCols=Object.keys(rows[0]); _rawRows=rows;
+    outEl.innerHTML=`<div class="tw"><table>
+      <thead><tr>${_rawCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
+      <tbody>${rows.map(r=>`<tr>${_rawCols.map(c=>`<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px">${s(r[c])}</td>`).join('')}</tr>`).join('')}</tbody>
+    </table></div>`;
+  }catch(e){outEl.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
+}
+function downloadRawCSV(){
+  if(!_rawRows.length)return;
+  const csv=[_rawCols.join(','),..._rawRows.map(r=>_rawCols.map(c=>`"${s(r[c]).replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`${_rawTbl}.csv`;a.click();
+}
+function downloadRawXLS(){
+  if(!_rawRows.length)return;
+  const ws=XLSX.utils.json_to_sheet(_rawRows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,_rawTbl);
+  XLSX.writeFile(wb,`${_rawTbl}.xlsx`);
+}
+
+// Import
 const SHEET_MAP={
   Companies:{table:'companies',map:r=>({company_id:s(r.CompanyID),company_name:s(r.CompanyName),drive_folder:s(r.DriveFolder)||'',active:String(r.Active).toLowerCase()==='true'?1:0})},
   Users:{table:'users',map:r=>({user_id:`USR_${s(r.Username).toUpperCase()}`,username:s(r.Username),password:'BlueDoor@2024',role:s(r.Role)==='Admin'?'Admin':s(r.Role),active:String(r.Active).toLowerCase()==='true'?1:0,companies:s(r.Companies)||'[]',google_email:s(r.GoogleEmail)||''})},
@@ -983,156 +1682,96 @@ const SHEET_MAP={
   EntryTypes:{table:'entry_types',map:r=>({et_key:s(r.EntryKey),label:s(r.Label),category:s(r.Category),dr:s(r.DebitAccount),cr:s(r.CreditAccount),needs_ch:String(r.NeedsCostHead).toLowerCase()==='true'?1:0,active:String(r.Active).toLowerCase()==='true'?1:0})},
   CostHeads:{table:'cost_heads',map:r=>({ch_id:s(r.CostHeadID),ch_name:s(r.Name),ac_key:s(r.AccountKey)||''})},
   Vendors:{table:'vendors',map:r=>({vendor_id:s(r.VendorID),vendor_name:s(r.Name),vendor_type:s(r.Type)||'',contact:s(r.Contact)||'',gstin:s(r.GSTIN)||'',details:''})},
-  Projects:{table:'projects',map:r=>({project_id:s(r.ProjectID),project_name:s(r.Name),client:s(r.Client)||'',location:s(r.Location)||'',status:s(r.Status)||'Active',start_date:fmtD(r.StartDate),budget:parseFloat(r.Budget)||0,fyid:s(r.FYID)||curFY})},
-  OpeningBalances:{table:'opening_balances',map:r=>({fyid:s(r.FYID),ac_key:s(r.AccountKey),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:fmtTs(r.EnteredAt),company_id:s(r.CompanyID)||''})},
-  VendorOpeningBalance:{table:'vendor_opening_balances',map:r=>({fyid:s(r.FYID),vendor_id:s(r.VendorID),dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:fmtTs(r.EnteredAt),company_id:s(r.CompanyID)||''})},
-  Entries:{table:'entries',map:r=>({entry_id:s(r.EntryID),date:fmtD(r.Date),fyid:s(r.FYID)||curFY,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',entry_type:s(r.EntryType),amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:fmtTs(r.CreatedAt),company_id:s(r.CompanyID)||''})},
-  Ledger:{table:'ledger',map:r=>({entry_id:s(r.EntryID),date:fmtD(r.Date),fyid:s(r.FYID)||curFY,ac_code:s(r.AccountCode),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),debit:parseFloat(r.DebitAmt)||0,credit:parseFloat(r.CreditAmt)||0,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:fmtTs(r.CreatedAt),company_id:s(r.CompanyID)||''})},
-  PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtD(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:fmtTs(r.SubmittedAt),status:s(r.Status)||'Pending',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
+  Projects:{table:'projects',map:r=>({project_id:s(r.ProjectID),project_name:s(r.Name),client:s(r.Client)||'',location:s(r.Location)||'',status:s(r.Status)||'Active',start_date:fmtDateISO(r.StartDate),budget:parseFloat(r.Budget)||0,fyid:s(r.FYID)||curFY})},
+  OpeningBalances:{table:'opening_balances',map:r=>({fyid:s(r.FYID),ac_key:s(r.AccountKey),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:s(r.EnteredAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  VendorOpeningBalance:{table:'vendor_opening_balances',map:r=>({fyid:s(r.FYID),vendor_id:s(r.VendorID),dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:s(r.EnteredAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  Entries:{table:'entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',entry_type:s(r.EntryType),amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  Ledger:{table:'ledger',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,ac_code:s(r.AccountCode),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),debit:parseFloat(r.DebitAmt)||0,credit:parseFloat(r.CreditAmt)||0,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:s(r.SubmittedAt)||new Date().toISOString(),status:s(r.Status)||'Pending',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
 };
-function fmtD(v){if(!v)return'';const s2=String(v).trim();if(s2.length>=10&&s2.includes('-'))return s2.substring(0,10);try{const d=new Date(s2);return isNaN(d)?s2:d.toISOString().substring(0,10);}catch{return s2;}}
-function fmtTs(v){if(!v)return new Date().toISOString();try{const d=new Date(String(v));return isNaN(d)?new Date().toISOString():d.toISOString();}catch{return new Date().toISOString();}}
-
+function fmtDateISO(v){if(!v)return'';const sv=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(sv))return sv.substring(0,10);try{const d=new Date(sv);return isNaN(d)?sv:d.toISOString().substring(0,10);}catch{return sv;}}
+let _wb=null,_preview=null;
 function renderImport(){
-  const el=document.getElementById('more-content');
+  const el=document.getElementById('more-out');
   el.innerHTML=`
-    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px 12px;background:rgba(79,142,247,.08);border-radius:8px;border:1px solid rgba(79,142,247,.2)">
-      Upload BlueDoor V2 Excel export. All tables imported in batches of 20 rows. Existing rows are replaced.
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(79,142,247,.07);border-radius:8px;border:1px solid rgba(79,142,247,.18)">
+      Upload BlueDoor V2 Excel export. Imported in batches of 20. Existing rows are replaced.
     </div>
-    <div class="dropzone" id="imp-dz">
-      <input type="file" id="imp-file" accept=".xlsx,.xls" onchange="handleFile(this)">
-      <div class="dz-icon">📊</div>
-      <div class="dz-t">Drop Excel file or tap to browse</div>
-      <div class="dz-s">BlueDoor_Account_V2.xlsx</div>
+    <div style="border:2px dashed var(--border);border-radius:12px;padding:28px 14px;text-align:center;cursor:pointer;position:relative;margin-bottom:12px" id="imp-dz">
+      <input type="file" id="imp-file" accept=".xlsx,.xls" onchange="handleImpFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+      <div style="font-size:32px;margin-bottom:6px">📊</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">Drop Excel or tap to browse</div>
+      <div style="font-size:12px;color:var(--muted)">BlueDoor_Account_V2.xlsx</div>
     </div>
-    <div id="imp-preview" class="hidden">
-      <div class="sec-hd" style="margin-top:14px">Sheets Detected</div>
-      <div class="imp-grid" id="imp-grid"></div>
-      <div class="row mt-3" style="gap:8px">
-        <button class="btn btn-success" id="imp-btn" onclick="runImport()">🚀 Import</button>
-        <button class="btn btn-outline btn-sm" onclick="clearImport()">Clear</button>
+    <div id="imp-prev" class="hidden">
+      <div class="sh">Sheets Detected</div>
+      <div id="imp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
+      <div class="row" style="gap:8px;margin-bottom:8px">
+        <button class="btn btn-s" id="imp-btn" onclick="runImport()">🚀 Import</button>
+        <button class="btn btn-o btn-sm" onclick="clearImport()">Clear</button>
         <span id="imp-total" style="font-size:12px;color:var(--muted)"></span>
       </div>
     </div>
-    <div id="imp-log" class="log-box hidden"></div>`;
-
-  const dz=document.getElementById('imp-dz');
-  dz.addEventListener('dragover',e=>{e.preventDefault();dz.classList.add('drag');});
-  dz.addEventListener('dragleave',()=>dz.classList.remove('drag'));
-  dz.addEventListener('drop',e=>{e.preventDefault();dz.classList.remove('drag');const f=e.dataTransfer.files[0];if(f)processFile(f);});
+    <div id="imp-log" class="hidden" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px;max-height:160px;overflow-y:auto;font-family:monospace;font-size:11px"></div>`;
 }
-function handleFile(inp){if(inp.files[0])processFile(inp.files[0]);}
-function processFile(file){
+function handleImpFile(inp){if(inp.files[0])processImpFile(inp.files[0]);}
+function processImpFile(file){
   const reader=new FileReader();
-  reader.onload=e=>{try{_wb=XLSX.read(e.target.result,{type:'array',cellDates:false});parseSheets();}catch(err){toast('Error reading file: '+err.message,'err');}};
+  reader.onload=e=>{try{_wb=XLSX.read(e.target.result,{type:'array',cellDates:false});parseImpSheets();}catch(e2){toast('Error: '+e2.message,'err');}};
   reader.readAsArrayBuffer(file);
 }
-function parseSheets(){
+function parseImpSheets(){
   _preview={};
-  const grid=document.getElementById('imp-grid');grid.innerHTML='';
-  let total=0;
+  const grid=document.getElementById('imp-grid'); if(!grid) return;
+  grid.innerHTML=''; let total=0;
   for(const[sn,cfg] of Object.entries(SHEET_MAP)){
-    if(!_wb.SheetNames.includes(sn))continue;
+    if(!_wb.SheetNames.includes(sn)) continue;
     const ws=_wb.Sheets[sn];
     const json=XLSX.utils.sheet_to_json(ws,{defval:''});
     try{
-      const rows=json.map(cfg.map).filter(r=>Object.values(r).some(v=>v!==''&&v!==null&&v!==undefined));
-      _preview[sn]={table:cfg.table,rows};total+=rows.length;
-      grid.innerHTML+=`<div class="imp-card" id="ic-${sn}">
-        <div class="it">${sn}</div>
-        <div class="ic">${rows.length} rows → ${cfg.table}</div>
-        <div class="is" id="is-${sn}">⏳ Ready</div>
+      const rows=json.map(cfg.map).filter(r=>Object.values(r).some(v=>v!==''&&v!==null));
+      _preview[sn]={table:cfg.table,rows}; total+=rows.length;
+      grid.innerHTML+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px">
+        <div style="font-size:12px;font-weight:600">${sn}</div>
+        <div style="font-size:11px;color:var(--muted)">${rows.length} rows → ${cfg.table}</div>
+        <div style="font-size:12px;margin-top:3px" id="is-${sn}">⏳ Ready</div>
       </div>`;
-    }catch(e){grid.innerHTML+=`<div class="imp-card"><div class="it">${sn}</div><div class="ic" style="color:var(--red)">${e.message}</div></div>`;}
+    }catch(e){grid.innerHTML+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px"><div style="font-size:12px;font-weight:600">${sn}</div><div style="font-size:11px;color:var(--red)">${e.message}</div></div>`;}
   }
-  document.getElementById('imp-preview').classList.remove('hidden');
+  document.getElementById('imp-prev').classList.remove('hidden');
   document.getElementById('imp-total').textContent=`${total} total rows`;
 }
 function logImp(msg,type='info'){
-  const el=document.getElementById('imp-log');el.classList.remove('hidden');
-  const line=document.createElement('div');line.className=`log-${type}`;
-  line.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
-  el.appendChild(line);el.scrollTop=el.scrollHeight;
+  const el=document.getElementById('imp-log');if(!el)return;
+  el.classList.remove('hidden');
+  const d=document.createElement('div');d.style.color=type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--accent)';
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
 }
 async function runImport(){
   if(!_preview)return;
   const btn=document.getElementById('imp-btn');btn.disabled=true;btn.textContent='⏳ Importing...';
   const ORDER=['Companies','Users','ChartOfAccounts','EntryTypes','CostHeads','Vendors','Projects','OpeningBalances','VendorOpeningBalance','Entries','Ledger','PendingEntries'];
   let grand=0,gFail=0;
-  const BATCH=20;
   for(const sn of ORDER){
     if(!_preview[sn])continue;
     const{table,rows}=_preview[sn];
     const stEl=document.getElementById(`is-${sn}`);
-    logImp(`${sn}: ${rows.length} rows → ${table}`,'info');
+    logImp(`${sn}: ${rows.length} rows → ${table}`);
     let ins=0,fail=0;
-    for(let i=0;i<rows.length;i+=BATCH){
-      const batch=rows.slice(i,i+BATCH);
-      try{
-        const r=await mig({step:'insert',table,rows:batch});
-        ins+=r.inserted||0;fail+=r.failed||0;
-        if(r.errors?.length)r.errors.forEach(e=>logImp('  ✗ '+JSON.stringify(e.error),'err'));
-        if(stEl)stEl.textContent=`${ins}/${rows.length}`;
-      }catch(e){fail+=batch.length;logImp('  Network: '+e.message,'err');}
+    for(let i=0;i<rows.length;i+=20){
+      try{const r=await mig({step:'insert',table,rows:rows.slice(i,i+20)});ins+=r.inserted||0;fail+=r.failed||0;if(stEl)stEl.textContent=`${ins}/${rows.length}`;}catch(e){fail+=20;logImp('  Error: '+e.message,'err');}
     }
     grand+=ins;gFail+=fail;
     if(stEl)stEl.textContent=fail?`⚠ ${ins}✓ ${fail}✗`:`✅ ${ins}`;
     logImp(`  ${sn}: ${ins} inserted, ${fail} failed`,fail?'err':'ok');
   }
-  logImp(`─────────────────────────────────`,'info');
-  logImp(`Done: ${grand} inserted, ${gFail} failed`,gFail?'err':'ok');
+  logImp(`Done: ${grand} rows, ${gFail} failed`,gFail?'err':'ok');
   btn.disabled=false;btn.textContent='🚀 Re-Import';
   toast(`Import: ${grand} rows`,gFail?'err':'ok');
   loadMasters();
 }
-function clearImport(){_wb=null;_preview=null;document.getElementById('imp-preview').classList.add('hidden');document.getElementById('imp-log').classList.add('hidden');document.getElementById('imp-file').value='';}
-
-
-// Inline login fallback (when localStorage empty and redirect fails)
-function showInlineLogin() {
-  const el = document.getElementById('auth-check');
-  if (!el) return;
-  el.innerHTML = `
-    <div style="background:#161920;border:1px solid #232630;border-radius:16px;padding:28px 24px;width:100%;max-width:340px;text-align:center">
-      <div style="font-size:32px;margin-bottom:8px">🔷</div>
-      <div style="font-size:16px;font-weight:700;margin-bottom:4px">BlueDoor Accounts</div>
-      <div style="font-size:12px;color:#64748b;margin-bottom:20px">Admin — Sign in</div>
-      <div id="il-err" style="display:none;font-size:12px;color:#ef4444;margin-bottom:10px;padding:6px 10px;background:rgba(239,68,68,.1);border-radius:6px"></div>
-      <div style="margin-bottom:10px;text-align:left">
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
-        <input id="il-u" placeholder="Arpit" style="width:100%;background:#0d0f14;border:1px solid #232630;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none">
-      </div>
-      <div style="margin-bottom:16px;text-align:left">
-        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Password</div>
-        <input id="il-p" type="password" placeholder="••••••••" style="width:100%;background:#0d0f14;border:1px solid #232630;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none"
-          onkeydown="if(event.key==='Enter')doInlineLogin()">
-      </div>
-      <button onclick="doInlineLogin()" style="width:100%;padding:11px;background:#4f8ef7;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
-    </div>`;
-}
-
-async function doInlineLogin() {
-  const u = document.getElementById('il-u')?.value.trim();
-  const p = document.getElementById('il-p')?.value;
-  const errEl = document.getElementById('il-err');
-  if (!u || !p) { if(errEl){errEl.textContent='Enter credentials';errEl.style.display='block';} return; }
-  const res = await fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
-    method: 'POST', headers: {'Content-Type': 'application/json'},
-    body: JSON.stringify({action: 'login', username: u, password: p})
-  });
-  const data = await res.json();
-  if (!data.ok) { if(errEl){errEl.textContent=data.error||'Login failed';errEl.style.display='block';} return; }
-  S.token = data.token; S.user = data.user;
-  localStorage.setItem('bd_token', data.token);
-  localStorage.setItem('bd_user', JSON.stringify(data.user));
-  document.getElementById('auth-check').style.display = 'none';
-  document.getElementById('app').style.display = 'flex';
-  document.getElementById('um-name').textContent = data.user.username;
-  document.getElementById('um-role').textContent = data.user.role;
-  document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
-  loadMasters().then(() => { initView(); });
-}
-
+function clearImport(){_wb=null;_preview=null;document.getElementById('imp-prev')?.classList.add('hidden');document.getElementById('imp-log')?.classList.add('hidden');document.getElementById('imp-file').value='';}
 </script>
 </body>
 </html>
