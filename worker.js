@@ -627,6 +627,19 @@ async function handleMigrate(request, env) {
     return ok({ table, inserted, failed, errors: errors.slice(0,5) });
   }
 
+  // wipe_all: delete all data from all tables
+  if (body.step === 'wipe_all') {
+    const tables = ['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies','users'];
+    const results = {};
+    for (const t of tables) {
+      try {
+        await env.DB.prepare(`DELETE FROM ${t}`).run();
+        results[t] = 'wiped';
+      } catch(e) { results[t] = 'error: ' + e.message; }
+    }
+    return ok({ wipe_results: results });
+  }
+
   // migrate_schema: add missing columns safely
   if (body.step === 'migrate_schema') {
     const results = {};
