@@ -1,7 +1,6 @@
 name = "bluedoor-accounts"
 main = "worker.js"
 compatibility_date = "2024-11-01"
-compatibility_flags = ["nodejs_compat"]
 account_id = "e87173c892aeaf3f199a7728857f7c1b"
 
 [[d1_databases]]
