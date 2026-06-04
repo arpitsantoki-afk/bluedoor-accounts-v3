@@ -139,11 +139,11 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
   </div>
 
   <!-- Dropdowns -->
-  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);right:70px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:130px;padding:5px 0">
+  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:130px;padding:5px 0">
     <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Financial Year</div>
     <div id="fy-list"></div>
   </div>
-  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:160px;padding:5px 0">
+  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);left:auto;right:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:160px;padding:5px 0;transform:none" id="co-menu">
     <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Company</div>
     <div id="co-list"></div>
   </div>
@@ -209,8 +209,26 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         </div>
       </div>
       <div class="frow" id="lf-custom-dates" style="display:none">
-        <div class="flt"><input type="date" id="lf-from" onchange="renderLedger()"></div>
-        <div class="flt"><input type="date" id="lf-to" onchange="renderLedger()"></div>
+        <div class="flt">
+          <div style="position:relative">
+            <input id="lf-from-txt" placeholder="dd-mm-yyyy" maxlength="10"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 32px 8px 10px;border-radius:8px;font-size:12px;outline:none"
+              oninput="smartDateInput(this,'lf-from')" onblur="validateSmartDate(this,'lf-from')">
+            <input type="date" id="lf-from" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;opacity:0;cursor:pointer;padding:0;border:none"
+              onchange="syncDatePicker('lf-from','lf-from-txt')">
+            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;color:var(--muted)">📅</span>
+          </div>
+        </div>
+        <div class="flt">
+          <div style="position:relative">
+            <input id="lf-to-txt" placeholder="dd-mm-yyyy" maxlength="10"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 32px 8px 10px;border-radius:8px;font-size:12px;outline:none"
+              oninput="smartDateInput(this,'lf-to')" onblur="validateSmartDate(this,'lf-to')">
+            <input type="date" id="lf-to" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;opacity:0;cursor:pointer;padding:0;border:none"
+              onchange="syncDatePicker('lf-to','lf-to-txt')">
+            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;color:var(--muted)">📅</span>
+          </div>
+        </div>
       </div>
       <div class="rsb" style="margin-bottom:8px">
         <span id="ledger-sum" style="font-size:11px;color:var(--muted)"></span>
@@ -635,8 +653,30 @@ window.addEventListener('DOMContentLoaded', checkSession);
 // ═══════════════════════════════════════════════════════════════
 function toggleMenu(id) {
   ['fy-menu','co-menu','user-menu'].forEach(m => {
-    if (m===id) document.getElementById(m).classList.toggle('hidden');
-    else document.getElementById(m).classList.add('hidden');
+    const el = document.getElementById(m);
+    if (m === id) {
+      const isHidden = el.classList.contains('hidden');
+      el.classList.toggle('hidden');
+      if (isHidden) {
+        // Position the menu below the button that triggered it
+        const triggerMap = {'fy-menu':'fy-pill','co-menu':'co-pill','user-menu':'user-btn'};
+        const btn = document.getElementById(triggerMap[m]);
+        if (btn) {
+          const rect = btn.getBoundingClientRect();
+          el.style.position = 'fixed';
+          el.style.top = rect.bottom + 4 + 'px';
+          // Align left edge with button, but clamp to screen
+          let left = rect.left;
+          const menuW = el.offsetWidth || 160;
+          if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+          el.style.left = Math.max(8, left) + 'px';
+          el.style.right = 'auto';
+          el.style.transform = 'none';
+        }
+      }
+    } else {
+      el.classList.add('hidden');
+    }
   });
 }
 document.addEventListener('click', e => {
@@ -782,6 +822,35 @@ async function quickApprove(id){const r=await api('approvePending',{entry_id:id}
 // ═══════════════════════════════════════════════════════════════
 // LEDGER
 // ═══════════════════════════════════════════════════════════════
+
+// Smart date input helpers
+function smartDateInput(inp, hiddenId) {
+  let v = inp.value.replace(/[^0-9]/g, '');
+  if (v.length >= 3) v = v.slice(0,2) + '-' + v.slice(2);
+  if (v.length >= 6) v = v.slice(0,5) + '-' + v.slice(5);
+  inp.value = v.slice(0,10);
+  if (v.length === 10) validateSmartDate(inp, hiddenId);
+}
+function validateSmartDate(inp, hiddenId) {
+  const v = inp.value;
+  if (v.length !== 10) return;
+  const [d,m,y] = v.split('-');
+  const iso = y + '-' + m + '-' + d;
+  const dt = new Date(iso);
+  if (!isNaN(dt)) {
+    document.getElementById(hiddenId).value = iso;
+    renderLedger();
+  }
+}
+function syncDatePicker(hiddenId, txtId) {
+  const iso = document.getElementById(hiddenId).value;
+  if (iso) {
+    const [y,m,d] = iso.split('-');
+    document.getElementById(txtId).value = d + '-' + m + '-' + y;
+    renderLedger();
+  }
+}
+
 function onLedgerDateRange() {
   const v=document.getElementById('lf-daterange').value;
   const customDiv=document.getElementById('lf-custom-dates');
@@ -792,8 +861,12 @@ function onLedgerDateRange() {
     else if (v==='60') from.setDate(to.getDate()-60);
     else if (v==='90') from.setDate(to.getDate()-90);
     else if (v==='mtd') from.setDate(1);
-    document.getElementById('lf-from').value = v ? from.toISOString().slice(0,10) : '';
-    document.getElementById('lf-to').value = v ? to.toISOString().slice(0,10) : '';
+    const fromISO = v ? from.toISOString().slice(0,10) : '';
+    const toISO = v ? to.toISOString().slice(0,10) : '';
+    document.getElementById('lf-from').value = fromISO;
+    document.getElementById('lf-to').value = toISO;
+    if (fromISO) { const [y,m,d]=fromISO.split('-'); const ft=document.getElementById('lf-from-txt'); if(ft) ft.value=d+'-'+m+'-'+y; }
+    if (toISO) { const [y,m,d]=toISO.split('-'); const tt=document.getElementById('lf-to-txt'); if(tt) tt.value=d+'-'+m+'-'+y; }
     renderLedger();
   }
 }
@@ -1600,19 +1673,158 @@ async function toggleUser(id,active){const r=await api('updateUser',{user_id:id,
 // Masters (read-only reference)
 function renderMasters(){
   const el=document.getElementById('more-out');
+  const acOpts=_acs.map(a=>`<option value="${a.ac_key}">${a.ac_key} — ${a.ac_name}</option>`).join('');
   el.innerHTML=`
-    <div class="sh">Chart of Accounts (${_acs.length})</div>
-    <div class="tw"><table><thead><tr><th>Code</th><th>Key</th><th>Name</th><th>Type</th></tr></thead><tbody>
-    ${_acs.map(a=>`<tr><td><code>${a.ac_code}</code></td><td><code>${a.ac_key}</code></td><td>${a.ac_name}</td><td><span class="badge bx">${a.ac_type}</span></td></tr>`).join('')}
+    <div class="rsb" style="margin-bottom:6px"><div class="sh" style="margin:0">Chart of Accounts (${_acs.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddCOA()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>Code</th><th>Key</th><th>Name</th><th>Type</th><th></th></tr></thead><tbody>
+    ${_acs.map(a=>`<tr>
+      <td><code>${a.ac_code}</code></td><td><code>${a.ac_key}</code></td>
+      <td>${a.ac_name}</td><td><span class="badge bx">${a.ac_type}</span></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editCOA('${a.ac_key}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Account','Delete ${a.ac_name}?',()=>deleteCOA('${a.ac_key}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
     </tbody></table></div>
-    <div class="sh" style="margin-top:14px">Cost Heads (${_chs.length})</div>
-    <div class="tw"><table><thead><tr><th>ID</th><th>Name</th><th>Account</th></tr></thead><tbody>
-    ${_chs.map(c=>`<tr><td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td></tr>`).join('')}
+
+    <div class="rsb" style="margin:14px 0 6px"><div class="sh" style="margin:0">Cost Heads (${_chs.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddCH()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Name</th><th>Account</th><th></th></tr></thead><tbody>
+    ${_chs.map(c=>`<tr>
+      <td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editCH('${c.ch_id}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Cost Head','Delete ${c.ch_name}?',()=>deleteCH('${c.ch_id}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
     </tbody></table></div>
-    <div class="sh" style="margin-top:14px">Entry Types (${_ets.length})</div>
-    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th></tr></thead><tbody>
-    ${_ets.map(e=>`<tr><td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td><td><span class="badge bx">${e.category}</span></td><td><code>${e.dr}</code></td><td><code>${e.cr}</code></td><td>${e.needs_ch?'✓':''}</td></tr>`).join('')}
+
+    <div class="rsb" style="margin:14px 0 6px"><div class="sh" style="margin:0">Entry Types (${_ets.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddET()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th><th>Active</th><th></th></tr></thead><tbody>
+    ${_ets.map(e=>`<tr>
+      <td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td>
+      <td><span class="badge bx">${e.category}</span></td>
+      <td><code>${e.dr}</code></td><td><code>${e.cr}</code></td>
+      <td>${e.needs_ch?'✓':''}</td>
+      <td><span class="badge ${e.active?'bg':'br'}">${e.active?'Yes':'No'}</span></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editET('${e.et_key}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Entry Type','Delete ${e.label}?',()=>deleteET('${e.et_key}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
     </tbody></table></div>`;
+}
+
+// COA CRUD
+function showAddCOA(ac={}) {
+  const acTypeOpts=['Asset','Liability','Income','Expense','Equity','Contra-Equity'].map(t=>`<option ${ac.ac_type===t?'selected':''}>${t}</option>`).join('');
+  showEditModal(ac.ac_key?'Edit Account':'Add Account',`
+    <div class="g2">
+      <div class="field"><label>Account Key *</label><input id="coa-key" value="${ac.ac_key||''}" ${ac.ac_key?'readonly':''}></div>
+      <div class="field"><label>Account Code *</label><input id="coa-code" value="${ac.ac_code||''}"></div>
+    </div>
+    <div class="field"><label>Account Name *</label><input id="coa-name" value="${ac.ac_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Type *</label><select id="coa-type">${acTypeOpts}</select></div>
+      <div class="field"><label>Normal Balance</label><input id="coa-cat" value="${ac.category||''}"></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveCOA('${ac.ac_key||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveCOA(existingKey) {
+  const key=document.getElementById('coa-key').value.trim().toUpperCase();
+  const code=document.getElementById('coa-code').value.trim();
+  const name=document.getElementById('coa-name').value.trim();
+  const type=document.getElementById('coa-type').value;
+  const cat=document.getElementById('coa-cat').value.trim();
+  if(!key||!code||!name){toast('Key, Code and Name required','err');return;}
+  const res=existingKey
+    ? await api('updateCOA',{ac_key:existingKey,ac_code:code,ac_name:name,ac_type:type,category:cat})
+    : await api('addAccount',{ac_key:key,ac_code:code,ac_name:name,ac_type:type,category:cat});
+  if(res.ok){toast(existingKey?'Updated':'Added');closeEditModal();const r=await api('listAccounts');_acs=r.accounts||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editCOA(key){const a=_acs.find(x=>x.ac_key===key);if(a)showAddCOA(a);}
+async function deleteCOA(key){
+  const r=await api('deleteCOA',{ac_key:key});
+  if(r.ok){toast('Deleted');const res=await api('listAccounts');_acs=res.accounts||[];renderMasters();}else toast(r.error,'err');
+}
+
+// CostHead CRUD
+function showAddCH(ch={}) {
+  const acOpts=[...(_acs.map(a=>`<option value="${a.ac_key}" ${ch.ac_key===a.ac_key?'selected':''}>${a.ac_key} — ${a.ac_name}</option>`))].join('');
+  showEditModal(ch.ch_id?'Edit Cost Head':'Add Cost Head',`
+    <div class="field"><label>ID *</label><input id="ch-id" value="${ch.ch_id||''}" ${ch.ch_id?'readonly':''}></div>
+    <div class="field"><label>Name *</label><input id="ch-name" value="${ch.ch_name||''}"></div>
+    <div class="field"><label>Account</label><select id="ch-ac"><option value="">— None —</option>${acOpts}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveCH('${ch.ch_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveCH(existingId){
+  const id=document.getElementById('ch-id').value.trim();
+  const name=document.getElementById('ch-name').value.trim();
+  const acKey=document.getElementById('ch-ac').value;
+  if(!id||!name){toast('ID and Name required','err');return;}
+  const res=existingId
+    ? await api('updateCostHead',{ch_id:existingId,ch_name:name,ac_key:acKey})
+    : await api('addCostHead',{ch_id:id,ch_name:name,ac_key:acKey});
+  if(res.ok){toast(existingId?'Updated':'Added');closeEditModal();const r=await api('listCostHeads');_chs=r.cost_heads||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editCH(id){const c=_chs.find(x=>x.ch_id===id);if(c)showAddCH(c);}
+async function deleteCH(id){
+  const r=await api('deleteCostHead',{ch_id:id});
+  if(r.ok){toast('Deleted');const res=await api('listCostHeads');_chs=res.cost_heads||[];renderMasters();}else toast(r.error,'err');
+}
+
+// EntryType CRUD
+function showAddET(et={}) {
+  const cats=['client','vendor','expense','transfer','drawings'];
+  const acOpts=_acs.map(a=>`<option value="${a.ac_key}">${a.ac_key} — ${a.ac_name}</option>`).join('');
+  showEditModal(et.et_key?'Edit Entry Type':'Add Entry Type',`
+    <div class="g2">
+      <div class="field"><label>Key *</label><input id="et-key" value="${et.et_key||''}" ${et.et_key?'readonly':''}></div>
+      <div class="field"><label>Label *</label><input id="et-label" value="${et.label||''}"></div>
+    </div>
+    <div class="field"><label>Category *</label><select id="et-cat">
+      ${cats.map(c=>`<option value="${c}" ${et.category===c?'selected':''}>${c}</option>`).join('')}
+    </select></div>
+    <div class="g2">
+      <div class="field"><label>DR Account *</label><select id="et-dr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
+      <div class="field"><label>CR Account *</label><select id="et-cr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Needs Cost Head?</label><select id="et-ch"><option value="0">No</option><option value="1" ${et.needs_ch?'selected':''}>Yes</option></select></div>
+      <div class="field"><label>Active</label><select id="et-active"><option value="1" ${et.active!==0?'selected':''}>Yes</option><option value="0" ${et.active===0?'selected':''}>No</option></select></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveET('${et.et_key||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+  if(et.dr) document.getElementById('et-dr').value=et.dr;
+  if(et.cr) document.getElementById('et-cr').value=et.cr;
+}
+async function saveET(existingKey){
+  const key=document.getElementById('et-key').value.trim();
+  const label=document.getElementById('et-label').value.trim();
+  if(!key||!label){toast('Key and Label required','err');return;}
+  const payload={et_key:key,label,category:document.getElementById('et-cat').value,dr:document.getElementById('et-dr').value,cr:document.getElementById('et-cr').value,needs_ch:parseInt(document.getElementById('et-ch').value),active:parseInt(document.getElementById('et-active').value)};
+  const res=existingKey
+    ? await api('updateEntryTypeAdmin',{...payload,et_key:existingKey})
+    : await api('addEntryType',payload);
+  if(res.ok){toast(existingKey?'Updated':'Added');closeEditModal();const r=await api('listEntryTypes');_ets=r.entry_types||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editET(key){const e=_ets.find(x=>x.et_key===key);if(e)showAddET(e);}
+async function deleteET(key){
+  const r=await api('deleteEntryType',{et_key:key});
+  if(r.ok){toast('Deleted');const res=await api('listEntryTypes');_ets=res.entry_types||[];renderMasters();}else toast(r.error,'err');
 }
 
 // Raw Data viewer
@@ -1687,7 +1899,7 @@ const SHEET_MAP={
   VendorOpeningBalance:{table:'vendor_opening_balances',map:r=>({fyid:s(r.FYID),vendor_id:s(r.VendorID),dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:s(r.EnteredAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
   Entries:{table:'entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',entry_type:s(r.EntryType),amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
   Ledger:{table:'ledger',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,ac_code:s(r.AccountCode),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),debit:parseFloat(r.DebitAmt)||0,credit:parseFloat(r.CreditAmt)||0,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
-  PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:s(r.SubmittedAt)||new Date().toISOString(),status:s(r.Status)||'Pending',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
+  PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:s(r.SubmittedAt)||new Date().toISOString(),status:s(r.Status)||'Pending',reviewed_by:s(r.ReviewedBy)||'',reviewed_at:s(r.ReviewedAt)||'',reject_reason:s(r.RejectReason)||'',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
 };
 function fmtDateISO(v){if(!v)return'';const sv=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(sv))return sv.substring(0,10);try{const d=new Date(sv);return isNaN(d)?sv:d.toISOString().substring(0,10);}catch{return sv;}}
 let _wb=null,_preview=null;
