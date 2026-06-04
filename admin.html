@@ -400,7 +400,7 @@ window.addEventListener('DOMContentLoaded', checkSession);
 
 function toggleMenu(id) {
   ['fy-menu','co-menu','user-menu'].forEach(m=>{
-    document.getElementById(m)[m===id?'classList']['toggle']('hidden');
+    document.getElementById(m).classList.toggle('hidden', m!==id);
     if(m!==id) document.getElementById(m).classList.add('hidden');
   });
 }
