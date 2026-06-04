@@ -1,0 +1,919 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>BlueDoor Accounts — Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1117;
+    --surface: #1a1d27;
+    --border: #2a2d3a;
+    --accent: #4f8ef7;
+    --accent2: #7c6af7;
+    --success: #22c55e;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --sidebar: 220px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: 'Segoe UI', system-ui, sans-serif; font-size: 14px; display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar {
+    width: var(--sidebar); background: var(--surface); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .logo { padding: 20px 16px 16px; border-bottom: 1px solid var(--border); }
+  .logo h1 { font-size: 15px; font-weight: 700; color: var(--accent); letter-spacing: .5px; }
+  .logo span { font-size: 11px; color: var(--muted); }
+  nav { flex: 1; padding: 8px 0; overflow-y: auto; }
+  .nav-group { padding: 12px 16px 4px; font-size: 10px; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); }
+  .nav-item {
+    display: flex; align-items: center; gap: 10px; padding: 9px 16px;
+    cursor: pointer; color: var(--muted); font-size: 13px; transition: all .15s;
+    border-left: 2px solid transparent;
+  }
+  .nav-item:hover { background: rgba(79,142,247,.08); color: var(--text); }
+  .nav-item.active { color: var(--accent); background: rgba(79,142,247,.12); border-left-color: var(--accent); }
+  .nav-item .icon { width: 16px; text-align: center; font-size: 15px; }
+  .user-panel { padding: 12px 16px; border-top: 1px solid var(--border); }
+  .user-info { font-size: 12px; color: var(--muted); margin-bottom: 8px; }
+  .user-info strong { color: var(--text); display: block; }
+  .btn-logout { width: 100%; padding: 7px; background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: #ef4444; border-radius: 6px; cursor: pointer; font-size: 12px; transition: all .15s; }
+  .btn-logout:hover { background: rgba(239,68,68,.2); }
+
+  /* ── Main ── */
+  #main { flex: 1; display: flex; flex-direction: column; overflow: hidden; }
+  .topbar { padding: 16px 24px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; background: var(--surface); }
+  .topbar h2 { font-size: 16px; font-weight: 600; }
+  .topbar .badge { font-size: 11px; background: rgba(79,142,247,.15); color: var(--accent); padding: 3px 10px; border-radius: 20px; }
+  #content { flex: 1; overflow-y: auto; padding: 24px; }
+
+  /* ── Cards & Tables ── */
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; margin-bottom: 20px; }
+  .card-header { padding: 14px 20px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .card-header h3 { font-size: 14px; font-weight: 600; }
+  .card-body { padding: 20px; }
+  table { width: 100%; border-collapse: collapse; font-size: 13px; }
+  th { text-align: left; padding: 8px 12px; color: var(--muted); font-weight: 500; font-size: 11px; text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); }
+  td { padding: 10px 12px; border-bottom: 1px solid rgba(42,45,58,.6); }
+  tr:hover td { background: rgba(79,142,247,.04); }
+  .badge-role { font-size: 11px; padding: 2px 8px; border-radius: 10px; }
+  .badge-sup { background: rgba(79,142,247,.15); color: var(--accent); }
+  .badge-staff { background: rgba(100,116,139,.15); color: var(--muted); }
+  .badge-active { background: rgba(34,197,94,.1); color: var(--success); }
+  .badge-inactive { background: rgba(239,68,68,.1); color: var(--danger); }
+  .badge-pending { background: rgba(245,158,11,.1); color: var(--warn); }
+
+  /* ── Buttons ── */
+  .btn { padding: 8px 16px; border-radius: 7px; border: none; cursor: pointer; font-size: 13px; font-weight: 500; transition: all .15s; }
+  .btn-primary { background: var(--accent); color: #fff; }
+  .btn-primary:hover { background: #3b7de8; }
+  .btn-success { background: var(--success); color: #fff; }
+  .btn-success:hover { background: #16a34a; }
+  .btn-danger { background: transparent; border: 1px solid rgba(239,68,68,.4); color: var(--danger); }
+  .btn-danger:hover { background: rgba(239,68,68,.1); }
+  .btn-sm { padding: 4px 10px; font-size: 12px; }
+  .btn-outline { background: transparent; border: 1px solid var(--border); color: var(--text); }
+  .btn-outline:hover { border-color: var(--accent); color: var(--accent); }
+
+  /* ── Forms ── */
+  .form-row { display: grid; gap: 14px; margin-bottom: 14px; }
+  .form-row.cols-2 { grid-template-columns: 1fr 1fr; }
+  .form-row.cols-3 { grid-template-columns: 1fr 1fr 1fr; }
+  .form-group label { display: block; font-size: 11px; color: var(--muted); margin-bottom: 5px; text-transform: uppercase; letter-spacing: .5px; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
+    padding: 8px 12px; border-radius: 7px; font-size: 13px; outline: none; transition: border .15s;
+  }
+  .form-group input:focus, .form-group select:focus, .form-group textarea:focus { border-color: var(--accent); }
+  .form-group select option { background: var(--bg); }
+
+  /* ── Import Section ── */
+  .import-dropzone {
+    border: 2px dashed var(--border); border-radius: 10px; padding: 40px 20px;
+    text-align: center; cursor: pointer; transition: all .2s; position: relative;
+  }
+  .import-dropzone:hover, .import-dropzone.drag-over { border-color: var(--accent); background: rgba(79,142,247,.05); }
+  .import-dropzone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .import-dropzone .dz-icon { font-size: 40px; margin-bottom: 10px; }
+  .import-dropzone .dz-title { font-size: 15px; font-weight: 600; margin-bottom: 4px; }
+  .import-dropzone .dz-sub { font-size: 12px; color: var(--muted); }
+  .import-tables { display: grid; grid-template-columns: repeat(auto-fill, minmax(280px, 1fr)); gap: 12px; margin: 20px 0; }
+  .import-table-card {
+    background: var(--bg); border: 1px solid var(--border); border-radius: 8px;
+    padding: 12px 16px; display: flex; align-items: center; justify-content: space-between;
+  }
+  .import-table-card .tname { font-weight: 500; font-size: 13px; }
+  .import-table-card .tcount { font-size: 12px; color: var(--muted); }
+  .import-table-card .tstatus { font-size: 12px; }
+  .progress-bar { height: 4px; background: var(--border); border-radius: 2px; overflow: hidden; margin-top: 6px; }
+  .progress-fill { height: 100%; background: var(--accent); border-radius: 2px; transition: width .3s; }
+  .import-log { background: var(--bg); border: 1px solid var(--border); border-radius: 8px; padding: 14px; max-height: 200px; overflow-y: auto; font-family: monospace; font-size: 12px; color: var(--muted); margin-top: 16px; }
+  .log-ok { color: var(--success); }
+  .log-err { color: var(--danger); }
+  .log-info { color: var(--accent); }
+
+  /* ── Dashboard stats ── */
+  .stats-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 14px; margin-bottom: 20px; }
+  .stat-card { background: var(--surface); border: 1px solid var(--border); border-radius: 10px; padding: 16px 20px; }
+  .stat-card .stat-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .stat-card .stat-value { font-size: 24px; font-weight: 700; }
+  .stat-card .stat-sub { font-size: 11px; color: var(--muted); margin-top: 3px; }
+
+  /* ── Misc ── */
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+  .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .6s linear infinite; vertical-align: middle; }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .alert { padding: 10px 16px; border-radius: 7px; margin-bottom: 14px; font-size: 13px; }
+  .alert-success { background: rgba(34,197,94,.1); border: 1px solid rgba(34,197,94,.3); color: var(--success); }
+  .alert-error { background: rgba(239,68,68,.1); border: 1px solid rgba(239,68,68,.3); color: var(--danger); }
+  .alert-info { background: rgba(79,142,247,.1); border: 1px solid rgba(79,142,247,.3); color: var(--accent); }
+  #login-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 100; }
+  .login-box { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 36px 40px; width: 360px; }
+  .login-box h2 { font-size: 20px; font-weight: 700; margin-bottom: 4px; }
+  .login-box p { color: var(--muted); font-size: 13px; margin-bottom: 24px; }
+  .hidden { display: none !important; }
+  .flex-gap { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+  .text-muted { color: var(--muted); }
+  .mt-2 { margin-top: 8px; }
+  .mt-4 { margin-top: 16px; }
+  #toast { position: fixed; bottom: 24px; right: 24px; z-index: 999; }
+  .toast-item { background: var(--surface); border: 1px solid var(--border); border-radius: 8px; padding: 12px 16px; margin-top: 8px; font-size: 13px; min-width: 240px; animation: slideIn .2s ease; }
+  .toast-item.success { border-left: 3px solid var(--success); }
+  .toast-item.error { border-left: 3px solid var(--danger); }
+  @keyframes slideIn { from { transform: translateX(20px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+</style>
+</head>
+<body>
+
+<!-- Login Screen -->
+<div id="login-screen">
+  <div class="login-box">
+    <h2>🔷 BlueDoor Accounts</h2>
+    <p>V3 Admin Panel — sign in to continue</p>
+    <div id="login-error" class="alert alert-error hidden"></div>
+    <div class="form-group" style="margin-bottom:12px">
+      <label>Username</label>
+      <input id="login-user" type="text" placeholder="Arpit" autofocus>
+    </div>
+    <div class="form-group" style="margin-bottom:20px">
+      <label>Password</label>
+      <input id="login-pass" type="password" placeholder="••••••••">
+    </div>
+    <button class="btn btn-primary" style="width:100%" onclick="doLogin()">Sign In</button>
+  </div>
+</div>
+
+<!-- App Shell -->
+<div id="app-shell" class="hidden" style="display:flex;width:100%;height:100vh">
+  <!-- Sidebar -->
+  <div id="sidebar">
+    <div class="logo">
+      <h1>🔷 BlueDoor</h1>
+      <span>Accounts V3 — Admin</span>
+    </div>
+    <nav>
+      <div class="nav-group">Overview</div>
+      <div class="nav-item active" onclick="showTab('dashboard')"><span class="icon">📊</span> Dashboard</div>
+      <div class="nav-group">Masters</div>
+      <div class="nav-item" onclick="showTab('companies')"><span class="icon">🏢</span> Companies</div>
+      <div class="nav-item" onclick="showTab('users')"><span class="icon">👤</span> Users</div>
+      <div class="nav-item" onclick="showTab('projects')"><span class="icon">🏗️</span> Projects</div>
+      <div class="nav-item" onclick="showTab('vendors')"><span class="icon">🧾</span> Vendors</div>
+      <div class="nav-item" onclick="showTab('accounts')"><span class="icon">📒</span> Chart of Accounts</div>
+      <div class="nav-item" onclick="showTab('costheads')"><span class="icon">💰</span> Cost Heads</div>
+      <div class="nav-item" onclick="showTab('entrytypes')"><span class="icon">🏷️</span> Entry Types</div>
+      <div class="nav-group">Transactions</div>
+      <div class="nav-item" onclick="showTab('entries')"><span class="icon">📝</span> Entries</div>
+      <div class="nav-item" onclick="showTab('pending')"><span class="icon">⏳</span> Pending</div>
+      <div class="nav-item" onclick="showTab('ledger')"><span class="icon">📖</span> Ledger</div>
+      <div class="nav-group">Settings</div>
+      <div class="nav-item" onclick="showTab('opening')"><span class="icon">⚖️</span> Opening Balances</div>
+      <div class="nav-item" onclick="showTab('import')"><span class="icon">📥</span> Import Data</div>
+    </nav>
+    <div class="user-panel">
+      <div class="user-info"><strong id="sidebar-user">—</strong><span id="sidebar-role"></span></div>
+      <button class="btn-logout" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Main -->
+  <div id="main">
+    <div class="topbar">
+      <h2 id="page-title">Dashboard</h2>
+      <span class="badge" id="fy-badge">FY 2026–27</span>
+    </div>
+    <div id="content"></div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ── Config ────────────────────────────────────────────────────────────────────
+const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
+const MIGRATE = 'https://bluedoor-accounts.info-unikraft.workers.dev/migrate';
+const MIGRATE_SECRET = 'migrate_bluedoor_2024';
+let SESSION = { token: null, user: null };
+
+// ── API helper ────────────────────────────────────────────────────────────────
+async function api(action, params = {}) {
+  const res = await fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session-Token': SESSION.token || '' },
+    body: JSON.stringify({ action, ...params })
+  });
+  return res.json();
+}
+
+async function migrate(payload) {
+  const res = await fetch(MIGRATE, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: MIGRATE_SECRET, ...payload })
+  });
+  return res.json();
+}
+
+// ── Toast ─────────────────────────────────────────────────────────────────────
+function toast(msg, type = 'success') {
+  const el = document.createElement('div');
+  el.className = `toast-item ${type}`;
+  el.textContent = msg;
+  document.getElementById('toast').appendChild(el);
+  setTimeout(() => el.remove(), 3500);
+}
+
+// ── Auth ──────────────────────────────────────────────────────────────────────
+async function doLogin() {
+  const u = document.getElementById('login-user').value.trim();
+  const p = document.getElementById('login-pass').value;
+  const errEl = document.getElementById('login-error');
+  errEl.classList.add('hidden');
+  if (!u || !p) { errEl.textContent = 'Enter username and password'; errEl.classList.remove('hidden'); return; }
+  const res = await api('login', { username: u, password: p });
+  if (!res.ok) { errEl.textContent = res.error || 'Login failed'; errEl.classList.remove('hidden'); return; }
+  SESSION.token = res.token;
+  SESSION.user = res.user;
+  document.getElementById('login-screen').classList.add('hidden');
+  document.getElementById('app-shell').classList.remove('hidden');
+  document.getElementById('sidebar-user').textContent = res.user.username;
+  document.getElementById('sidebar-role').textContent = res.user.role;
+  showTab('dashboard');
+}
+
+async function doLogout() {
+  await api('logout');
+  SESSION = { token: null, user: null };
+  document.getElementById('app-shell').classList.add('hidden');
+  document.getElementById('login-screen').classList.remove('hidden');
+  document.getElementById('login-pass').value = '';
+}
+
+document.getElementById('login-pass').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+// ── Navigation ────────────────────────────────────────────────────────────────
+const TAB_TITLES = {
+  dashboard:'Dashboard', companies:'Companies', users:'Users', projects:'Projects',
+  vendors:'Vendors', accounts:'Chart of Accounts', costheads:'Cost Heads',
+  entrytypes:'Entry Types', entries:'Entries', pending:'Pending Approvals',
+  ledger:'Ledger', opening:'Opening Balances', import:'Import Data'
+};
+
+function showTab(tab) {
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+  document.querySelector(`.nav-item[onclick="showTab('${tab}')"]`)?.classList.add('active');
+  document.getElementById('page-title').textContent = TAB_TITLES[tab] || tab;
+  const content = document.getElementById('content');
+  content.innerHTML = '<div class="empty"><span class="spinner"></span></div>';
+  const fns = { dashboard: renderDashboard, companies: renderCompanies, users: renderUsers,
+    projects: renderProjects, vendors: renderVendors, accounts: renderAccounts,
+    costheads: renderCostHeads, entrytypes: renderEntryTypes, entries: renderEntries,
+    pending: renderPending, ledger: renderLedger, opening: renderOpening, import: renderImport };
+  (fns[tab] || (() => { content.innerHTML = '<div class="empty">Coming soon</div>'; }))();
+}
+
+// ── Dashboard ─────────────────────────────────────────────────────────────────
+async function renderDashboard() {
+  const [dash, counts] = await Promise.all([
+    api('getDashboard', { fyid: 'FY2627' }),
+    migrate({ step: 'counts' })
+  ]);
+  const c = counts.counts || {};
+  document.getElementById('content').innerHTML = `
+    <div class="stats-grid">
+      <div class="stat-card"><div class="stat-label">Entries</div><div class="stat-value">${c.entries || 0}</div><div class="stat-sub">FY 2026–27</div></div>
+      <div class="stat-card"><div class="stat-label">Pending</div><div class="stat-value" style="color:var(--warn)">${c.pending_entries || 0}</div><div class="stat-sub">Awaiting approval</div></div>
+      <div class="stat-card"><div class="stat-label">Vendors</div><div class="stat-value">${c.vendors || 0}</div><div class="stat-sub">Active vendors</div></div>
+      <div class="stat-card"><div class="stat-label">Projects</div><div class="stat-value">${c.projects || 0}</div><div class="stat-sub">All projects</div></div>
+      <div class="stat-card"><div class="stat-label">Ledger Rows</div><div class="stat-value">${c.ledger || 0}</div><div class="stat-sub">Total postings</div></div>
+      <div class="stat-card"><div class="stat-label">Users</div><div class="stat-value">${c.users || 0}</div><div class="stat-sub">Active accounts</div></div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>D1 Database Counts</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Table</th><th>Rows</th></tr>
+          ${Object.entries(c).map(([k,v]) => `<tr><td>${k.replace(/_/g,' ')}</td><td>${v}</td></tr>`).join('')}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Companies ─────────────────────────────────────────────────────────────────
+async function renderCompanies() {
+  const res = await api('listCompanies');
+  const rows = res.companies || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Companies</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>ID</th><th>Name</th><th>Drive Folder</th><th>Status</th></tr>
+          ${rows.length ? rows.map(c => `<tr>
+            <td><code>${c.company_id}</code></td>
+            <td>${c.company_name}</td>
+            <td><span class="text-muted">${c.drive_folder || '—'}</span></td>
+            <td><span class="badge-role ${c.active ? 'badge-active' : 'badge-inactive'}">${c.active ? 'Active' : 'Inactive'}</span></td>
+          </tr>`).join('') : '<tr><td colspan="4" class="empty">No companies</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Users ─────────────────────────────────────────────────────────────────────
+async function renderUsers() {
+  const res = await api('listUsers');
+  const rows = res.users || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header">
+        <h3>Users</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddUser()">+ Add User</button>
+      </div>
+      <div class="card-body" id="user-table-body">
+        <table>
+          <tr><th>Username</th><th>Role</th><th>Companies</th><th>Status</th><th>Actions</th></tr>
+          ${rows.length ? rows.map(u => `<tr>
+            <td><strong>${u.username}</strong></td>
+            <td><span class="badge-role ${u.role === 'Supervisor' ? 'badge-sup' : 'badge-staff'}">${u.role}</span></td>
+            <td><span class="text-muted">${tryParseArr(u.companies).join(', ') || 'All'}</span></td>
+            <td><span class="badge-role ${u.active ? 'badge-active' : 'badge-inactive'}">${u.active ? 'Active' : 'Inactive'}</span></td>
+            <td><button class="btn btn-outline btn-sm" onclick="toggleUser('${u.user_id}',${u.active})">
+              ${u.active ? 'Disable' : 'Enable'}</button></td>
+          </tr>`).join('') : '<tr><td colspan="5" class="empty">No users</td></tr>'}
+        </table>
+      </div>
+    </div>
+    <div class="card hidden" id="add-user-card">
+      <div class="card-header"><h3>Add User</h3></div>
+      <div class="card-body">
+        <div class="form-row cols-3">
+          <div class="form-group"><label>Username</label><input id="nu-user" placeholder="e.g. Ronak"></div>
+          <div class="form-group"><label>Password</label><input id="nu-pass" type="password" placeholder="••••••••"></div>
+          <div class="form-group"><label>Role</label>
+            <select id="nu-role"><option value="Staff">Staff</option><option value="Supervisor">Supervisor</option></select>
+          </div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-success" onclick="addUser()">Create User</button>
+          <button class="btn btn-outline" onclick="document.getElementById('add-user-card').classList.add('hidden')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showAddUser() { document.getElementById('add-user-card')?.classList.remove('hidden'); }
+function tryParseArr(v) { try { return JSON.parse(v) || []; } catch { return []; } }
+
+async function addUser() {
+  const u = document.getElementById('nu-user').value.trim();
+  const p = document.getElementById('nu-pass').value;
+  const r = document.getElementById('nu-role').value;
+  if (!u || !p) { toast('Username and password required', 'error'); return; }
+  const res = await api('addUser', { username: u, password: p, role: r });
+  if (res.ok) { toast(`User ${u} created`); renderUsers(); }
+  else toast(res.error, 'error');
+}
+
+async function toggleUser(uid, active) {
+  const res = await api('updateUser', { user_id: uid, active: !active });
+  if (res.ok) { toast('User updated'); renderUsers(); }
+  else toast(res.error, 'error');
+}
+
+// ── Projects ──────────────────────────────────────────────────────────────────
+async function renderProjects() {
+  const res = await api('listProjects');
+  const rows = res.projects || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Projects</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddProject()">+ Add</button>
+      </div>
+      <div class="card-body">
+        <table>
+          <tr><th>ID</th><th>Name</th><th>Client</th><th>Location</th><th>Status</th><th>FY</th></tr>
+          ${rows.length ? rows.map(p => `<tr>
+            <td><code style="font-size:11px">${p.project_id}</code></td>
+            <td><strong>${p.project_name}</strong></td>
+            <td>${p.client || '—'}</td>
+            <td>${p.location || '—'}</td>
+            <td><span class="badge-role ${p.status==='Active'?'badge-active':'badge-inactive'}">${p.status}</span></td>
+            <td>${p.fyid || '—'}</td>
+          </tr>`).join('') : '<tr><td colspan="6" class="empty">No projects</td></tr>'}
+        </table>
+      </div>
+    </div>
+    <div class="card hidden" id="add-project-card">
+      <div class="card-header"><h3>Add Project</h3></div>
+      <div class="card-body">
+        <div class="form-row cols-3">
+          <div class="form-group"><label>Project Name</label><input id="np-name" placeholder="Altezza C602"></div>
+          <div class="form-group"><label>Client</label><input id="np-client" placeholder="Client name"></div>
+          <div class="form-group"><label>Location</label><input id="np-loc" placeholder="City"></div>
+        </div>
+        <div class="form-row cols-3">
+          <div class="form-group"><label>Status</label>
+            <select id="np-status"><option>Active</option><option>On Hold</option><option>Completed</option></select>
+          </div>
+          <div class="form-group"><label>FY</label><input id="np-fy" value="FY2627"></div>
+          <div class="form-group"><label>Budget</label><input id="np-budget" type="number" placeholder="0"></div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-success" onclick="addProject()">Save Project</button>
+          <button class="btn btn-outline" onclick="document.getElementById('add-project-card').classList.add('hidden')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showAddProject() { document.getElementById('add-project-card')?.classList.remove('hidden'); }
+
+async function addProject() {
+  const res = await api('addProject', {
+    project_name: document.getElementById('np-name').value.trim(),
+    client: document.getElementById('np-client').value.trim(),
+    location: document.getElementById('np-loc').value.trim(),
+    status: document.getElementById('np-status').value,
+    fyid: document.getElementById('np-fy').value.trim(),
+    budget: parseFloat(document.getElementById('np-budget').value) || 0
+  });
+  if (res.ok) { toast('Project added'); renderProjects(); }
+  else toast(res.error, 'error');
+}
+
+// ── Vendors ───────────────────────────────────────────────────────────────────
+async function renderVendors() {
+  const res = await api('listVendors');
+  const rows = res.vendors || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Vendors (${rows.length})</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddVendor()">+ Add</button>
+      </div>
+      <div class="card-body">
+        <table>
+          <tr><th>Name</th><th>Type</th><th>Contact</th><th>GSTIN</th></tr>
+          ${rows.length ? rows.map(v => `<tr>
+            <td><strong>${v.vendor_name}</strong></td>
+            <td><span class="text-muted">${v.vendor_type || '—'}</span></td>
+            <td>${v.contact || '—'}</td>
+            <td><code style="font-size:11px">${v.gstin || '—'}</code></td>
+          </tr>`).join('') : '<tr><td colspan="4" class="empty">No vendors</td></tr>'}
+        </table>
+      </div>
+    </div>
+    <div class="card hidden" id="add-vendor-card">
+      <div class="card-header"><h3>Add Vendor</h3></div>
+      <div class="card-body">
+        <div class="form-row cols-3">
+          <div class="form-group"><label>Vendor Name</label><input id="nv-name" placeholder="Vendor name"></div>
+          <div class="form-group"><label>Type</label>
+            <select id="nv-type"><option>Supplier</option><option>Contractor</option><option>Labour</option><option>Consultant</option><option>Other</option></select>
+          </div>
+          <div class="form-group"><label>Contact</label><input id="nv-contact" placeholder="Phone number"></div>
+        </div>
+        <div class="form-row cols-2">
+          <div class="form-group"><label>GSTIN</label><input id="nv-gstin" placeholder="22AAAAA0000A1Z5"></div>
+          <div class="form-group"><label>Vendor ID (auto if blank)</label><input id="nv-id" placeholder="Auto-generated"></div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-success" onclick="addVendor()">Save Vendor</button>
+          <button class="btn btn-outline" onclick="document.getElementById('add-vendor-card').classList.add('hidden')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showAddVendor() { document.getElementById('add-vendor-card')?.classList.remove('hidden'); }
+
+async function addVendor() {
+  const vid = document.getElementById('nv-id').value.trim() || `V${Date.now()}`;
+  const res = await api('addVendor', {
+    vendor_id: vid,
+    vendor_name: document.getElementById('nv-name').value.trim(),
+    vendor_type: document.getElementById('nv-type').value,
+    contact: document.getElementById('nv-contact').value.trim(),
+    gstin: document.getElementById('nv-gstin').value.trim()
+  });
+  if (res.ok) { toast('Vendor added'); renderVendors(); }
+  else toast(res.error, 'error');
+}
+
+// ── Chart of Accounts ─────────────────────────────────────────────────────────
+async function renderAccounts() {
+  const res = await api('listAccounts');
+  const rows = res.accounts || [];
+  const typeColors = { Asset:'badge-active', Liability:'badge-pending', Income:'badge-sup', Expense:'badge-inactive', Equity:'badge-staff', 'Contra-Equity':'badge-staff' };
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Chart of Accounts (${rows.length})</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Code</th><th>Key</th><th>Name</th><th>Type</th><th>Normal Bal</th></tr>
+          ${rows.map(a => `<tr>
+            <td><code>${a.ac_code}</code></td>
+            <td><code>${a.ac_key}</code></td>
+            <td>${a.ac_name}</td>
+            <td><span class="badge-role ${typeColors[a.ac_type]||'badge-staff'}">${a.ac_type}</span></td>
+            <td>${a.category}</td>
+          </tr>`).join('')}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Cost Heads ────────────────────────────────────────────────────────────────
+async function renderCostHeads() {
+  const res = await api('listCostHeads');
+  const rows = res.cost_heads || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Cost Heads (${rows.length})</h3>
+        <button class="btn btn-primary btn-sm" onclick="showAddCH()">+ Add</button>
+      </div>
+      <div class="card-body">
+        <table>
+          <tr><th>ID</th><th>Name</th><th>Account</th></tr>
+          ${rows.map(c => `<tr><td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td></tr>`).join('')}
+        </table>
+      </div>
+    </div>
+    <div class="card hidden" id="add-ch-card">
+      <div class="card-header"><h3>Add Cost Head</h3></div>
+      <div class="card-body">
+        <div class="form-row cols-3">
+          <div class="form-group"><label>ID</label><input id="nch-id" placeholder="CH20"></div>
+          <div class="form-group"><label>Name</label><input id="nch-name" placeholder="Cost head name"></div>
+          <div class="form-group"><label>Account Key</label><input id="nch-ac" placeholder="EXP_DIRECT"></div>
+        </div>
+        <div class="flex-gap">
+          <button class="btn btn-success" onclick="addCH()">Save</button>
+          <button class="btn btn-outline" onclick="document.getElementById('add-ch-card').classList.add('hidden')">Cancel</button>
+        </div>
+      </div>
+    </div>`;
+}
+
+function showAddCH() { document.getElementById('add-ch-card')?.classList.remove('hidden'); }
+async function addCH() {
+  const res = await api('addCostHead', { ch_id: document.getElementById('nch-id').value.trim(), ch_name: document.getElementById('nch-name').value.trim(), ac_key: document.getElementById('nch-ac').value.trim() });
+  if (res.ok) { toast('Cost head added'); renderCostHeads(); }
+  else toast(res.error, 'error');
+}
+
+// ── Entry Types ───────────────────────────────────────────────────────────────
+async function renderEntryTypes() {
+  const res = await api('listEntryTypes');
+  const rows = res.entry_types || [];
+  const cats = [...new Set(rows.map(r => r.category))];
+  document.getElementById('content').innerHTML = cats.map(cat => `
+    <div class="card">
+      <div class="card-header"><h3>${cat.charAt(0).toUpperCase()+cat.slice(1)} Entries</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Key</th><th>Label</th><th>DR Account</th><th>CR Account</th><th>Cost Head?</th><th>Active</th></tr>
+          ${rows.filter(r=>r.category===cat).map(e => `<tr>
+            <td><code>${e.et_key}</code></td><td>${e.label}</td>
+            <td><code>${e.dr}</code></td><td><code>${e.cr}</code></td>
+            <td>${e.needs_ch ? '✓' : '—'}</td>
+            <td><span class="badge-role ${e.active?'badge-active':'badge-inactive'}">${e.active?'Yes':'No'}</span></td>
+          </tr>`).join('')}
+        </table>
+      </div>
+    </div>`).join('');
+}
+
+// ── Entries ───────────────────────────────────────────────────────────────────
+async function renderEntries() {
+  const res = await api('listEntries', { fyid: 'FY2627', limit: 100 });
+  const rows = res.entries || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Entries — FY 2026–27 (${rows.length})</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Date</th><th>Type</th><th>Amount</th><th>Narration</th><th>Project</th><th>Company</th><th>By</th></tr>
+          ${rows.length ? rows.map(e => `<tr>
+            <td>${e.date}</td>
+            <td><code style="font-size:11px">${e.entry_type}</code></td>
+            <td style="text-align:right"><strong>₹${Number(e.amount).toLocaleString('en-IN')}</strong></td>
+            <td style="max-width:200px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${e.narration||'—'}</td>
+            <td><code style="font-size:11px">${e.project_id||'—'}</code></td>
+            <td>${e.company_id}</td>
+            <td><span class="text-muted">${e.created_by}</span></td>
+          </tr>`).join('') : '<tr><td colspan="7" class="empty">No entries found</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Pending ───────────────────────────────────────────────────────────────────
+async function renderPending() {
+  const res = await api('listPending', { fyid: 'FY2627' });
+  const rows = res.pending || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Pending Approvals (${rows.length})</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Date</th><th>Type</th><th>Amount</th><th>Narration</th><th>Submitted By</th><th>Status</th><th>Actions</th></tr>
+          ${rows.length ? rows.map(p => `<tr>
+            <td>${p.date}</td>
+            <td><code style="font-size:11px">${p.entry_type}</code></td>
+            <td style="text-align:right">₹${Number(p.amount).toLocaleString('en-IN')}</td>
+            <td>${p.narration||'—'}</td>
+            <td>${p.submitted_by}</td>
+            <td><span class="badge-role badge-pending">${p.status}</span></td>
+            <td>
+              ${p.status==='Pending'?`
+                <button class="btn btn-success btn-sm" onclick="approvePending('${p.entry_id}')">✓ Approve</button>
+                <button class="btn btn-danger btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
+              `:'—'}
+            </td>
+          </tr>`).join('') : '<tr><td colspan="7" class="empty">No pending entries</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+}
+
+async function approvePending(id) {
+  const res = await api('approvePending', { entry_id: id });
+  if (res.ok) { toast('Entry approved and posted'); renderPending(); }
+  else toast(res.error, 'error');
+}
+async function rejectPending(id) {
+  const reason = prompt('Rejection reason (optional):') || '';
+  const res = await api('rejectPending', { entry_id: id, reject_reason: reason });
+  if (res.ok) { toast('Entry rejected'); renderPending(); }
+  else toast(res.error, 'error');
+}
+
+// ── Ledger ────────────────────────────────────────────────────────────────────
+async function renderLedger() {
+  const res = await api('getLedger', { fyid: 'FY2627' });
+  const rows = res.ledger || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Ledger — FY 2026–27 (${rows.length} rows)</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Date</th><th>Account</th><th>DR/CR</th><th>Debit ₹</th><th>Credit ₹</th><th>Narration</th><th>Company</th></tr>
+          ${rows.length ? rows.map(l => `<tr>
+            <td>${l.date}</td>
+            <td><strong>${l.ac_name}</strong><br><code style="font-size:10px;color:var(--muted)">${l.ac_code}</code></td>
+            <td><span class="badge-role ${l.dr_cr==='DR'?'badge-active':'badge-pending'}">${l.dr_cr}</span></td>
+            <td style="text-align:right;color:var(--success)">${l.debit>0?'₹'+Number(l.debit).toLocaleString('en-IN'):''}</td>
+            <td style="text-align:right;color:var(--danger)">${l.credit>0?'₹'+Number(l.credit).toLocaleString('en-IN'):''}</td>
+            <td style="font-size:12px">${l.narration||'—'}</td>
+            <td>${l.company_id}</td>
+          </tr>`).join('') : '<tr><td colspan="7" class="empty">No ledger entries</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ── Opening Balances ──────────────────────────────────────────────────────────
+async function renderOpening() {
+  const [obRes, vobRes] = await Promise.all([
+    api('listOpeningBalances', { fyid: 'FY2627' }),
+    api('listVendorOpeningBalances', { fyid: 'FY2627' })
+  ]);
+  const obs = obRes.opening_balances || [];
+  const vobs = vobRes.vendor_opening_balances || [];
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>Account Opening Balances (${obs.length})</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Account</th><th>DR/CR</th><th>Amount ₹</th><th>Company</th><th>Entered By</th></tr>
+          ${obs.length ? obs.map(o => `<tr>
+            <td><strong>${o.ac_name}</strong> <code style="font-size:11px">${o.ac_key}</code></td>
+            <td>${o.dr_cr}</td>
+            <td>₹${Number(o.amount).toLocaleString('en-IN')}</td>
+            <td>${o.company_id}</td>
+            <td>${o.entered_by}</td>
+          </tr>`).join('') : '<tr><td colspan="5" class="empty">No opening balances</td></tr>'}
+        </table>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-header"><h3>Vendor Opening Balances (${vobs.length})</h3></div>
+      <div class="card-body">
+        <table>
+          <tr><th>Vendor ID</th><th>DR/CR</th><th>Amount ₹</th><th>Company</th></tr>
+          ${vobs.length ? vobs.map(v => `<tr>
+            <td><code>${v.vendor_id}</code></td>
+            <td>${v.dr_cr}</td>
+            <td>₹${Number(v.amount).toLocaleString('en-IN')}</td>
+            <td>${v.company_id}</td>
+          </tr>`).join('') : '<tr><td colspan="4" class="empty">No vendor opening balances</td></tr>'}
+        </table>
+      </div>
+    </div>`;
+}
+
+// ══════════════════════════════════════════════════════════════════════════════
+// ── IMPORT DATA (Excel → D1) ──────────────────────────────────────────────────
+// ══════════════════════════════════════════════════════════════════════════════
+let importWorkbook = null;
+let importPreview = null; // { table -> rows[] }
+
+const SHEET_MAP = {
+  Companies:           { table: 'companies',              map: r => ({ company_id: r.CompanyID, company_name: r.CompanyName, drive_folder: r.DriveFolder||'', active: r.Active==='TRUE'||r.Active==='true'||r.Active===true?1:0 }) },
+  Users:               { table: 'users',                  map: r => ({ user_id: `USR_${(r.Username||'').toUpperCase()}`, username: r.Username, password: 'BlueDoor@2024', role: r.Role==='Admin'?'Supervisor':r.Role, active: r.Active==='TRUE'||r.Active==='true'||r.Active===true?1:0, companies: r.Companies||'[]' }) },
+  ChartOfAccounts:     { table: 'chart_of_accounts',      map: r => ({ ac_key: r.AccountKey, ac_code: r.Code, ac_name: r.Name, ac_type: r.Type, category: r.NormalBalance||'' }) },
+  EntryTypes:          { table: 'entry_types',            map: r => ({ et_key: r.EntryKey, label: r.Label, category: r.Category, dr: r.DebitAccount, cr: r.CreditAccount, needs_ch: r.NeedsCostHead==='TRUE'||r.NeedsCostHead===true?1:0, active: r.Active==='TRUE'||r.Active==='true'||r.Active===true?1:0 }) },
+  CostHeads:           { table: 'cost_heads',             map: r => ({ ch_id: r.CostHeadID, ch_name: r.Name, ac_key: r.AccountKey||'' }) },
+  Vendors:             { table: 'vendors',                map: r => ({ vendor_id: r.VendorID, vendor_name: r.Name, vendor_type: r.Type||'', contact: r.Contact||'', gstin: r.GSTIN||'', details: '' }) },
+  Projects:            { table: 'projects',               map: r => ({ project_id: r.ProjectID, project_name: r.Name, client: r.Client||'', location: r.Location||'', status: r.Status||'Active', start_date: fmtDate(r.StartDate), budget: parseFloat(r.Budget)||0, fyid: r.FYID||'FY2627' }) },
+  OpeningBalances:     { table: 'opening_balances',       map: r => ({ fyid: r.FYID, ac_key: r.AccountKey, ac_name: r.AccountName||'', dr_cr: r.DrCr, amount: parseFloat(r.Amount)||0, entered_by: r.EnteredBy||'import', entered_at: fmtTs(r.EnteredAt), company_id: r.CompanyID||'' }) },
+  VendorOpeningBalance:{ table: 'vendor_opening_balances',map: r => ({ fyid: r.FYID, vendor_id: r.VendorID, dr_cr: r.DrCr, amount: parseFloat(r.Amount)||0, entered_by: r.EnteredBy||'import', entered_at: fmtTs(r.EnteredAt), company_id: r.CompanyID||'' }) },
+  Entries:             { table: 'entries',                map: r => ({ entry_id: r.EntryID, date: fmtDate(r.Date), fyid: r.FYID||'FY2627', project_id: r.ProjectID||'', cost_head_id: r.CostHeadID||'', vendor_id: r.VendorID||'', entry_type: r.EntryType, amount: parseFloat(r.Amount)||0, narration: r.Narration||'', created_by: r.CreatedBy||'import', created_at: fmtTs(r.CreatedAt), company_id: r.CompanyID||'' }) },
+  Ledger:              { table: 'ledger',                 map: r => ({ entry_id: r.EntryID, date: fmtDate(r.Date), fyid: r.FYID||'FY2627', ac_code: r.AccountCode, ac_name: r.AccountName||'', dr_cr: r.DrCr, debit: parseFloat(r.DebitAmt)||0, credit: parseFloat(r.CreditAmt)||0, project_id: r.ProjectID||'', cost_head_id: r.CostHeadID||'', vendor_id: r.VendorID||'', narration: r.Narration||'', created_by: r.CreatedBy||'import', created_at: fmtTs(r.CreatedAt), company_id: r.CompanyID||'' }) },
+  PendingEntries:      { table: 'pending_entries',        map: r => ({ entry_id: r.EntryID, date: fmtDate(r.Date), fyid: r.FYID||'FY2627', entry_type: r.EntryType||'', project_id: r.ProjectID||'', cost_head_id: r.CostHeadID||'', vendor_id: r.VendorID||'', amount: parseFloat(r.Amount)||0, narration: r.Narration||'', submitted_by: r.SubmittedBy||'import', submitted_at: fmtTs(r.SubmittedAt), status: r.Status||'Pending', drive_file_url: r.DriveFileURL||'', company_id: r.CompanyID||'' }) },
+};
+
+function fmtDate(v) {
+  if (!v) return '';
+  const s = String(v).trim();
+  if (s.length >= 10 && s.includes('-')) return s.substring(0,10);
+  try { const d = new Date(s); return isNaN(d)?s:d.toISOString().substring(0,10); } catch { return s; }
+}
+function fmtTs(v) {
+  if (!v) return new Date().toISOString();
+  try { const d = new Date(String(v)); return isNaN(d)?new Date().toISOString():d.toISOString(); } catch { return new Date().toISOString(); }
+}
+
+function renderImport() {
+  document.getElementById('content').innerHTML = `
+    <div class="card">
+      <div class="card-header"><h3>📥 Import Data from Excel</h3></div>
+      <div class="card-body">
+        <div class="alert alert-info">
+          Upload your BlueDoor V2 Excel export (.xlsx). The file will be parsed in the browser and each sheet imported into D1 in batches. Existing rows are replaced (INSERT OR REPLACE).
+        </div>
+
+        <div class="import-dropzone" id="import-dropzone">
+          <input type="file" id="import-file" accept=".xlsx,.xls" onchange="handleFileSelect(this)">
+          <div class="dz-icon">📊</div>
+          <div class="dz-title">Drop Excel file here or click to browse</div>
+          <div class="dz-sub">BlueDoor_Account_V2.xlsx — supports all 15 sheets</div>
+        </div>
+
+        <div id="import-preview" class="hidden">
+          <h4 style="margin:20px 0 10px;font-size:13px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Sheets Detected</h4>
+          <div class="import-tables" id="import-table-list"></div>
+          <div class="flex-gap mt-4">
+            <button class="btn btn-success" id="import-btn" onclick="runImport()">🚀 Start Import</button>
+            <button class="btn btn-outline" onclick="clearImport()">Clear</button>
+            <span id="import-overall" style="font-size:13px;color:var(--muted)"></span>
+          </div>
+        </div>
+
+        <div id="import-log" class="import-log hidden"></div>
+      </div>
+    </div>`;
+
+  const dz = document.getElementById('import-dropzone');
+  dz.addEventListener('dragover', e => { e.preventDefault(); dz.classList.add('drag-over'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('drag-over'));
+  dz.addEventListener('drop', e => { e.preventDefault(); dz.classList.remove('drag-over'); const f = e.dataTransfer.files[0]; if (f) processFile(f); });
+}
+
+function handleFileSelect(input) {
+  const f = input.files[0];
+  if (f) processFile(f);
+}
+
+function processFile(file) {
+  const reader = new FileReader();
+  reader.onload = e => {
+    try {
+      importWorkbook = XLSX.read(e.target.result, { type: 'array', cellDates: false });
+      parseSheets();
+    } catch(err) {
+      logImport(`Error reading file: ${err.message}`, 'err');
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+
+function parseSheets() {
+  importPreview = {};
+  const listEl = document.getElementById('import-table-list');
+  listEl.innerHTML = '';
+
+  let totalRows = 0;
+  for (const [sheetName, cfg] of Object.entries(SHEET_MAP)) {
+    if (!importWorkbook.SheetNames.includes(sheetName)) continue;
+    const ws = importWorkbook.Sheets[sheetName];
+    const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+    try {
+      const rows = json.map(cfg.map).filter(r => Object.values(r).some(v => v !== '' && v !== null && v !== undefined));
+      importPreview[sheetName] = { table: cfg.table, rows };
+      totalRows += rows.length;
+      listEl.innerHTML += `
+        <div class="import-table-card" id="card-${sheetName}">
+          <div>
+            <div class="tname">${sheetName}</div>
+            <div class="tcount">${rows.length} rows → <code>${cfg.table}</code></div>
+          </div>
+          <div class="tstatus" id="status-${sheetName}">⏳</div>
+        </div>`;
+    } catch(err) {
+      listEl.innerHTML += `<div class="import-table-card"><div><div class="tname">${sheetName}</div><div class="tcount" style="color:var(--danger)">Parse error: ${err.message}</div></div></div>`;
+    }
+  }
+
+  document.getElementById('import-preview').classList.remove('hidden');
+  document.getElementById('import-overall').textContent = `${totalRows} total rows across ${Object.keys(importPreview).length} tables`;
+}
+
+function logImport(msg, type = 'info') {
+  const logEl = document.getElementById('import-log');
+  logEl.classList.remove('hidden');
+  const line = document.createElement('div');
+  line.className = `log-${type}`;
+  line.textContent = `[${new Date().toLocaleTimeString()}] ${msg}`;
+  logEl.appendChild(line);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+async function runImport() {
+  if (!importPreview) return;
+  const btn = document.getElementById('import-btn');
+  btn.disabled = true; btn.textContent = '⏳ Importing...';
+  const BATCH = 20;
+  let grandTotal = 0, grandFailed = 0;
+
+  const ORDER = ['Companies','Users','ChartOfAccounts','EntryTypes','CostHeads','Vendors','Projects','OpeningBalances','VendorOpeningBalance','Entries','Ledger','PendingEntries'];
+
+  for (const sheetName of ORDER) {
+    if (!importPreview[sheetName]) continue;
+    const { table, rows } = importPreview[sheetName];
+    const statusEl = document.getElementById(`status-${sheetName}`);
+    if (statusEl) statusEl.textContent = '⏳';
+    logImport(`Starting ${sheetName} (${rows.length} rows → ${table})...`, 'info');
+
+    let inserted = 0, failed = 0;
+    for (let i = 0; i < rows.length; i += BATCH) {
+      const batch = rows.slice(i, i + BATCH);
+      try {
+        const res = await migrate({ step: 'insert', table, rows: batch });
+        inserted += res.inserted || 0;
+        failed += res.failed || 0;
+        if (res.errors?.length) res.errors.forEach(e => logImport(`  ✗ ${JSON.stringify(e.error)}`, 'err'));
+        if (statusEl) statusEl.textContent = `${inserted}/${rows.length}`;
+      } catch(err) {
+        failed += batch.length;
+        logImport(`  Network error: ${err.message}`, 'err');
+      }
+    }
+
+    grandTotal += inserted; grandFailed += failed;
+    if (statusEl) statusEl.textContent = failed ? `⚠ ${inserted}✓ ${failed}✗` : `✅ ${inserted}`;
+    logImport(`  ${sheetName}: ${inserted} inserted, ${failed} failed`, failed ? 'err' : 'ok');
+  }
+
+  logImport(`─────────────────────────────────────`, 'info');
+  logImport(`Import complete: ${grandTotal} rows inserted, ${grandFailed} failed`, grandFailed ? 'err' : 'ok');
+  btn.disabled = false; btn.textContent = '🚀 Re-Import';
+  toast(`Import done: ${grandTotal} rows`, grandFailed ? 'error' : 'success');
+}
+
+function clearImport() {
+  importWorkbook = null; importPreview = null;
+  document.getElementById('import-preview').classList.add('hidden');
+  document.getElementById('import-log').classList.add('hidden');
+  document.getElementById('import-file').value = '';
+}
+</script>
+</body>
+</html>
