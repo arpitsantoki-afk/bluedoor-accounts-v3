@@ -1,4 +1,4 @@
-// BlueDoor Accounts V3 â Cloudflare Worker
+// BlueDoor Accounts V3 Ã¢ÂÂ Cloudflare Worker
 // Handles: auth, companies, users, projects, vendors, chart_of_accounts,
 //          cost_heads, entry_types, entries, pending_entries, ledger,
 //          opening_balances, vendor_opening_balances, reports, drive proxy
@@ -107,7 +107,7 @@ async function route(action, params, req, env, ctx) {
   }
 }
 
-// ââ AUTH ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ AUTH Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleLogin({ username, password }, env) {
   if (!username || !password) return err('username and password required');
   const user = await env.DB.prepare('SELECT * FROM users WHERE username = ? AND active = 1').bind(username).first();
@@ -125,7 +125,7 @@ async function handleLogout({ token }, req, env) {
   return ok({ message: 'Logged out' });
 }
 
-// ââ USERS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ USERS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListUsers(params, sess, env) {
   if (sess.role !== 'Supervisor') return err('Forbidden', 403);
   const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies FROM users ORDER BY username').all();
@@ -158,7 +158,7 @@ async function handleChangePassword({ old_password, new_password }, sess, env) {
   return ok();
 }
 
-// ââ COMPANIES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ COMPANIES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListCompanies(env) {
   const rows = await env.DB.prepare('SELECT * FROM companies ORDER BY company_name').all();
   return ok({ companies: rows.results });
@@ -183,7 +183,7 @@ async function handleUpdateCompany({ company_id, company_name, drive_folder, act
   return ok();
 }
 
-// ââ PROJECTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ PROJECTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListProjects({ fyid, status } = {}, env) {
   let q = 'SELECT * FROM projects WHERE 1=1'; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
@@ -213,7 +213,7 @@ async function handleUpdateProject({ project_id, project_name, client, location,
   return ok();
 }
 
-// ââ VENDORS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ VENDORS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListVendors({ vendor_type } = {}, env) {
   let q = 'SELECT * FROM vendors'; const vals = [];
   if (vendor_type) { q += ' WHERE vendor_type = ?'; vals.push(vendor_type); }
@@ -239,7 +239,7 @@ async function handleUpdateVendor({ vendor_id, vendor_name, vendor_type, contact
   return ok();
 }
 
-// ââ CHART OF ACCOUNTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ CHART OF ACCOUNTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListAccounts(env) {
   return ok({ accounts: (await env.DB.prepare('SELECT * FROM chart_of_accounts ORDER BY ac_code').all()).results });
 }
@@ -250,7 +250,7 @@ async function handleAddAccount({ ac_key, ac_code, ac_name, ac_type, category = 
   return ok({ ac_key });
 }
 
-// ââ COST HEADS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ COST HEADS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListCostHeads(env) {
   return ok({ cost_heads: (await env.DB.prepare('SELECT * FROM cost_heads ORDER BY ch_name').all()).results });
 }
@@ -260,7 +260,7 @@ async function handleAddCostHead({ ch_id, ch_name, ac_key = '' }, sess, env) {
   return ok({ ch_id });
 }
 
-// ââ ENTRY TYPES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ ENTRY TYPES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListEntryTypes(env) {
   return ok({ entry_types: (await env.DB.prepare('SELECT * FROM entry_types ORDER BY label').all()).results });
 }
@@ -286,7 +286,7 @@ async function handleUpdateEntryType({ et_key, label, category, dr, cr, needs_ch
   return ok();
 }
 
-// ââ ENTRIES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ ENTRIES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListEntries({ fyid, company_id, project_id, vendor_id, entry_type, date_from, date_to, limit = 200, offset = 0 }, sess, env) {
   let q = 'SELECT * FROM entries WHERE 1=1'; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
@@ -349,7 +349,7 @@ async function handleDeleteEntry({ entry_id }, sess, env) {
   return ok();
 }
 
-// ââ PENDING ENTRIES âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ PENDING ENTRIES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListPending({ fyid, company_id, status, submitted_by }, sess, env) {
   let q = 'SELECT * FROM pending_entries WHERE 1=1'; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
@@ -388,7 +388,7 @@ async function handleDeletePending({ entry_id }, sess, env) {
   return ok();
 }
 
-// ââ LEDGER & REPORTS ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ LEDGER & REPORTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleGetLedger({ fyid, ac_code, company_id, date_from, date_to }, sess, env) {
   let q = 'SELECT * FROM ledger WHERE 1=1'; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
@@ -421,7 +421,7 @@ async function handleGetBS({ fyid, company_id }, sess, env) {
   return ok({ balance_sheet: (await env.DB.prepare(q).bind(...vals).all()).results });
 }
 
-// ââ OPENING BALANCES ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ OPENING BALANCES Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleListOpeningBalances({ fyid, company_id }, env) {
   let q = 'SELECT * FROM opening_balances WHERE 1=1'; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
@@ -459,7 +459,7 @@ async function handleSaveVendorOpeningBalance({ fyid, vendor_id, dr_cr, amount, 
   return ok();
 }
 
-// ââ REPORTS âââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ REPORTS Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleGetProjectReport({ project_id, fyid }, sess, env) {
   if (!project_id) return err('project_id required');
   const project = await env.DB.prepare('SELECT * FROM projects WHERE project_id = ?').bind(project_id).first();
@@ -491,7 +491,7 @@ async function handleGetDashboard({ fyid, company_id }, sess, env) {
   return ok({ entries_count: ec?.cnt || 0, pending_count: pc?.cnt || 0, total_amount: ta?.total || 0 });
 }
 
-// ââ DRIVE / GAS PROXY âââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// Ã¢ÂÂÃ¢ÂÂ DRIVE / GAS PROXY Ã¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂÃ¢ÂÂ
 async function handleDriveProxy({ file_url }, sess, env) {
   if (!file_url) return err('file_url required');
   if (!file_url.includes('drive.google.com') && !file_url.includes('docs.google.com')) return err('Only Google Drive URLs are allowed');
@@ -513,10 +513,10 @@ async function handleGasProxy({ gas_action, payload = {} }, sess, env) {
 }
 
 
-// ══════════════════════════════════════════════════════════════════════════════
-// MIGRATION ENDPOINT — POST /migrate { secret, step, table?, rows?, fyid? }
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
+// MIGRATION ENDPOINT â POST /migrate { secret, step, table?, rows?, fyid? }
 // steps: probe | seed_user | insert | counts
-// ══════════════════════════════════════════════════════════════════════════════
+// ââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââââ
 async function handleMigrate(request, env) {
   let body; try { body = await request.json(); } catch { return err('Invalid JSON'); }
   if (body.secret !== 'migrate_bluedoor_2024') return err('Forbidden', 403);
@@ -543,7 +543,7 @@ async function handleMigrate(request, env) {
 
   // seed_user: insert Arpit supervisor
   if (body.step === 'seed_user') {
-    await env.DB.prepare("INSERT OR IGNORE INTO users (user_id,username,password,role,active,companies) VALUES ('USR_ARPIT','Arpit','BlueDoor@2024','Supervisor',1,'[]')").run();
+    await env.DB.prepare("INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies) VALUES ('USR_ARPIT','Arpit','BlueDoor@2024','Supervisor',1,'[]')").run();
     return ok({ seed_user: 'done' });
   }
 
@@ -556,17 +556,17 @@ async function handleMigrate(request, env) {
     for (const row of rows) {
       try {
         let sql, params;
-        if (table === 'companies') { sql = 'INSERT OR IGNORE INTO companies (company_id,company_name,drive_folder,active) VALUES (?,?,?,1)'; params = [s(row.company_id||row.id),s(row.company_name||row.name),s(row.drive_folder||'')]; }
-        else if (table === 'users') { sql = 'INSERT OR IGNORE INTO users (user_id,username,password,role,active,companies) VALUES (?,?,?,?,?,?)'; params = [s(row.user_id||row.id||row.email),s(row.username||row.name||row.email),s(row.password||'changeme123'),s(row.role||'Staff'),row.active===false?0:1,JSON.stringify(row.companies||[])]; }
-        else if (table === 'chart_of_accounts') { sql = 'INSERT OR IGNORE INTO chart_of_accounts (ac_key,ac_code,ac_name,ac_type,category) VALUES (?,?,?,?,?)'; params = [s(row.ac_key||row.key),s(row.ac_code||row.code),s(row.ac_name||row.name),s(row.ac_type||row.type||'Asset'),s(row.category||'')]; }
-        else if (table === 'entry_types') { sql = 'INSERT OR IGNORE INTO entry_types (et_key,label,category,dr,cr,needs_ch,active) VALUES (?,?,?,?,?,?,?)'; params = [s(row.et_key||row.key||row.id),s(row.label||row.name),s(row.category||''),s(row.dr||''),s(row.cr||''),row.needs_ch?1:0,row.active===false?0:1]; }
-        else if (table === 'cost_heads') { sql = 'INSERT OR IGNORE INTO cost_heads (ch_id,ch_name,ac_key) VALUES (?,?,?)'; params = [s(row.ch_id||row.id||row.key),s(row.ch_name||row.name),s(row.ac_key||'')]; }
-        else if (table === 'vendors') { sql = 'INSERT OR IGNORE INTO vendors (vendor_id,vendor_name,vendor_type,contact,gstin,details) VALUES (?,?,?,?,?,?)'; params = [s(row.vendor_id||row.id),s(row.vendor_name||row.name),s(row.vendor_type||row.type||''),s(row.contact||row.phone||''),s(row.gstin||row.gst||''),s(row.details||row.notes||'')]; }
-        else if (table === 'projects') { sql = 'INSERT OR IGNORE INTO projects (project_id,project_name,client,location,status,start_date,budget,fyid) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.project_id||row.id),s(row.project_name||row.name),s(row.client||''),s(row.location||''),s(row.status||'Active'),s(row.start_date||''),n(row.budget),s(row.fyid||FYID)]; }
-        else if (table === 'entries') { sql = 'INSERT OR IGNORE INTO entries (entry_id,date,fyid,project_id,cost_head_id,vendor_id,entry_type,amount,narration,created_by,created_at,company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'; params = [s(row.entry_id||row.id),s(row.date),s(row.fyid||FYID),s(row.project_id||''),s(row.cost_head_id||''),s(row.vendor_id||''),s(row.entry_type||''),n(row.amount),s(row.narration||''),s(row.created_by||row.user||'migration'),s(row.created_at||row.timestamp||new Date().toISOString()),s(row.company_id||'')]; }
-        else if (table === 'opening_balances') { sql = 'INSERT OR IGNORE INTO opening_balances (fyid,ac_key,ac_name,dr_cr,amount,entered_by,entered_at,company_id) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.fyid||FYID),s(row.ac_key||row.key),s(row.ac_name||row.name||''),s(row.dr_cr||'DR'),n(row.amount),s(row.entered_by||'migration'),s(row.entered_at||new Date().toISOString()),s(row.company_id||'')]; }
-        else if (table === 'vendor_opening_balances') { sql = 'INSERT OR IGNORE INTO vendor_opening_balances (fyid,vendor_id,dr_cr,amount,entered_by,entered_at,company_id) VALUES (?,?,?,?,?,?,?)'; params = [s(row.fyid||FYID),s(row.vendor_id||row.id),s(row.dr_cr||'DR'),n(row.amount),s(row.entered_by||'migration'),s(row.entered_at||new Date().toISOString()),s(row.company_id||'')]; }
-        else if (table === 'pending_entries') { sql = "INSERT OR IGNORE INTO pending_entries (entry_id,date,fyid,entry_type,project_id,cost_head_id,vendor_id,amount,narration,submitted_by,submitted_at,status,drive_file_url,company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,'Pending',?,?)"; params = [s(row.entry_id||row.id),s(row.date),s(row.fyid||FYID),s(row.entry_type||''),s(row.project_id||''),s(row.cost_head_id||''),s(row.vendor_id||''),n(row.amount),s(row.narration||''),s(row.submitted_by||row.user||''),s(row.submitted_at||row.timestamp||new Date().toISOString()),s(row.drive_file_url||''),s(row.company_id||'')]; }
+        if (table === 'companies') { sql = 'INSERT OR REPLACE INTO companies (company_id,company_name,drive_folder,active) VALUES (?,?,?,1)'; params = [s(row.company_id||row.id),s(row.company_name||row.name),s(row.drive_folder||'')]; }
+        else if (table === 'users') { sql = 'INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies) VALUES (?,?,?,?,?,?)'; params = [s(row.user_id||row.id||row.email),s(row.username||row.name||row.email),s(row.password||'changeme123'),s(row.role||'Staff'),row.active===false?0:1,JSON.stringify(row.companies||[])]; }
+        else if (table === 'chart_of_accounts') { sql = 'INSERT OR REPLACE INTO chart_of_accounts (ac_key,ac_code,ac_name,ac_type,category) VALUES (?,?,?,?,?)'; params = [s(row.ac_key||row.key),s(row.ac_code||row.code),s(row.ac_name||row.name),s(row.ac_type||row.type||'Asset'),s(row.category||'')]; }
+        else if (table === 'entry_types') { sql = 'INSERT OR REPLACE INTO entry_types (et_key,label,category,dr,cr,needs_ch,active) VALUES (?,?,?,?,?,?,?)'; params = [s(row.et_key||row.key||row.id),s(row.label||row.name),s(row.category||''),s(row.dr||''),s(row.cr||''),row.needs_ch?1:0,row.active===false?0:1]; }
+        else if (table === 'cost_heads') { sql = 'INSERT OR REPLACE INTO cost_heads (ch_id,ch_name,ac_key) VALUES (?,?,?)'; params = [s(row.ch_id||row.id||row.key),s(row.ch_name||row.name),s(row.ac_key||'')]; }
+        else if (table === 'vendors') { sql = 'INSERT OR REPLACE INTO vendors (vendor_id,vendor_name,vendor_type,contact,gstin,details) VALUES (?,?,?,?,?,?)'; params = [s(row.vendor_id||row.id),s(row.vendor_name||row.name),s(row.vendor_type||row.type||''),s(row.contact||row.phone||''),s(row.gstin||row.gst||''),s(row.details||row.notes||'')]; }
+        else if (table === 'projects') { sql = 'INSERT OR REPLACE INTO projects (project_id,project_name,client,location,status,start_date,budget,fyid) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.project_id||row.id),s(row.project_name||row.name),s(row.client||''),s(row.location||''),s(row.status||'Active'),s(row.start_date||''),n(row.budget),s(row.fyid||FYID)]; }
+        else if (table === 'entries') { sql = 'INSERT OR REPLACE INTO entries (entry_id,date,fyid,project_id,cost_head_id,vendor_id,entry_type,amount,narration,created_by,created_at,company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'; params = [s(row.entry_id||row.id),s(row.date),s(row.fyid||FYID),s(row.project_id||''),s(row.cost_head_id||''),s(row.vendor_id||''),s(row.entry_type||''),n(row.amount),s(row.narration||''),s(row.created_by||row.user||'migration'),s(row.created_at||row.timestamp||new Date().toISOString()),s(row.company_id||'')]; }
+        else if (table === 'opening_balances') { sql = 'INSERT OR REPLACE INTO opening_balances (fyid,ac_key,ac_name,dr_cr,amount,entered_by,entered_at,company_id) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.fyid||FYID),s(row.ac_key||row.key),s(row.ac_name||row.name||''),s(row.dr_cr||'DR'),n(row.amount),s(row.entered_by||'migration'),s(row.entered_at||new Date().toISOString()),s(row.company_id||'')]; }
+        else if (table === 'vendor_opening_balances') { sql = 'INSERT OR REPLACE INTO vendor_opening_balances (fyid,vendor_id,dr_cr,amount,entered_by,entered_at,company_id) VALUES (?,?,?,?,?,?,?)'; params = [s(row.fyid||FYID),s(row.vendor_id||row.id),s(row.dr_cr||'DR'),n(row.amount),s(row.entered_by||'migration'),s(row.entered_at||new Date().toISOString()),s(row.company_id||'')]; }
+        else if (table === 'pending_entries') { sql = "INSERT OR REPLACE INTO pending_entries (entry_id,date,fyid,entry_type,project_id,cost_head_id,vendor_id,amount,narration,submitted_by,submitted_at,status,drive_file_url,company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,'Pending',?,?)"; params = [s(row.entry_id||row.id),s(row.date),s(row.fyid||FYID),s(row.entry_type||''),s(row.project_id||''),s(row.cost_head_id||''),s(row.vendor_id||''),n(row.amount),s(row.narration||''),s(row.submitted_by||row.user||''),s(row.submitted_at||row.timestamp||new Date().toISOString()),s(row.drive_file_url||''),s(row.company_id||'')]; }
         else return err('Unknown table: ' + table);
         await env.DB.prepare(sql).bind(...params).run();
         inserted++;
