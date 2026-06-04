@@ -627,6 +627,24 @@ async function handleMigrate(request, env) {
     return ok({ table, inserted, failed, errors: errors.slice(0,5) });
   }
 
+  // migrate_schema: add missing columns safely
+  if (body.step === 'migrate_schema') {
+    const results = {};
+    const migrations = [
+      "ALTER TABLE entry_types ADD COLUMN hint TEXT DEFAULT ''",
+    ];
+    for (const sql of migrations) {
+      try {
+        await env.DB.prepare(sql).run();
+        results[sql] = 'ok';
+      } catch(e) {
+        // Column already exists = expected error, ignore
+        results[sql] = e.message.includes('duplicate') || e.message.includes('already exists') ? 'already exists' : 'error: ' + e.message;
+      }
+    }
+    return ok({ schema_results: results });
+  }
+
   // counts: show row counts for all tables
   if (body.step === 'counts') {
     const counts = {};
