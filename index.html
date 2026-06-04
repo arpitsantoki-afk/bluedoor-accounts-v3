@@ -166,8 +166,8 @@ document.getElementById('mp')?.addEventListener('keydown', e => { if (e.key === 
 // ── Post-login redirect ───────────────────────────────────────────────────────
 function handleSuccess(data) {
   // Store session
-  sessionStorage.setItem('bd_token', data.token);
-  sessionStorage.setItem('bd_user', JSON.stringify(data.user));
+  localStorage.setItem('bd_token', data.token);
+  localStorage.setItem('bd_user', JSON.stringify(data.user));
 
   setStatus('Welcome, ' + data.user.username + '!', 'ok');
 
@@ -194,8 +194,8 @@ function toggleManual() {
 
 // ── Auto-login if session exists ──────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
-  const token = sessionStorage.getItem('bd_token');
-  const user = sessionStorage.getItem('bd_user');
+  const token = localStorage.getItem('bd_token');
+  const user = localStorage.getItem('bd_user');
   if (token && user) {
     try {
       const u = JSON.parse(user);
