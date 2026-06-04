@@ -194,24 +194,35 @@ function toggleManual() {
 
 // ── Auto-login if session exists ──────────────────────────────────────────────
 window.addEventListener('DOMContentLoaded', () => {
+  // If ?logout=1, clear storage and stay on login page
+  if (new URLSearchParams(window.location.search).get('logout') === '1') {
+    localStorage.removeItem('bd_token');
+    localStorage.removeItem('bd_user');
+    return;
+  }
   const token = localStorage.getItem('bd_token');
-  const user = localStorage.getItem('bd_user');
-  if (token && user) {
-    try {
-      const u = JSON.parse(user);
-      // Verify session is still valid
-      fetch(API, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-        body: JSON.stringify({ action: 'getMe' })
-      }).then(r => r.json()).then(data => {
-        if (data.ok) {
-          setStatus('Restoring session...', 'loading');
-          setTimeout(() => {
-            window.location.href = u.role === 'Admin' ? 'admin.html' : 'app.html';
-          }, 400);
-        }
-      }).catch(() => {});
+  if (!token) return; // No session — just show login form
+  // Verify token is still alive before auto-redirecting
+  setStatus('Checking session...', 'loading');
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+    body: JSON.stringify({ action: 'getMe' })
+  }).then(r => r.json()).then(data => {
+    if (data.ok && data.user) {
+      setStatus('Welcome back, ' + data.user.username + '!', 'ok');
+      setTimeout(() => {
+        window.location.href = data.user.role === 'Admin'
+          ? '/bluedoor-accounts-v3/admin.html'
+          : '/bluedoor-accounts-v3/app.html';
+      }, 600);
+    } else {
+      localStorage.removeItem('bd_token');
+      localStorage.removeItem('bd_user');
+      setStatus('', '');
+    }
+  }).catch(() => { setStatus('', ''); });
+});
     } catch(e) {}
   }
 });
