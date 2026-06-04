@@ -56,6 +56,7 @@ export default {
 
 async function route(action, params, req, env, ctx) {
   if (action === 'login') return handleLogin(params, env);
+  if (action === 'googleLogin') return handleGoogleLogin(params, env);
   if (action === 'logout') return handleLogout(params, req, env);
   const { sess, resp } = await requireSession(env, req);
   if (resp) return resp;
