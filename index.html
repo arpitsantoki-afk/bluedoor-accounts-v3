@@ -175,9 +175,9 @@ function handleSuccess(data) {
   const role = data.user.role;
   setTimeout(() => {
     if (role === 'Admin') {
-      window.location.href = 'admin.html';
+      window.location.href = '/bluedoor-accounts-v3/admin.html';
     } else {
-      window.location.href = 'app.html';
+      window.location.href = '/bluedoor-accounts-v3/app.html';
     }
   }, 600);
 }
