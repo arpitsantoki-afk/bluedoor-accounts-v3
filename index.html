@@ -4,85 +4,44 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <title>BlueDoor Accounts</title>
-<script src="https://accounts.google.com/gsi/client" async defer></script>
+<script src="https://accounts.google.com/gsi/client" async></script>
 <style>
-  :root {
-    --bg: #0d0f14; --card: #161920; --border: #232630;
-    --accent: #4f8ef7; --text: #e2e8f0; --muted: #64748b;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body {
-    background: var(--bg); color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-    min-height: 100dvh; display: flex; align-items: center; justify-content: center;
-    padding: 24px;
-  }
-
-  .box {
-    background: var(--card); border: 1px solid var(--border); border-radius: 20px;
-    padding: 36px 28px; width: 100%; max-width: 380px; text-align: center;
-  }
-
-  .logo { font-size: 48px; margin-bottom: 12px; }
-  h1 { font-size: 22px; font-weight: 700; margin-bottom: 4px; }
-  .sub { color: var(--muted); font-size: 13px; margin-bottom: 32px; }
-
-  /* Google button container */
-  #g-btn-wrap {
-    display: flex; justify-content: center; margin-bottom: 20px;
-  }
-
-  .divider {
-    display: flex; align-items: center; gap: 12px; margin-bottom: 20px;
-    color: var(--muted); font-size: 12px;
-  }
-  .divider::before, .divider::after {
-    content: ''; flex: 1; height: 1px; background: var(--border);
-  }
-
-  /* Manual login fallback */
-  #manual-form { display: none; }
-  .field { margin-bottom: 12px; text-align: left; }
-  .field label { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 5px; }
-  .field input {
-    width: 100%; background: var(--bg); border: 1px solid var(--border); color: var(--text);
-    padding: 11px 14px; border-radius: 9px; font-size: 14px; outline: none; transition: border .15s;
-  }
-  .field input:focus { border-color: var(--accent); }
-  .btn-manual {
-    width: 100%; padding: 12px; background: var(--accent); color: #fff; border: none;
-    border-radius: 9px; font-size: 14px; font-weight: 600; cursor: pointer; margin-top: 4px;
-    transition: background .15s;
-  }
-  .btn-manual:active { background: #3b7de8; }
-  .toggle-link { font-size: 12px; color: var(--accent); cursor: pointer; text-decoration: underline; }
-
-  /* Status */
-  #status {
-    min-height: 44px; display: flex; align-items: center; justify-content: center;
-    font-size: 13px; gap: 8px;
-  }
-  .spin {
-    display: inline-block; width: 16px; height: 16px;
-    border: 2px solid var(--border); border-top-color: var(--accent);
-    border-radius: 50%; animation: spin .6s linear infinite;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .err { color: #ef4444; font-size: 13px; }
-  .ok { color: #22c55e; }
-
-  .version { font-size: 11px; color: var(--muted); margin-top: 24px; }
+  :root { --bg:#0d0f14; --card:#161920; --border:#232630; --accent:#4f8ef7; --text:#e2e8f0; --muted:#64748b; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+    min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .box{background:var(--card);border:1px solid var(--border);border-radius:20px;
+    padding:36px 28px;width:100%;max-width:380px;text-align:center}
+  .logo{font-size:48px;margin-bottom:12px}
+  h1{font-size:22px;font-weight:700;margin-bottom:4px}
+  .sub{color:var(--muted);font-size:13px;margin-bottom:28px}
+  #g-wrap{display:flex;justify-content:center;margin-bottom:16px;min-height:44px}
+  #status{min-height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;gap:8px;margin-bottom:8px}
+  .divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:var(--muted);font-size:12px}
+  .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
+  .field{margin-bottom:12px;text-align:left}
+  .field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
+    padding:11px 14px;border-radius:9px;font-size:14px;outline:none;transition:border .15s}
+  .field input:focus{border-color:var(--accent)}
+  .btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;
+    border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
+  .toggle{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline;display:block;margin-top:12px}
+  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);
+    border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+  .err{color:#ef4444}.ok{color:#22c55e}
+  #manual{display:none}
+  .version{font-size:11px;color:var(--muted);margin-top:20px}
 </style>
 </head>
 <body>
-
 <div class="box">
-  <div class="logo">🔷</div>
+  <div class="logo">&#x1F537;</div>
   <h1>BlueDoor Accounts</h1>
-  <p class="sub">V3 — Interior Design Finance</p>
+  <p class="sub">V3 &mdash; Interior Design Finance</p>
 
-  <!-- Google Sign-In button -->
-  <div id="g-btn-wrap">
+  <div id="g-wrap">
     <div id="g_id_onload"
       data-client_id="449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.googleusercontent.com"
       data-callback="onGoogleLogin"
@@ -99,17 +58,16 @@
     </div>
   </div>
 
-  <!-- Status / spinner -->
   <div id="status"></div>
 
-  <!-- Manual login fallback -->
   <div class="divider">or use password</div>
-  <div id="manual-form">
+
+  <div id="manual">
     <div class="field"><label>Username</label><input id="mu" placeholder="Arpit"></div>
-    <div class="field"><label>Password</label><input id="mp" type="password" placeholder="••••••••"></div>
-    <button class="btn-manual" onclick="manualLogin()">Sign In</button>
+    <div class="field"><label>Password</label><input id="mp" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"></div>
+    <button class="btn" onclick="manualLogin()">Sign In</button>
   </div>
-  <span class="toggle-link" onclick="toggleManual()">Sign in with username & password</span>
+  <span class="toggle" onclick="toggleManual()">Sign in with username &amp; password</span>
 
   <p class="version">BlueDoor Accounts V3</p>
 </div>
@@ -117,101 +75,97 @@
 <script>
 const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
 
-function setStatus(msg, type='') {
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function setStatus(msg, type) {
   const el = document.getElementById('status');
-  if (type === 'loading') el.innerHTML = `<span class="spin"></span> ${msg}`;
-  else if (type === 'err') el.innerHTML = `<span class="err">⚠ ${msg}</span>`;
-  else if (type === 'ok') el.innerHTML = `<span class="ok">✓ ${msg}</span>`;
-  else el.innerHTML = msg;
+  if (!type) { el.innerHTML = ''; return; }
+  if (type === 'loading') el.innerHTML = '<span class="spin"></span> ' + msg;
+  else if (type === 'err')  el.innerHTML = '<span class="err">&#x26A0; ' + msg + '</span>';
+  else if (type === 'ok')   el.innerHTML = '<span class="ok">&#x2713; ' + msg + '</span>';
 }
 
-// ── Google callback ───────────────────────────────────────────────────────────
-async function onGoogleLogin(response) {
-  setStatus('Signing in...', 'loading');
-  try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'googleLogin', id_token: response.credential })
-    });
-    const data = await res.json();
-    if (!data.ok) { setStatus(data.error || 'Login failed', 'err'); return; }
-    handleSuccess(data);
-  } catch (e) {
-    setStatus('Network error: ' + e.message, 'err');
-  }
-}
-
-// ── Manual login ──────────────────────────────────────────────────────────────
-async function manualLogin() {
-  const u = document.getElementById('mu').value.trim();
-  const p = document.getElementById('mp').value;
-  if (!u || !p) { setStatus('Enter username and password', 'err'); return; }
-  setStatus('Signing in...', 'loading');
-  try {
-    const res = await fetch(API, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'login', username: u, password: p })
-    });
-    const data = await res.json();
-    if (!data.ok) { setStatus(data.error || 'Invalid credentials', 'err'); return; }
-    handleSuccess(data);
-  } catch (e) {
-    setStatus('Network error: ' + e.message, 'err');
-  }
-}
-document.getElementById('mp')?.addEventListener('keydown', e => { if (e.key === 'Enter') manualLogin(); });
-
-// ── Post-login redirect ───────────────────────────────────────────────────────
 function handleSuccess(data) {
-  // Store session
   localStorage.setItem('bd_token', data.token);
   localStorage.setItem('bd_user', JSON.stringify(data.user));
-
   setStatus('Welcome, ' + data.user.username + '!', 'ok');
-
-  // Redirect based on role
-  const role = data.user.role;
-  setTimeout(() => {
-    if (role === 'Admin') {
-      window.location.href = '/bluedoor-accounts-v3/admin.html';
-    } else {
-      window.location.href = '/bluedoor-accounts-v3/app.html';
-    }
+  setTimeout(function() {
+    window.location.href = data.user.role === 'Admin'
+      ? '/bluedoor-accounts-v3/admin.html'
+      : '/bluedoor-accounts-v3/app.html';
   }, 600);
 }
 
-// ── Toggle manual form ────────────────────────────────────────────────────────
+// ── Google Sign-In callback (must be global) ──────────────────────────────────
+function onGoogleLogin(response) {
+  setStatus('Signing in with Google...', 'loading');
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'googleLogin', id_token: response.credential })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ok) { setStatus(data.error || 'Login failed', 'err'); return; }
+    handleSuccess(data);
+  })
+  .catch(function(e) { setStatus('Network error: ' + e.message, 'err'); });
+}
+
+// ── Manual login ──────────────────────────────────────────────────────────────
+function manualLogin() {
+  var u = document.getElementById('mu').value.trim();
+  var p = document.getElementById('mp').value;
+  if (!u || !p) { setStatus('Enter username and password', 'err'); return; }
+  setStatus('Signing in...', 'loading');
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: u, password: p })
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
+    if (!data.ok) { setStatus(data.error || 'Invalid credentials', 'err'); return; }
+    handleSuccess(data);
+  })
+  .catch(function(e) { setStatus('Network error: ' + e.message, 'err'); });
+}
+
+document.getElementById('mp').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') manualLogin();
+});
+
 function toggleManual() {
-  const f = document.getElementById('manual-form');
-  const showing = f.style.display === 'block';
+  var f = document.getElementById('manual');
+  var showing = f.style.display === 'block';
   f.style.display = showing ? 'none' : 'block';
-  document.querySelector('.toggle-link').textContent = showing
+  document.querySelector('.toggle').textContent = showing
     ? 'Sign in with username & password'
     : 'Hide manual login';
 }
 
-// ── Auto-login if session exists ──────────────────────────────────────────────
-window.addEventListener('DOMContentLoaded', () => {
-  // If ?logout=1, clear storage and stay on login page
-  if (new URLSearchParams(window.location.search).get('logout') === '1') {
+// ── Auto-restore valid session ────────────────────────────────────────────────
+(function() {
+  // ?logout=1 means user explicitly signed out — clear and stay here
+  if (window.location.search.indexOf('logout=1') !== -1) {
     localStorage.removeItem('bd_token');
     localStorage.removeItem('bd_user');
     return;
   }
-  const token = localStorage.getItem('bd_token');
-  if (!token) return; // No session — just show login form
-  // Verify token is still alive before auto-redirecting
+
+  var token = localStorage.getItem('bd_token');
+  if (!token) return;
+
   setStatus('Checking session...', 'loading');
   fetch(API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
     body: JSON.stringify({ action: 'getMe' })
-  }).then(r => r.json()).then(data => {
+  })
+  .then(function(r) { return r.json(); })
+  .then(function(data) {
     if (data.ok && data.user) {
       setStatus('Welcome back, ' + data.user.username + '!', 'ok');
-      setTimeout(() => {
+      setTimeout(function() {
         window.location.href = data.user.role === 'Admin'
           ? '/bluedoor-accounts-v3/admin.html'
           : '/bluedoor-accounts-v3/app.html';
@@ -221,11 +175,9 @@ window.addEventListener('DOMContentLoaded', () => {
       localStorage.removeItem('bd_user');
       setStatus('', '');
     }
-  }).catch(() => { setStatus('', ''); });
-});
-    } catch(e) {}
-  }
-});
+  })
+  .catch(function() { setStatus('', ''); });
+})();
 </script>
 </body>
 </html>
