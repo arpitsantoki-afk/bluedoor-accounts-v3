@@ -82,6 +82,14 @@ async function route(action, params, req, env, ctx) {
     case 'listEntryTypes': return handleListEntryTypes(env);
     case 'addEntryType': return handleAddEntryType(params, sess, env);
     case 'updateEntryType': return handleUpdateEntryType(params, sess, env);
+    case 'deleteProject': return handleDeleteProject(params, sess, env);
+    case 'deleteVendor': return handleDeleteVendor(params, sess, env);
+    case 'updateCOA': return handleUpdateCOA(params, sess, env);
+    case 'deleteCOA': return handleDeleteCOA(params, sess, env);
+    case 'updateCostHead': return handleUpdateCostHead(params, sess, env);
+    case 'deleteCostHead': return handleDeleteCostHead(params, sess, env);
+    case 'updateEntryTypeAdmin': return handleUpdateEntryTypeAdmin(params, sess, env);
+    case 'deleteEntryType': return handleDeleteEntryType(params, sess, env);
     case 'listEntries': return handleListEntries(params, sess, env);
     case 'addEntry': return handleAddEntry(params, sess, env);
     case 'updateEntry': return handleUpdateEntry(params, sess, env);
@@ -180,13 +188,14 @@ async function handleAddUser({ username, password, role, companies = [] }, sess,
   await env.DB.prepare('INSERT INTO users (user_id, username, password, role, active, companies) VALUES (?,?,?,?,1,?)').bind(uid, username, password, role, JSON.stringify(companies)).run();
   return ok({ user_id: uid });
 }
-async function handleUpdateUser({ user_id, role, active, companies }, sess, env) {
+async function handleUpdateUser({ user_id, role, active, companies, google_email }, sess, env) {
   if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
   const fields = [], vals = [];
   if (role !== undefined) { fields.push('role = ?'); vals.push(role); }
   if (active !== undefined) { fields.push('active = ?'); vals.push(active ? 1 : 0); }
   if (companies !== undefined) { fields.push('companies = ?'); vals.push(JSON.stringify(companies)); }
+  if (google_email !== undefined) { fields.push('google_email = ?'); vals.push(google_email); }
   if (!fields.length) return err('Nothing to update');
   vals.push(user_id);
   await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`).bind(...vals).run();
