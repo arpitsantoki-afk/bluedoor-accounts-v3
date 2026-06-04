@@ -351,11 +351,16 @@ function checkSession() {
   const token = sessionStorage.getItem('bd_token');
   const userRaw = sessionStorage.getItem('bd_user');
   if (!token || !userRaw) {
-    window.location.href = 'index.html'; return;
+    // Try redirect; if that fails show inline login
+    setTimeout(() => {
+      // If still on this page after 500ms, redirect failed — show inline login
+      showInlineLogin();
+    }, 500);
+    window.location.href = '/bluedoor-accounts-v3/index.html'; return;
   }
   try {
     const user = JSON.parse(userRaw);
-    if (user.role !== 'Admin') { window.location.href = 'app.html'; return; }
+    if (user.role !== 'Admin') { window.location.href = '/bluedoor-accounts-v3/app.html'; return; }
     S.token = token; S.user = user;
     document.getElementById('auth-check').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
@@ -363,13 +368,13 @@ function checkSession() {
     document.getElementById('um-role').textContent = user.role;
     document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
     loadMasters().then(() => { initView(); });
-  } catch(e) { window.location.href = 'index.html'; }
+  } catch(e) { window.location.href = '/bluedoor-accounts-v3/index.html'; }
 }
 async function doLogout(){
   await api('logout');
   sessionStorage.removeItem('bd_token');
   sessionStorage.removeItem('bd_user');
-  window.location.href = 'index.html';
+  window.location.href = '/bluedoor-accounts-v3/index.html';
 }
 // Boot
 window.addEventListener('DOMContentLoaded', checkSession);
@@ -1063,6 +1068,52 @@ async function runImport(){
   loadMasters();
 }
 function clearImport(){_wb=null;_preview=null;document.getElementById('imp-preview').classList.add('hidden');document.getElementById('imp-log').classList.add('hidden');document.getElementById('imp-file').value='';}
+
+
+// Inline login fallback (when sessionStorage empty and redirect fails)
+function showInlineLogin() {
+  const el = document.getElementById('auth-check');
+  if (!el) return;
+  el.innerHTML = `
+    <div style="background:#161920;border:1px solid #232630;border-radius:16px;padding:28px 24px;width:100%;max-width:340px;text-align:center">
+      <div style="font-size:32px;margin-bottom:8px">🔷</div>
+      <div style="font-size:16px;font-weight:700;margin-bottom:4px">BlueDoor Accounts</div>
+      <div style="font-size:12px;color:#64748b;margin-bottom:20px">Admin — Sign in</div>
+      <div id="il-err" style="display:none;font-size:12px;color:#ef4444;margin-bottom:10px;padding:6px 10px;background:rgba(239,68,68,.1);border-radius:6px"></div>
+      <div style="margin-bottom:10px;text-align:left">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
+        <input id="il-u" placeholder="Arpit" style="width:100%;background:#0d0f14;border:1px solid #232630;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none">
+      </div>
+      <div style="margin-bottom:16px;text-align:left">
+        <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Password</div>
+        <input id="il-p" type="password" placeholder="••••••••" style="width:100%;background:#0d0f14;border:1px solid #232630;color:#e2e8f0;padding:10px 12px;border-radius:8px;font-size:14px;outline:none"
+          onkeydown="if(event.key==='Enter')doInlineLogin()">
+      </div>
+      <button onclick="doInlineLogin()" style="width:100%;padding:11px;background:#4f8ef7;color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
+    </div>`;
+}
+
+async function doInlineLogin() {
+  const u = document.getElementById('il-u')?.value.trim();
+  const p = document.getElementById('il-p')?.value;
+  const errEl = document.getElementById('il-err');
+  if (!u || !p) { if(errEl){errEl.textContent='Enter credentials';errEl.style.display='block';} return; }
+  const res = await fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
+    method: 'POST', headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'login', username: u, password: p})
+  });
+  const data = await res.json();
+  if (!data.ok) { if(errEl){errEl.textContent=data.error||'Login failed';errEl.style.display='block';} return; }
+  S.token = data.token; S.user = data.user;
+  sessionStorage.setItem('bd_token', data.token);
+  sessionStorage.setItem('bd_user', JSON.stringify(data.user));
+  document.getElementById('auth-check').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('um-name').textContent = data.user.username;
+  document.getElementById('um-role').textContent = data.user.role;
+  document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
+  loadMasters().then(() => { initView(); });
+}
 
 </script>
 </body>
