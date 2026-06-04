@@ -346,10 +346,10 @@ function toast(msg, type='ok') {
   setTimeout(()=>el.remove(), 3000);
 }
 
-// ── Auth — session from index.html via sessionStorage ─────────────────────────
+// ── Auth — session from index.html via localStorage ─────────────────────────
 function checkSession() {
-  const token = sessionStorage.getItem('bd_token');
-  const userRaw = sessionStorage.getItem('bd_user');
+  const token = localStorage.getItem('bd_token');
+  const userRaw = localStorage.getItem('bd_user');
   if (!token || !userRaw) {
     // Try redirect; if that fails show inline login
     setTimeout(() => {
@@ -372,8 +372,8 @@ function checkSession() {
 }
 async function doLogout(){
   await api('logout');
-  sessionStorage.removeItem('bd_token');
-  sessionStorage.removeItem('bd_user');
+  localStorage.removeItem('bd_token');
+  localStorage.removeItem('bd_user');
   window.location.href = '/bluedoor-accounts-v3/index.html';
 }
 // Boot
@@ -1070,7 +1070,7 @@ async function runImport(){
 function clearImport(){_wb=null;_preview=null;document.getElementById('imp-preview').classList.add('hidden');document.getElementById('imp-log').classList.add('hidden');document.getElementById('imp-file').value='';}
 
 
-// Inline login fallback (when sessionStorage empty and redirect fails)
+// Inline login fallback (when localStorage empty and redirect fails)
 function showInlineLogin() {
   const el = document.getElementById('auth-check');
   if (!el) return;
@@ -1105,8 +1105,8 @@ async function doInlineLogin() {
   const data = await res.json();
   if (!data.ok) { if(errEl){errEl.textContent=data.error||'Login failed';errEl.style.display='block';} return; }
   S.token = data.token; S.user = data.user;
-  sessionStorage.setItem('bd_token', data.token);
-  sessionStorage.setItem('bd_user', JSON.stringify(data.user));
+  localStorage.setItem('bd_token', data.token);
+  localStorage.setItem('bd_user', JSON.stringify(data.user));
   document.getElementById('auth-check').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
   document.getElementById('um-name').textContent = data.user.username;
