@@ -330,7 +330,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <!-- Bank Import sub-tab -->
       <div id="at-bankimport" class="hidden">
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(79,142,247,.06);border-radius:8px;border:1px solid rgba(79,142,247,.15)">
-          Upload your bank statement (.xlsx). Duplicate entries are auto-detected. Imported rows go to Pending Entries.
+          Upload your bank statement (.xlsx or .xls — HDFC, SBI, ICICI, Axis supported). Duplicate entries are auto-detected. Imported rows go to <strong>Pending Entries</strong> — you then add details (entry type, vendor, project) and approve each one.
         </div>
         <div class="field"><label>Bank Statement File</label><input type="file" id="bank-file" accept=".xlsx,.xls" style="color:var(--text)" onchange="parseBankFile(this)"></div>
         <div id="bank-status" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
@@ -1141,63 +1141,75 @@ async function deleteVendor(id){const r=await api('deleteVendor',{vendor_id:id})
 
 // ── OPENING BALANCES ──────────────────────────────────────────
 async function loadOpeningBalances(){
-  document.getElementById('ob-fy-label').textContent=curFY;
-  const [obRes,vobRes,tbRes,vtbRes]=await Promise.all([
-    api('listOpeningBalances',{fyid:curFY}),
-    api('listVendorOpeningBalances',{fyid:curFY}),
-    api('getTrialBalance',{fyid:curFY}),
-    api('getLedger',{fyid:curFY})
+  document.getElementById('ob-fy-label').textContent=curFY + (curCo?' — '+(_cos.find(c=>c.company_id===curCo)?.company_name||curCo):'');
+  // Use curCo filter
+  const coParam = curCo ? {fyid:curFY,company_id:curCo} : {fyid:curFY};
+  const [obRes,vobRes,tbRes,ledRes]=await Promise.all([
+    api('listOpeningBalances',coParam),
+    api('listVendorOpeningBalances',coParam),
+    api('getTrialBalance',coParam),
+    api('getLedger',coParam)
   ]);
   const obs=obRes.opening_balances||[];
   const vobs=vobRes.vendor_opening_balances||[];
   const tbRows=tbRes.trial_balance||[];
-  const ledRows=vtbRes.ledger||[];
+  const ledRows=ledRes.ledger||[];
 
-  // Build account closing balances
+  // Account balances: OB + activity = Closing
   document.getElementById('ob-accounts').innerHTML=`
     <div class="tw"><table>
-      <thead><tr><th>Account</th><th>Key</th><th>Co</th><th>OB DR</th><th>OB CR</th><th>Closing DR</th><th>Closing CR</th><th></th></tr></thead>
+      <thead><tr><th>Account</th><th>Opening Balance</th><th>Period Activity</th><th>Closing Balance</th><th></th></tr></thead>
       <tbody>${_acs.map(ac=>{
         const ob=obs.find(o=>o.ac_key===ac.ac_key)||{};
         const tb=tbRows.find(t=>t.ac_code===ac.ac_code)||{};
-        const obDr=ob.dr_cr==='DR'?parseFloat(ob.amount||0):0;
-        const obCr=ob.dr_cr==='CR'?parseFloat(ob.amount||0):0;
+        const obAmt=parseFloat(ob.amount||0);
+        const obDrCr=ob.dr_cr||'DR';
         const actDr=parseFloat(tb.total_dr||0);
         const actCr=parseFloat(tb.total_cr||0);
-        const closeDr=obDr+actDr;
-        const closeCr=obCr+actCr;
+        // Net activity
+        const actNet=actDr-actCr; // positive = net debit
+        // Closing = OB ± activity (depends on normal balance)
+        const isDebitNormal=(ac.ac_type==='Asset'||ac.ac_type==='Expense'||ac.ac_type==='Contra-Equity');
+        const obNet = obDrCr==='DR'?obAmt:-obAmt;
+        const closeNet = obNet + actNet;
+        const closeDrCr = closeNet>=0?'DR':'CR';
+        const closeAmt = Math.abs(closeNet);
+        if(!obAmt && !actDr && !actCr) return'';// skip empty rows
         return`<tr>
-          <td><strong style="font-size:12px">${ac.ac_name}</strong></td>
-          <td><code>${ac.ac_key}</code></td>
-          <td style="font-size:11px">${ob.company_id||'—'}</td>
-          <td class="amt dr">${obDr>0?fmtAmt(obDr):''}</td>
-          <td class="amt cr">${obCr>0?fmtAmt(obCr):''}</td>
-          <td class="amt dr">${closeDr>closeCr?fmtAmt(closeDr-closeCr):''}</td>
-          <td class="amt cr">${closeCr>closeDr?fmtAmt(closeCr-closeDr):''}</td>
-          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${ob.dr_cr||'DR'}','${ob.amount||0}','${ob.company_id||''}')">✏️</button></td>
-        </tr>`;}).join('')}
+          <td><strong style="font-size:12px">${ac.ac_name}</strong><br><code style="font-size:10px">${ac.ac_key}</code></td>
+          <td>${obAmt>0?`<span class="amt ${obDrCr==='DR'?'dr':'cr'}">${fmtAmt(obAmt)} ${obDrCr}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
+          <td><span class="amt dr" style="font-size:11px">${actDr>0?fmtAmt(actDr)+' DR':''}</span>${actDr>0&&actCr>0?' / ':''}<span class="amt cr" style="font-size:11px">${actCr>0?fmtAmt(actCr)+' CR':''}</span></td>
+          <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
+          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${ob.dr_cr||'DR'}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+        </tr>`;}).filter(r=>r).join('')}
       </tbody></table></div>`;
 
-  // Vendor balances
+  // Vendor balances: OB + vendor ledger activity = Closing
   document.getElementById('ob-vendors').innerHTML=`
     <div class="tw"><table>
-      <thead><tr><th>Vendor</th><th>Co</th><th>OB DR</th><th>OB CR</th><th>Activity DR</th><th>Activity CR</th><th></th></tr></thead>
+      <thead><tr><th>Vendor</th><th>Opening Balance</th><th>Paid (DR)</th><th>Bills (CR)</th><th>Closing Balance</th><th></th></tr></thead>
       <tbody>${_vendors.map(v=>{
         const ob=vobs.find(o=>o.vendor_id===v.vendor_id)||{};
         const vLed=ledRows.filter(l=>l.vendor_id===v.vendor_id);
-        const actDr=vLed.reduce((s,l)=>s+parseFloat(l.debit||0),0);
-        const actCr=vLed.reduce((s,l)=>s+parseFloat(l.credit||0),0);
-        const obDr=ob.dr_cr==='DR'?parseFloat(ob.amount||0):0;
-        const obCr=ob.dr_cr==='CR'?parseFloat(ob.amount||0):0;
+        const actDr=vLed.reduce((s2,l)=>s2+parseFloat(l.debit||0),0); // payments
+        const actCr=vLed.reduce((s2,l)=>s2+parseFloat(l.credit||0),0); // bills
+        const obAmt=parseFloat(ob.amount||0);
+        const obDrCr=ob.dr_cr||'CR';
+        // Vendor OB typically CR (we owe them)
+        const obNet=obDrCr==='CR'?-obAmt:obAmt; // negative = owe vendor
+        const actNet=actDr-actCr; // positive = net paid
+        const closeNet=obNet+actNet;
+        const closeDrCr=closeNet>=0?'DR':'CR';
+        const closeAmt=Math.abs(closeNet);
+        if(!obAmt&&!actDr&&!actCr) return'';
         return`<tr>
           <td><strong style="font-size:12px">${v.vendor_name}</strong></td>
-          <td style="font-size:11px">${ob.company_id||'—'}</td>
-          <td class="amt dr">${obDr>0?fmtAmt(obDr):''}</td>
-          <td class="amt cr">${obCr>0?fmtAmt(obCr):''}</td>
+          <td>${obAmt>0?`<span class="amt ${obDrCr==='DR'?'dr':'cr'}">${fmtAmt(obAmt)} ${obDrCr}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
           <td class="amt dr">${actDr>0?fmtAmt(actDr):''}</td>
           <td class="amt cr">${actCr>0?fmtAmt(actCr):''}</td>
-          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${ob.dr_cr||'CR'}','${ob.amount||0}','${ob.company_id||''}')">✏️</button></td>
-        </tr>`;}).join('')}
+          <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
+          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${ob.dr_cr||'CR'}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+        </tr>`;}).filter(r=>r).join('')}
       </tbody></table></div>`;
 }
 
@@ -1267,6 +1279,34 @@ function parseBankFile(input){
   };
   reader.readAsArrayBuffer(file);
 }
+function parseBankDateStr(raw) {
+  if (!raw || raw === '********') return '';
+  const sv = s(raw).trim();
+  if (!sv) return '';
+  // dd/mm/yy (HDFC format: 03/05/26)
+  if (/^\d{2}\/\d{2}\/\d{2}$/.test(sv)) {
+    const [d,m,y] = sv.split('/');
+    const fullY = parseInt(y) > 50 ? '19'+y : '20'+y;
+    return `${fullY}-${m}-${d}`;
+  }
+  // dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(sv)) {
+    const [d,m,y] = sv.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  // dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}$/.test(sv)) {
+    const [d,m,y] = sv.split('-');
+    return `${y}-${m}-${d}`;
+  }
+  // yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(sv)) return sv.substring(0,10);
+  // JS date object
+  if (raw instanceof Date) return raw.toISOString().slice(0,10);
+  try { const d = new Date(sv); if (!isNaN(d) && d.getFullYear() > 1990) return d.toISOString().slice(0,10); } catch(e) {}
+  return '';
+}
+
 function parseBankRows(raw){
   _bankRows=[];
   let hIdx=-1;
@@ -1274,30 +1314,27 @@ function parseBankRows(raw){
     const r=raw[i].join('|').toLowerCase();
     if(r.includes('date')&&(r.includes('narration')||r.includes('description'))&&(r.includes('withdrawal')||r.includes('debit'))){hIdx=i;break;}
   }
-  if(hIdx===-1){document.getElementById('bank-status').textContent='Header row not found. Expected columns: Date, Narration, Withdrawal/Debit, Deposit/Credit';return;}
+  if(hIdx===-1){document.getElementById('bank-status').textContent='Header row not found. Expected: Date, Narration, Withdrawal/Debit, Deposit/Credit columns';return;}
   const hdrs=raw[hIdx].map(h=>s(h).toLowerCase());
   const iDate=hdrs.findIndex(h=>h.includes('date')&&!h.includes('value'));
   const iNarr=hdrs.findIndex(h=>h.includes('narration')||h.includes('description'));
   const iRef=hdrs.findIndex(h=>h.includes('chq')||h.includes('ref')||h.includes('reference'));
   const iWD=hdrs.findIndex(h=>h.includes('withdrawal')||h.includes('debit'));
   const iDep=hdrs.findIndex(h=>h.includes('deposit')||h.includes('credit'));
-  const iBal=hdrs.findIndex(h=>h.includes('balance'));
+  const iBal=hdrs.findIndex(h=>h.includes('closing')||h.includes('balance'));
 
   for(let i=hIdx+1;i<raw.length;i++){
     const row=raw[i];
-    const dateRaw=row[iDate];
-    if(!dateRaw) continue;
-    let dateStr='';
-    if(dateRaw instanceof Date) dateStr=dateRaw.toISOString().slice(0,10);
-    else { try{const d=new Date(dateRaw);if(!isNaN(d))dateStr=d.toISOString().slice(0,10);}catch(e){} }
+    const dateStr = parseBankDateStr(row[iDate]);
     if(!dateStr) continue;
     const narr=s(row[iNarr]);
-    const wd=parseFloat(s(row[iWD]).replace(/,/g,''))||0;
-    const dep=parseFloat(s(row[iDep]).replace(/,/g,''))||0;
-    const bal=iBal>=0?parseFloat(s(row[iBal]).replace(/,/g,''))||null:null;
-    const ref=iRef>=0?s(row[iRef]):'';
-    if(!narr||(wd===0&&dep===0)) continue;
-    _bankRows.push({date:dateStr,narration:narr,reference:ref,withdrawal:wd,deposit:dep,balance:bal,_hash:`${dateStr}|${narr}|${wd}|${dep}`});
+    if(!narr || narr.startsWith('***')) continue;
+    const wd=parseFloat(s(row[iWD]||'').replace(/,/g,''))||0;
+    const dep=parseFloat(s(row[iDep]||'').replace(/,/g,''))||0;
+    const bal=iBal>=0?parseFloat(s(row[iBal]||'').replace(/,/g,''))||null:null;
+    const ref=iRef>=0?s(row[iRef]||''):'';
+    if(wd===0&&dep===0) continue;
+    _bankRows.push({date:dateStr,narration:narr,reference:ref,withdrawal:wd,deposit:dep,balance:bal,_hash:`${dateStr}|${narr.substring(0,30)}|${wd}|${dep}`});
   }
 
   // Remove duplicates (same date+narration+amount already in entries)
@@ -1482,28 +1519,68 @@ async function loadVendorRpt(vid){
   const ob=(obRes.vendor_opening_balances||[]).find(o=>o.vendor_id===vid);
   const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=ob?.dr_cr||'CR';
   let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
+  // Build running balance for vendor ledger
+  // OB CR means we owe vendor (liability), OB DR means vendor owes us
+  let runBal = obDrCr==='CR' ? -obAmt : obAmt; // negative = we owe vendor
+  let totalDr=0, totalCr=0;
+  const ledgerRows = es.map(e=>{
+    const et=_ets.find(t=>t.et_key===e.entry_type);
+    // For vendor: payments = DR (reduces liability), bills = CR (increases liability)
+    const isCr = et?.cr==='PAYABLE' || et?.cr==='ADV_PAID' || e.entry_type?.includes('bill') || e.entry_type?.includes('advance_paid');
+    const isDr = !isCr;
+    const dr = isDr ? parseFloat(e.amount||0) : 0;
+    const cr = isCr ? parseFloat(e.amount||0) : 0;
+    totalDr += dr; totalCr += cr;
+    runBal += dr - cr;
+    const balDrCr = runBal>=0?'DR':'CR';
+    return {date:e.date, narration:e.narration||et?.label||e.entry_type, dr, cr, balance:Math.abs(runBal), balDrCr};
+  });
+  const finalBal = obDrCr==='CR' ? -obAmt : obAmt;
+  const finalBalNet = finalBal + totalDr - totalCr;
+  const finalDrCr = finalBalNet>=0?'DR':'CR';
+
   el.innerHTML=`
-    <div class="rsb" style="margin-bottom:8px"><span style="font-weight:600">${v.vendor_name||vid}</span>
-      <div class="row" style="gap:5px"><button class="btn btn-o btn-xs" onclick="exportVendorXLS('${vid}')">⬇ XLS</button><button class="btn btn-o btn-xs" onclick="window.print()">🖨 Print</button></div></div>
+    <div class="rsb" style="margin-bottom:8px">
+      <span style="font-weight:600">${v.vendor_name||vid}</span>
+      <div class="row" style="gap:5px">
+        <button class="btn btn-o btn-xs" onclick="exportVendorXLS('${vid}')">⬇ XLS</button>
+        <button class="btn btn-o btn-xs" onclick="printVendorRpt()">🖨 Print</button>
+      </div>
+    </div>
     <div class="tw"><table style="min-width:350px">
-      <thead><tr><th>Date</th><th>Narration</th><th>DR</th><th>CR</th></tr></thead>
+      <thead><tr><th>Date</th><th>Narration</th><th>DR (Paid)</th><th>CR (Bills)</th></tr></thead>
       <tbody>
-        ${obAmt>0?`<tr style="background:rgba(79,142,247,.06)"><td>—</td><td style="font-style:italic;color:var(--muted)">Opening Balance</td><td class="amt dr" style="text-align:right">${obDrCr==='DR'?fmtAmt(obAmt):''}</td><td class="amt cr" style="text-align:right">${obDrCr==='CR'?fmtAmt(obAmt):''}</td></tr>`:''}
-        ${es.map(e=>{
-          const et=_ets.find(t=>t.et_key===e.entry_type);
-          // Determine if this affects vendor as DR or CR
-          const isDr=et?.dr==='PAYABLE'||et?.dr==='ADV_PAID';
-          return`<tr>
-            <td style="white-space:nowrap">${fmtDate(e.date)}</td>
-            <td style="font-size:11px">${e.narration||et?.label||e.entry_type}</td>
-            <td class="amt dr" style="text-align:right">${isDr?fmtAmt(e.amount):''}</td>
-            <td class="amt cr" style="text-align:right">${!isDr?fmtAmt(e.amount):''}</td>
-          </tr>`;}).join('')}
+        <tr style="background:rgba(79,142,247,.06)">
+          <td>—</td><td style="font-style:italic;color:var(--muted)">Opening Balance</td>
+          <td class="amt dr" style="text-align:right">${obDrCr==='DR'?fmtAmt(obAmt):''}</td>
+          <td class="amt cr" style="text-align:right">${obDrCr==='CR'?fmtAmt(obAmt):''}</td>
+        </tr>
+        ${ledgerRows.map(r=>`<tr>
+          <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+          <td style="font-size:11px">${r.narration}</td>
+          <td class="amt dr" style="text-align:right">${r.dr>0?fmtAmt(r.dr):''}</td>
+          <td class="amt cr" style="text-align:right">${r.cr>0?fmtAmt(r.cr):''}</td>
+        </tr>`).join('')}
       </tbody>
-      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)"><td colspan="2">Closing Balance</td>
-        <td class="amt dr" style="text-align:right">${fmtAmt(res.total)}</td><td></td></tr></tfoot>
+      <tfoot>
+        <tr style="border-top:1px solid var(--border);font-weight:600">
+          <td colspan="2">Totals</td>
+          <td class="amt dr" style="text-align:right">${fmtAmt(totalDr)}</td>
+          <td class="amt cr" style="text-align:right">${fmtAmt(totalCr)}</td>
+        </tr>
+        <tr style="background:rgba(34,197,94,.06);font-weight:700;border-top:2px solid var(--border)">
+          <td colspan="2">Closing Balance</td>
+          <td class="amt ${finalDrCr==='DR'?'dr':'cr'}" style="text-align:right">${finalDrCr==='DR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
+          <td class="amt ${finalDrCr==='CR'?'cr':'dr'}" style="text-align:right">${finalDrCr==='CR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
+        </tr>
+      </tfoot>
     </table></div>`;
-  window._vendorRptData={vendor:v,entries:es,ob};
+  window._vendorRptData={vendor:v,entries:es,ob,ledgerRows};
+}
+function printVendorRpt(){
+  const w=window.open('','_blank');
+  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
+  w.print();
 }
 function exportVendorXLS(vid){
   const d=window._vendorRptData||{};
@@ -1606,6 +1683,8 @@ async function renderPending(){
   if(!rows.length){el.innerHTML='<div class="empty">No pending entries</div>';return;}
   el.innerHTML=rows.map(p=>{
     const et=_ets.find(t=>t.et_key===p.entry_type);
+    const isPending=p.status==='Pending';
+    const badgeCls=isPending?'ba':p.status==='Approved'?'bg':'br';
     return`<div class="card" style="margin-bottom:9px"><div class="cbd">
       <div class="rsb">
         <div>
@@ -1613,14 +1692,16 @@ async function renderPending(){
           <div style="font-size:11px;color:var(--muted)">${fmtDate(p.date)} · ${p.submitted_by} · ${p.company_id}</div>
           ${p.narration?`<div style="font-size:12px;margin-top:3px">${p.narration}</div>`:''}
           <div style="font-size:10px;margin-top:3px"><span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span></div>
+          ${p.reject_reason?`<div style="font-size:11px;color:var(--red);margin-top:3px">Reason: ${p.reject_reason}</div>`:''}
+          ${p.reviewed_by?`<div style="font-size:10px;color:var(--muted)">Reviewed by ${p.reviewed_by}</div>`:''}
         </div>
-        <span class="badge ba">${p.status}</span>
+        <span class="badge ${badgeCls}">${p.status}</span>
       </div>
-      <div class="row mt2" style="gap:6px">
+      ${isPending?`<div class="row mt2" style="gap:6px">
         <button class="btn btn-s btn-sm" onclick="approvePending('${p.entry_id}')">✓ Approve</button>
         <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
         <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
-      </div>
+      </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
     </div></div>`;}).join('');
 }
 async function approvePending(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderPending();}else toast(r.error,'err');}
