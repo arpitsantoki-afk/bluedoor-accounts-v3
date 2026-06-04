@@ -315,10 +315,10 @@ async function handleAddCostHead({ ch_id, ch_name, ac_key = '' }, sess, env) {
 async function handleListEntryTypes(env) {
   return ok({ entry_types: (await env.DB.prepare('SELECT * FROM entry_types ORDER BY label').all()).results });
 }
-async function handleAddEntryType({ et_key, label, category, dr, cr, needs_ch = 0, active = 1 }, sess, env) {
+async function handleAddEntryType({ et_key, label, category, dr, cr, needs_ch = 0, active = 1, hint = '' }, sess, env) {
   if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!et_key || !label || !category || !dr || !cr) return err('et_key, label, category, dr, cr required');
-  await env.DB.prepare('INSERT INTO entry_types (et_key, label, category, dr, cr, needs_ch, active) VALUES (?,?,?,?,?,?,?)').bind(et_key, label, category, dr, cr, needs_ch ? 1 : 0, active ? 1 : 0).run();
+  await env.DB.prepare('INSERT INTO entry_types (et_key, label, category, dr, cr, needs_ch, active, hint) VALUES (?,?,?,?,?,?,?,?)').bind(et_key, label, category, dr, cr, needs_ch ? 1 : 0, active ? 1 : 0, hint||'').run();
   return ok({ et_key });
 }
 async function handleUpdateEntryType({ et_key, label, category, dr, cr, needs_ch, active }, sess, env) {
@@ -331,6 +331,7 @@ async function handleUpdateEntryType({ et_key, label, category, dr, cr, needs_ch
   if (cr !== undefined) { fields.push('cr = ?'); vals.push(cr); }
   if (needs_ch !== undefined) { fields.push('needs_ch = ?'); vals.push(needs_ch ? 1 : 0); }
   if (active !== undefined) { fields.push('active = ?'); vals.push(active ? 1 : 0); }
+  if (hint !== undefined) { fields.push('hint = ?'); vals.push(hint); }
   if (!fields.length) return err('Nothing to update');
   vals.push(et_key);
   await env.DB.prepare(`UPDATE entry_types SET ${fields.join(', ')} WHERE et_key = ?`).bind(...vals).run();
@@ -610,7 +611,7 @@ async function handleMigrate(request, env) {
         if (table === 'companies') { sql = 'INSERT OR REPLACE INTO companies (company_id,company_name,drive_folder,active) VALUES (?,?,?,1)'; params = [s(row.company_id||row.id),s(row.company_name||row.name),s(row.drive_folder||'')]; }
         else if (table === 'users') { sql = 'INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies,google_email) VALUES (?,?,?,?,?,?,?)'; params = [s(row.user_id||row.id||row.email),s(row.username||row.name||row.email),s(row.password||'changeme123'),s(row.role||'Staff'),row.active===false?0:1,JSON.stringify(row.companies||[]),s(row.google_email||row.GoogleEmail||row.email||'')]; }
         else if (table === 'chart_of_accounts') { sql = 'INSERT OR REPLACE INTO chart_of_accounts (ac_key,ac_code,ac_name,ac_type,category) VALUES (?,?,?,?,?)'; params = [s(row.ac_key||row.key),s(row.ac_code||row.code),s(row.ac_name||row.name),s(row.ac_type||row.type||'Asset'),s(row.category||'')]; }
-        else if (table === 'entry_types') { sql = 'INSERT OR REPLACE INTO entry_types (et_key,label,category,dr,cr,needs_ch,active) VALUES (?,?,?,?,?,?,?)'; params = [s(row.et_key||row.key||row.id),s(row.label||row.name),s(row.category||''),s(row.dr||''),s(row.cr||''),row.needs_ch?1:0,row.active===false?0:1]; }
+        else if (table === 'entry_types') { sql = 'INSERT OR REPLACE INTO entry_types (et_key,label,category,dr,cr,needs_ch,active,hint) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.et_key||row.key||row.id),s(row.label||row.name),s(row.category||''),s(row.dr||''),s(row.cr||''),row.needs_ch?1:0,row.active===false?0:1,s(row.hint||row.Hint||'')]; }
         else if (table === 'cost_heads') { sql = 'INSERT OR REPLACE INTO cost_heads (ch_id,ch_name,ac_key) VALUES (?,?,?)'; params = [s(row.ch_id||row.id||row.key),s(row.ch_name||row.name),s(row.ac_key||'')]; }
         else if (table === 'vendors') { sql = 'INSERT OR REPLACE INTO vendors (vendor_id,vendor_name,vendor_type,contact,gstin,details) VALUES (?,?,?,?,?,?)'; params = [s(row.vendor_id||row.id),s(row.vendor_name||row.name),s(row.vendor_type||row.type||''),s(row.contact||row.phone||''),s(row.gstin||row.gst||''),s(row.details||row.notes||'')]; }
         else if (table === 'projects') { sql = 'INSERT OR REPLACE INTO projects (project_id,project_name,client,location,status,start_date,budget,fyid) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.project_id||row.id),s(row.project_name||row.name),s(row.client||''),s(row.location||''),s(row.status||'Active'),s(row.start_date||''),n(row.budget),s(row.fyid||FYID)]; }
