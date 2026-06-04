@@ -127,19 +127,19 @@ async function handleLogout({ token }, req, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ USERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleListUsers(params, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies FROM users ORDER BY username').all();
   return ok({ users: rows.results });
 }
 async function handleAddUser({ username, password, role, companies = [] }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!username || !password || !role) return err('username, password, role required');
   const uid = `U${Date.now()}`;
   await env.DB.prepare('INSERT INTO users (user_id, username, password, role, active, companies) VALUES (?,?,?,?,1,?)').bind(uid, username, password, role, JSON.stringify(companies)).run();
   return ok({ user_id: uid });
 }
 async function handleUpdateUser({ user_id, role, active, companies }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
   const fields = [], vals = [];
   if (role !== undefined) { fields.push('role = ?'); vals.push(role); }
@@ -164,14 +164,14 @@ async function handleListCompanies(env) {
   return ok({ companies: rows.results });
 }
 async function handleAddCompany({ company_name, drive_folder = '' }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!company_name) return err('company_name required');
   const cid = `CO${Date.now()}`;
   await env.DB.prepare('INSERT INTO companies (company_id, company_name, drive_folder, active) VALUES (?,?,?,1)').bind(cid, company_name, drive_folder).run();
   return ok({ company_id: cid });
 }
 async function handleUpdateCompany({ company_id, company_name, drive_folder, active }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!company_id) return err('company_id required');
   const fields = [], vals = [];
   if (company_name !== undefined) { fields.push('company_name = ?'); vals.push(company_name); }
@@ -244,7 +244,7 @@ async function handleListAccounts(env) {
   return ok({ accounts: (await env.DB.prepare('SELECT * FROM chart_of_accounts ORDER BY ac_code').all()).results });
 }
 async function handleAddAccount({ ac_key, ac_code, ac_name, ac_type, category = '' }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!ac_key || !ac_code || !ac_name || !ac_type) return err('ac_key, ac_code, ac_name, ac_type required');
   await env.DB.prepare('INSERT INTO chart_of_accounts (ac_key, ac_code, ac_name, ac_type, category) VALUES (?,?,?,?,?)').bind(ac_key, ac_code, ac_name, ac_type, category).run();
   return ok({ ac_key });
@@ -265,13 +265,13 @@ async function handleListEntryTypes(env) {
   return ok({ entry_types: (await env.DB.prepare('SELECT * FROM entry_types ORDER BY label').all()).results });
 }
 async function handleAddEntryType({ et_key, label, category, dr, cr, needs_ch = 0, active = 1 }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!et_key || !label || !category || !dr || !cr) return err('et_key, label, category, dr, cr required');
   await env.DB.prepare('INSERT INTO entry_types (et_key, label, category, dr, cr, needs_ch, active) VALUES (?,?,?,?,?,?,?)').bind(et_key, label, category, dr, cr, needs_ch ? 1 : 0, active ? 1 : 0).run();
   return ok({ et_key });
 }
 async function handleUpdateEntryType({ et_key, label, category, dr, cr, needs_ch, active }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!et_key) return err('et_key required');
   const fields = [], vals = [];
   if (label !== undefined) { fields.push('label = ?'); vals.push(label); }
@@ -296,7 +296,7 @@ async function handleListEntries({ fyid, company_id, project_id, vendor_id, entr
   if (entry_type) { q += ' AND entry_type = ?'; vals.push(entry_type); }
   if (date_from) { q += ' AND date >= ?'; vals.push(date_from); }
   if (date_to) { q += ' AND date <= ?'; vals.push(date_to); }
-  if (sess.role !== 'Supervisor' && sess.companies?.length) {
+  if (sess.role !== 'Admin' && sess.companies?.length) {
     q += ` AND company_id IN (${sess.companies.map(() => '?').join(',')})`;
     vals.push(...sess.companies);
   }
@@ -323,7 +323,7 @@ async function handleUpdateEntry(params, sess, env) {
   if (!entry_id) return err('entry_id required');
   const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
   if (!existing) return err('Entry not found', 404);
-  if (sess.role !== 'Supervisor' && existing.created_by !== sess.username) return err('Forbidden', 403);
+  if (sess.role !== 'Admin' && existing.created_by !== sess.username) return err('Forbidden', 403);
   const fields = [], vals = [];
   if (date !== undefined) { fields.push('date = ?'); vals.push(date); }
   if (project_id !== undefined) { fields.push('project_id = ?'); vals.push(project_id); }
@@ -344,7 +344,7 @@ async function handleUpdateEntry(params, sess, env) {
 }
 async function handleDeleteEntry({ entry_id }, sess, env) {
   if (!entry_id) return err('entry_id required');
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   await env.DB.batch([env.DB.prepare('DELETE FROM entries WHERE entry_id = ?').bind(entry_id), env.DB.prepare('DELETE FROM ledger WHERE entry_id = ?').bind(entry_id)]);
   return ok();
 }
@@ -356,7 +356,7 @@ async function handleListPending({ fyid, company_id, status, submitted_by }, ses
   if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
   if (status) { q += ' AND status = ?'; vals.push(status); }
   if (submitted_by) { q += ' AND submitted_by = ?'; vals.push(submitted_by); }
-  if (sess.role !== 'Supervisor') { q += ' AND submitted_by = ?'; vals.push(sess.username); }
+  if (sess.role !== 'Admin') { q += ' AND submitted_by = ?'; vals.push(sess.username); }
   q += ' ORDER BY submitted_at DESC';
   return ok({ pending: (await env.DB.prepare(q).bind(...vals).all()).results });
 }
@@ -369,7 +369,7 @@ async function handleSubmitPending(params, sess, env) {
   return ok({ entry_id: eid });
 }
 async function handleApprovePending({ entry_id }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   const pe = await env.DB.prepare('SELECT * FROM pending_entries WHERE entry_id = ?').bind(entry_id).first();
   if (!pe) return err('Pending entry not found', 404);
   if (pe.status !== 'Pending') return err('Entry is not in Pending status');
@@ -378,12 +378,12 @@ async function handleApprovePending({ entry_id }, sess, env) {
   return await handleAddEntry({ date: pe.date, fyid: pe.fyid, project_id: pe.project_id, cost_head_id: pe.cost_head_id, vendor_id: pe.vendor_id, entry_type: pe.entry_type, amount: pe.amount, narration: pe.narration, company_id: pe.company_id }, { ...sess, username: pe.submitted_by }, env);
 }
 async function handleRejectPending({ entry_id, reject_reason = '' }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   await env.DB.prepare("UPDATE pending_entries SET status='Rejected', reviewed_by=?, reviewed_at=?, reject_reason=? WHERE entry_id=?").bind(sess.username, new Date().toISOString(), reject_reason, entry_id).run();
   return ok();
 }
 async function handleDeletePending({ entry_id }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   await env.DB.prepare('DELETE FROM pending_entries WHERE entry_id = ?').bind(entry_id).run();
   return ok();
 }
@@ -429,7 +429,7 @@ async function handleListOpeningBalances({ fyid, company_id }, env) {
   return ok({ opening_balances: (await env.DB.prepare(q + ' ORDER BY ac_name').bind(...vals).all()).results });
 }
 async function handleSaveOpeningBalance({ fyid, ac_key, ac_name, dr_cr, amount, company_id }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!fyid || !ac_key || !dr_cr || amount === undefined) return err('fyid, ac_key, dr_cr, amount required');
   const now = new Date().toISOString();
   const existing = await env.DB.prepare('SELECT id FROM opening_balances WHERE fyid=? AND ac_key=? AND company_id=?').bind(fyid, ac_key, company_id || '').first();
@@ -447,7 +447,7 @@ async function handleListVendorOpeningBalances({ fyid, company_id }, env) {
   return ok({ vendor_opening_balances: (await env.DB.prepare(q + ' ORDER BY vendor_id').bind(...vals).all()).results });
 }
 async function handleSaveVendorOpeningBalance({ fyid, vendor_id, dr_cr, amount, company_id }, sess, env) {
-  if (sess.role !== 'Supervisor') return err('Forbidden', 403);
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!fyid || !vendor_id || !dr_cr || amount === undefined) return err('fyid, vendor_id, dr_cr, amount required');
   const now = new Date().toISOString();
   const existing = await env.DB.prepare('SELECT id FROM vendor_opening_balances WHERE fyid=? AND vendor_id=? AND company_id=?').bind(fyid, vendor_id, company_id || '').first();
@@ -543,7 +543,7 @@ async function handleMigrate(request, env) {
 
   // seed_user: insert Arpit supervisor
   if (body.step === 'seed_user') {
-    await env.DB.prepare("INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies) VALUES ('USR_ARPIT','Arpit','BlueDoor@2024','Supervisor',1,'[]')").run();
+    await env.DB.prepare("INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies) VALUES ('USR_ARPIT','Arpit','BlueDoor@2024','Admin',1,'[]')").run();
     return ok({ seed_user: 'done' });
   }
 
