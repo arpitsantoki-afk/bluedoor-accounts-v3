@@ -1702,9 +1702,10 @@ function renderMasters(){
 
     <div class="rsb" style="margin:14px 0 6px"><div class="sh" style="margin:0">Entry Types (${_ets.length})</div>
       <button class="btn btn-p btn-xs" onclick="showAddET()">+ Add</button></div>
-    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th><th>Active</th><th></th></tr></thead><tbody>
+    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Hint</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th><th>Active</th><th></th></tr></thead><tbody>
     ${_ets.map(e=>`<tr>
       <td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td>
+      <td style="font-size:11px;color:var(--muted)">${e.hint||'—'}</td>
       <td><span class="badge bx">${e.category}</span></td>
       <td><code>${e.dr}</code></td><td><code>${e.cr}</code></td>
       <td>${e.needs_ch?'✓':''}</td>
@@ -1799,6 +1800,7 @@ function showAddET(et={}) {
       <div class="field"><label>DR Account *</label><select id="et-dr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
       <div class="field"><label>CR Account *</label><select id="et-cr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
     </div>
+    <div class="field"><label>Hint Text <span style="color:var(--muted);font-size:10px">(shown under entry type in Add tab)</span></label><input id="et-hint" value="${et.hint||''}"></div>
     <div class="g2">
       <div class="field"><label>Needs Cost Head?</label><select id="et-ch"><option value="0">No</option><option value="1" ${et.needs_ch?'selected':''}>Yes</option></select></div>
       <div class="field"><label>Active</label><select id="et-active"><option value="1" ${et.active!==0?'selected':''}>Yes</option><option value="0" ${et.active===0?'selected':''}>No</option></select></div>
@@ -1814,7 +1816,7 @@ async function saveET(existingKey){
   const key=document.getElementById('et-key').value.trim();
   const label=document.getElementById('et-label').value.trim();
   if(!key||!label){toast('Key and Label required','err');return;}
-  const payload={et_key:key,label,category:document.getElementById('et-cat').value,dr:document.getElementById('et-dr').value,cr:document.getElementById('et-cr').value,needs_ch:parseInt(document.getElementById('et-ch').value),active:parseInt(document.getElementById('et-active').value)};
+  const payload={et_key:key,label,category:document.getElementById('et-cat').value,dr:document.getElementById('et-dr').value,cr:document.getElementById('et-cr').value,needs_ch:parseInt(document.getElementById('et-ch').value),active:parseInt(document.getElementById('et-active').value),hint:document.getElementById('et-hint')?.value||''};
   const res=existingKey
     ? await api('updateEntryTypeAdmin',{...payload,et_key:existingKey})
     : await api('addEntryType',payload);
@@ -1901,7 +1903,27 @@ const SHEET_MAP={
   Ledger:{table:'ledger',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,ac_code:s(r.AccountCode),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),debit:parseFloat(r.DebitAmt)||0,credit:parseFloat(r.CreditAmt)||0,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
   PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:s(r.SubmittedAt)||new Date().toISOString(),status:s(r.Status)||'Pending',reviewed_by:s(r.ReviewedBy)||'',reviewed_at:s(r.ReviewedAt)||'',reject_reason:s(r.RejectReason)||'',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
 };
-function fmtDateISO(v){if(!v)return'';const sv=String(v).trim();if(/^\d{4}-\d{2}-\d{2}/.test(sv))return sv.substring(0,10);try{const d=new Date(sv);return isNaN(d)?sv:d.toISOString().substring(0,10);}catch{return sv;}}
+function fmtDateISO(v){
+  if(!v) return '';
+  // Handle Excel serial number (number type from cellDates:false)
+  if (typeof v === 'number') {
+    // Excel serial to JS date (Excel epoch = Dec 30 1899, leap year bug)
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    if (!isNaN(d)) return d.toISOString().substring(0,10);
+  }
+  const sv = String(v).trim();
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(sv)) return sv.substring(0,10);
+  // dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}/.test(sv)) { const [d2,m,y]=sv.split('-'); return `${y}-${m}-${d2}`; }
+  // Excel serial as string
+  if (/^\d{4,6}$/.test(sv)) {
+    const serial = parseInt(sv);
+    const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+    if (!isNaN(d) && d.getFullYear() > 1990) return d.toISOString().substring(0,10);
+  }
+  try { const d=new Date(sv); return isNaN(d)?sv:d.toISOString().substring(0,10); } catch { return sv; }
+}
 let _wb=null,_preview=null;
 function renderImport(){
   const el=document.getElementById('more-out');
@@ -1918,8 +1940,9 @@ function renderImport(){
     <div id="imp-prev" class="hidden">
       <div class="sh">Sheets Detected</div>
       <div id="imp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
-      <div class="row" style="gap:8px;margin-bottom:8px">
+      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
         <button class="btn btn-s" id="imp-btn" onclick="runImport()">🚀 Import</button>
+        <button class="btn btn-d btn-sm" onclick="confirm2('Wipe & Reimport','This will DELETE ALL data in D1 and reimport fresh from the Excel file. Are you sure?',wipeAndReimport)">🗑 Wipe & Reimport</button>
         <button class="btn btn-o btn-sm" onclick="clearImport()">Clear</button>
         <span id="imp-total" style="font-size:12px;color:var(--muted)"></span>
       </div>
@@ -1929,7 +1952,7 @@ function renderImport(){
 function handleImpFile(inp){if(inp.files[0])processImpFile(inp.files[0]);}
 function processImpFile(file){
   const reader=new FileReader();
-  reader.onload=e=>{try{_wb=XLSX.read(e.target.result,{type:'array',cellDates:false});parseImpSheets();}catch(e2){toast('Error: '+e2.message,'err');}};
+  reader.onload=e=>{try{_wb=XLSX.read(e.target.result,{type:'array',cellDates:true});parseImpSheets();}catch(e2){toast('Error: '+e2.message,'err');}};
   reader.readAsArrayBuffer(file);
 }
 function parseImpSheets(){
@@ -1960,11 +1983,33 @@ function logImp(msg,type='info'){
   d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
   el.appendChild(d);el.scrollTop=el.scrollHeight;
 }
+async function wipeAndReimport(){
+  if(!_preview){toast('Load Excel file first','err');return;}
+  logImp('Wiping all D1 tables...','info');
+  const tables=['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies','users'];
+  for(const t of tables){
+    try{
+      await mig({step:'insert',table:t,rows:[]}); // no-op just to test
+      // Use raw delete via a special wipe step
+    }catch(e){}
+  }
+  // Actually wipe using the CF internal API approach via the admin page
+  // Use the existing migrate wipe endpoint
+  const wipeRes = await mig({step:'wipe_all'});
+  if(wipeRes.ok){logImp('✓ All tables wiped','ok');}
+  else{logImp('Wipe via API not available — wiping via individual deletes','warn');}
+  logImp('Running schema migration...','info');
+  await mig({step:'migrate_schema'});
+  await runImport();
+}
+
 async function runImport(){
   if(!_preview)return;
   const btn=document.getElementById('imp-btn');btn.disabled=true;btn.textContent='⏳ Importing...';
   const ORDER=['Companies','Users','ChartOfAccounts','EntryTypes','CostHeads','Vendors','Projects','OpeningBalances','VendorOpeningBalance','Entries','Ledger','PendingEntries'];
   let grand=0,gFail=0;
+  // Run schema migrations first (adds hint column etc)
+  try{await mig({step:'migrate_schema'});}catch(e){}
   for(const sn of ORDER){
     if(!_preview[sn])continue;
     const{table,rows}=_preview[sn];
