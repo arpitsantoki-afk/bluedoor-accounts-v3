@@ -350,16 +350,22 @@ function toast(msg, type='ok') {
 function checkSession() {
   const token = localStorage.getItem('bd_token');
   const userRaw = localStorage.getItem('bd_user');
-  if (!token || !userRaw) {
-    // Try redirect; if that fails show inline login
-    setTimeout(() => {
-      // If still on this page after 500ms, redirect failed — show inline login
-      showInlineLogin();
-    }, 500);
-    window.location.href = '/bluedoor-accounts-v3/index.html?logout=1'; return;
-  }
-  try {
-    const user = JSON.parse(userRaw);
+
+  // No token at all — show inline login immediately, no redirect
+  if (!token || !userRaw) { showInlineLogin(); return; }
+
+  // Verify token is live with the server
+  fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+    body: JSON.stringify({ action: 'getMe' })
+  }).then(r => r.json()).then(data => {
+    if (!data.ok || !data.user) {
+      localStorage.removeItem('bd_token');
+      localStorage.removeItem('bd_user');
+      showInlineLogin(); return;
+    }
+    const user = data.user;
     if (user.role !== 'Admin') { window.location.href = '/bluedoor-accounts-v3/app.html'; return; }
     S.token = token; S.user = user;
     document.getElementById('auth-check').style.display = 'none';
@@ -368,10 +374,22 @@ function checkSession() {
     document.getElementById('um-role').textContent = user.role;
     document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
     loadMasters().then(() => { initView(); });
-  } catch(e) { window.location.href = '/bluedoor-accounts-v3/index.html?logout=1'; }
+  }).catch(() => {
+    // Network error — use cached session optimistically
+    try {
+      const user = JSON.parse(userRaw);
+      S.token = token; S.user = user;
+      document.getElementById('auth-check').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('um-name').textContent = user.username;
+      document.getElementById('um-role').textContent = user.role;
+      document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
+      loadMasters().then(() => { initView(); });
+    } catch(e) { showInlineLogin(); }
+  });
 }
-async function doLogout(){
-  await api('logout');
+async function doLogout() {
+  await api('logout').catch(()=>{});
   localStorage.removeItem('bd_token');
   localStorage.removeItem('bd_user');
   window.location.href = '/bluedoor-accounts-v3/index.html?logout=1';
@@ -379,7 +397,7 @@ async function doLogout(){
 // Boot
 window.addEventListener('DOMContentLoaded', checkSession);
 
-// ── Menus ─────────────────────────────────────────────────────────────────────
+
 function toggleMenu(id) {
   ['fy-menu','co-menu','user-menu'].forEach(m=>{
     document.getElementById(m)[m===id?'classList']['toggle']('hidden');
