@@ -123,6 +123,19 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 .ti-ok{border-left:3px solid var(--green)}.ti-err{border-left:3px solid var(--red)}
 @keyframes tup{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
 #auth-check{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted)}
+
+/* ── Mobile ── */
+@media(max-width:600px){
+  .view{padding:10px}
+  .g3{grid-template-columns:1fr 1fr}
+  .tw{overflow-x:auto;max-width:calc(100vw - 24px);-webkit-overflow-scrolling:touch}
+  #v-reports .g2{grid-template-columns:1fr!important}
+  .top-pills{gap:4px}
+  .pill{max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+  .nb{font-size:9px}
+  table{font-size:11px}
+  td,th{padding:6px 7px}
+}
 </style>
 </head>
 <body>
