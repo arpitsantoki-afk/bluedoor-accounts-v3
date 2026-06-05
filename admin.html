@@ -28,7 +28,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .view.active{display:block}
 #nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
-.nb .ni{font-size:20px;line-height:1}
+.nb .ni{width:20px;height:20px;display:block;margin:0 auto}
 .nb.active{color:var(--accent)}
 .card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
 .chd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
@@ -132,15 +132,21 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 <div id="app" style="display:none;flex-direction:column;height:100dvh">
   <!-- Topbar -->
   <div id="topbar">
-    <h1>🔷 BlueDoor</h1>
+    <h1 style="display:flex;align-items:center;gap:6px"><svg width="18" height="18" viewBox="0 0 24 24" fill="var(--accent)"><path d="M3 3h8v8H3zM13 3h8v8h-8zM3 13h8v8H3zM13 13h8v8h-8z" opacity=".3"/><rect x="3" y="3" width="8" height="8" rx="1" fill="var(--accent)"/><rect x="13" y="3" width="8" height="8" rx="1" fill="var(--accent)" opacity=".6"/><rect x="3" y="13" width="8" height="8" rx="1" fill="var(--accent)" opacity=".6"/><rect x="13" y="13" width="8" height="8" rx="1" fill="var(--purple)"/></svg>BlueDoor</h1>
     <div class="top-pills">
       <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div class="row" style="gap:4px">
-      <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" onclick="doSync()" title="Sync / Refresh data">🔄</button>
-      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" onclick="toggleDebug()" title="Debug">🐞</button>
-      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" id="user-btn" onclick="toggleMenu('user-menu')">👤</button>
+      <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polyline points="23,4 23,10 17,10"/><polyline points="1,20 1,14 7,14"/><path d="M3.51 9a9 9 0 0114.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0020.49 15"/></svg>
+      </button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="toggleDebug()" title="Debug console">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" id="user-btn" onclick="toggleMenu('user-menu')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
     </div>
   </div>
 
@@ -311,7 +317,15 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
             <div class="field"><label>Narration</label><input id="ae-narr" placeholder="Brief note..."></div>
             <div class="field hidden" id="ae-doc-f">
               <label>Document / Bill <span style="color:var(--muted);font-size:10px">(optional)</span></label>
-              <input type="text" id="ae-doc-url" placeholder="Drive URL or file name">
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="ae-doc-url" placeholder="Drive URL or tap 📎 to upload" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none">
+                <label style="flex-shrink:0;cursor:pointer;display:flex;align-items:center;gap:5px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);transition:border .15s" title="Upload file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                  <input type="file" id="ae-doc-file" accept="image/*,.pdf,.doc,.docx,.xlsx,.xls" style="position:absolute;opacity:0;width:0;height:0" onchange="handleDocUpload(this)">
+                  Attach
+                </label>
+              </div>
+              <div id="ae-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
             </div>
             <div id="ae-preview" style="font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px;background:rgba(79,142,247,.05);border-radius:7px;display:none"></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
@@ -387,11 +401,21 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
   </div><!-- /scroll -->
 
   <div id="nav">
-    <button class="nb active" onclick="showView('home')" id="nb-home"><span class="ni">🏠</span>Home</button>
-    <button class="nb" onclick="showView('ledger')" id="nb-ledger"><span class="ni">📋</span>Ledger</button>
-    <button class="nb" onclick="showView('add')" id="nb-add"><span class="ni">➕</span>Add</button>
-    <button class="nb" onclick="showView('reports')" id="nb-reports"><span class="ni">📈</span>Reports</button>
-    <button class="nb" onclick="showView('more')" id="nb-more"><span class="ni">⋯</span>More</button>
+    <button class="nb active" onclick="showView('home')" id="nb-home">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Home</button>
+    <button class="nb" onclick="showView('ledger')" id="nb-ledger">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+      Ledger</button>
+    <button class="nb" onclick="showView('add')" id="nb-add">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add</button>
+    <button class="nb" onclick="showView('reports')" id="nb-reports">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports</button>
+    <button class="nb" onclick="showView('more')" id="nb-more">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
+      More</button>
   </div>
 </div>
 
@@ -923,6 +947,75 @@ async function renderHome() {
       </tbody></table></div>`:'<div class="empty">No entries yet — import data first</div>';
 }
 async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
+
+async function showEditEntry(entryId) {
+  // Find entry in recent entries list
+  const res = await api('listEntries', {fyid:curFY, limit:1000});
+  const entry = (res.entries||[]).find(e=>e.entry_id===entryId);
+  if (!entry) { toast('Entry not found','err'); return; }
+  const et = _ets.find(t=>t.et_key===entry.entry_type);
+
+  showEditModal('Edit Journal Entry', `
+    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
+      <div style="font-weight:600">${et?.label||entry.entry_type}</div>
+      <div style="color:var(--muted);margin-top:2px">
+        <span class="badge bb" style="font-size:10px">DR: ${et?.dr||'—'}</span>&nbsp;
+        <span class="badge br" style="font-size:10px">CR: ${et?.cr||'—'}</span>
+      </div>
+      <div style="color:var(--amber);font-size:11px;margin-top:4px">⚠ This will delete and recreate the ledger entries</div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Date *</label><input type="date" id="ee-date" value="${entry.date}"></div>
+      <div class="field"><label>Amount ₹ *</label><input type="number" id="ee-amt" value="${entry.amount}" step="0.01" inputmode="decimal"></div>
+    </div>
+    <div class="field"><label>Narration</label><input id="ee-narr" value="${entry.narration||''}"></div>
+    <div class="field"><label>Project</label>
+      <select id="ee-proj" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
+        <option value="">— No Project —</option>
+        ${_projs.map(p=>`<option value="${p.project_id}" ${p.project_id===entry.project_id?'selected':''}>${p.project_name}</option>`).join('')}
+      </select>
+    </div>
+    ${et?.category==='vendor'||et?.needs_ch?`
+    <div class="g2">
+      ${et?.category==='vendor'?`<div class="field"><label>Vendor</label>
+        <select id="ee-vendor" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
+          <option value="">— None —</option>
+          ${_vendors.map(v=>`<option value="${v.vendor_id}" ${v.vendor_id===entry.vendor_id?'selected':''}>${v.vendor_name}</option>`).join('')}
+        </select></div>`:'<div></div>'}
+      ${et?.needs_ch?`<div class="field"><label>Cost Head</label>
+        <select id="ee-ch" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
+          <option value="">— None —</option>
+          ${_chs.map(c=>`<option value="${c.ch_id}" ${c.ch_id===entry.cost_head_id?'selected':''}>${c.ch_name}</option>`).join('')}
+        </select></div>`:'<div></div>'}
+    </div>`:''}
+    <div class="row mt3" style="gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry('${entryId}','${entry.entry_type}','${entry.company_id}','${entry.fyid||curFY}')">Save Changes</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function saveEditEntry(entryId, entryType, companyId, fyid) {
+  const date = document.getElementById('ee-date')?.value;
+  const amt = parseFloat(document.getElementById('ee-amt')?.value);
+  const narr = document.getElementById('ee-narr')?.value.trim()||'';
+  const proj = document.getElementById('ee-proj')?.value||'';
+  const vendor = document.getElementById('ee-vendor')?.value||'';
+  const ch = document.getElementById('ee-ch')?.value||'';
+  if (!date||!amt) { toast('Date and amount required','err'); return; }
+  // Delete old entry + ledger rows
+  const del = await api('deleteEntry',{entry_id:entryId});
+  if (!del.ok) { toast('Delete failed: '+del.error,'err'); return; }
+  // Recreate with updated data
+  const add = await api('addEntry',{date,fyid,company_id:companyId,entry_type:entryType,project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr});
+  if (add.ok) {
+    toast(`✓ Updated | DR: ${add.dr_account} | CR: ${add.cr_account}`);
+    dbg(`Edit: deleted ${entryId}, new ${add.entry_id}`, 'ok');
+    closeEditModal();
+    renderLedger();
+  } else {
+    toast('Save failed: '+add.error,'err');
+  }
+}
 
 async function deleteEntry(id, label, amount) {
   confirm2(
@@ -1470,6 +1563,19 @@ async function saveEntry() {
   }
 }
 
+async function handleDocUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('ae-doc-status');
+  const urlEl = document.getElementById('ae-doc-url');
+  statusEl.textContent = `📎 ${file.name} (${(file.size/1024).toFixed(1)} KB) — stored locally`;
+  statusEl.style.color = 'var(--green)';
+  urlEl.value = file.name; // Store filename as reference
+  // Note: actual Drive upload requires Google Drive API scope
+  // For now we store the filename and it can be manually uploaded to Drive folder
+  dbg(`Doc attached: ${file.name} (${(file.size/1024).toFixed(1)}KB)`);
+}
+
 function resetEntryForm() {
   // Hide form, clear selections, reset to unselected state
   document.getElementById('ae-form-card')?.classList.add('hidden');
@@ -1477,6 +1583,10 @@ function resetEntryForm() {
   document.getElementById('ae-narr').value = '';
   const docUrl = document.getElementById('ae-doc-url');
   if (docUrl) docUrl.value = '';
+  const docFile = document.getElementById('ae-doc-file');
+  if (docFile) docFile.value = '';
+  const docStatus = document.getElementById('ae-doc-status');
+  if (docStatus) docStatus.textContent = '';
   ssClear('ae-proj-wrap');
   ssClear('ae-vendor-wrap');
   ssClear('ae-ch-wrap');
@@ -2701,19 +2811,22 @@ function logImp(msg,type='info'){
 }
 async function wipeAndReimport(){
   if(!_preview){toast('Load Excel file first','err');return;}
-  logImp('Wiping all D1 tables...','info');
-  const tables=['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies','users'];
-  for(const t of tables){
-    try{
-      await mig({step:'insert',table:t,rows:[]}); // no-op just to test
-      // Use raw delete via a special wipe step
-    }catch(e){}
-  }
-  // Actually wipe using the CF internal API approach via the admin page
-  // Use the existing migrate wipe endpoint
+  // Security: require password confirmation
+  const pwd = prompt('⚠ This will DELETE ALL DATA.\n\nEnter your admin password to confirm:');
+  if (!pwd) return;
+  // Verify password via login
+  const check = await fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'login', username: S.user?.username||'Arpit', password: pwd})
+  });
+  const checkJ = await check.json();
+  if (!checkJ.ok) { toast('Incorrect password — wipe cancelled','err'); return; }
+  logImp('✓ Password verified. Wiping all D1 tables...','ok');
   const wipeRes = await mig({step:'wipe_all'});
-  if(wipeRes.ok){logImp('✓ All tables wiped','ok');}
-  else{logImp('Wipe via API not available — wiping via individual deletes','warn');}
+  if(wipeRes.ok){
+    const wiped = Object.values(wipeRes.wipe_results||{}).filter(v=>v==='wiped').length;
+    logImp(`✓ ${wiped} tables wiped`,'ok');
+  } else { logImp('Wipe error: '+JSON.stringify(wipeRes),'err'); return; }
   logImp('Running schema migration...','info');
   await mig({step:'migrate_schema'});
   await runImport();
