@@ -534,7 +534,7 @@ async function handleGetBS({ fyid, company_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ OPENING BALANCES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleListOpeningBalances({ fyid, company_id }, env) {
-  let q = 'SELECT * FROM opening_balances WHERE 1=1'; const vals = [];
+  let q = "SELECT *, UPPER(dr_cr) as dr_cr FROM opening_balances WHERE 1=1"; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
   if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
   return ok({ opening_balances: (await env.DB.prepare(q + ' ORDER BY ac_name').bind(...vals).all()).results });
@@ -552,7 +552,7 @@ async function handleSaveOpeningBalance({ fyid, ac_key, ac_name, dr_cr, amount, 
   return ok();
 }
 async function handleListVendorOpeningBalances({ fyid, company_id }, env) {
-  let q = 'SELECT * FROM vendor_opening_balances WHERE 1=1'; const vals = [];
+  let q = "SELECT *, UPPER(dr_cr) as dr_cr FROM vendor_opening_balances WHERE 1=1"; const vals = [];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
   if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
   return ok({ vendor_opening_balances: (await env.DB.prepare(q + ' ORDER BY vendor_id').bind(...vals).all()).results });
@@ -607,6 +607,8 @@ async function handleGetVendorReport({ vendor_id, fyid, company_id }, sess, env)
   }
 
   const total = entries.results.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  // Normalize dr_cr to uppercase
+  if (ob) ob = {...ob, dr_cr: (ob.dr_cr||'CR').toUpperCase()};
   return ok({ vendor, entries: entries.results, ledger: ledger.results, opening_balance: ob || null, total });
 }
 async function handleGetDashboard({ fyid, company_id }, sess, env) {
