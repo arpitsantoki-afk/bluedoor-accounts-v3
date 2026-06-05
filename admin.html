@@ -268,8 +268,12 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         </div>
         <div class="sh">Entry Type</div>
         <div class="type-grid" id="type-grid"><div class="empty" style="padding:12px">Loading...</div></div>
-        <div class="card">
+        <div class="card hidden" id="ae-form-card">
           <div class="cbd">
+            <div id="ae-type-label" style="font-size:13px;font-weight:600;margin-bottom:12px;padding:8px 10px;background:rgba(79,142,247,.06);border-radius:7px;display:flex;align-items:center;gap:8px">
+              <span id="ae-type-name" style="flex:1"></span>
+              <button onclick="resetEntryForm()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1" title="Clear selection">✕</button>
+            </div>
             <div class="g2">
               <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
               <div class="field"><label>Company *</label><select id="ae-co"></select></div>
@@ -733,7 +737,7 @@ async function loadMasters() {
   // Init entry form SSes
   createSS('ae-proj-wrap', [{value:'',label:'— No Project —'},..._projs.map(p=>({value:p.project_id,label:`${p.project_name} · ${p.client||''}`}))], '— Select Project —');
   createSS('ae-vendor-wrap', [{value:'',label:'— Optional —'},..._vendors.map(v=>({value:v.vendor_id,label:v.vendor_name}))], '— Select Vendor —');
-  createSS('ae-ch-wrap', _chs.map(c=>({value:c.ch_id,label:c.ch_name})), '— Select Cost Head —');
+  createSS('ae-ch-wrap', _chs.map(c=>({value:c.ch_id,label:c.ch_name})), '— Select Cost Head —', (chId)=>onCostHeadChange(chId));
 
   // Company select for entry
   const co = document.getElementById('ae-co');
@@ -1033,15 +1037,37 @@ function setEntryCat(cat, el) {
 }
 
 function onCostHeadChange(chId) {
-  // For vendor_bill: if cost head is indirect expense category, project is not required
-  if (_selType?.et_key === 'vendor_bill') {
-    const ch = _chs.find(c => c.ch_id === chId);
-    const isIndirect = ch?.ac_key === 'EXP_INDIRECT' || ch?.ch_name?.toLowerCase().includes('indirect') || ch?.ch_name?.toLowerCase().includes('office') || ch?.ch_name?.toLowerCase().includes('salary');
-    const projWrap = document.getElementById('ae-proj-wrap-outer');
-    if (projWrap) {
-      projWrap.style.display = isIndirect ? 'none' : '';
+  if (!_selType) return;
+  const ch = _chs.find(c => c.ch_id === chId);
+  // Determine if this cost head is indirect (not project-specific)
+  const isIndirect = ch && (
+    ch.ac_key === 'EXP_INDIRECT' ||
+    ch.ac_key === 'EXP_OTHER' ||
+    /indirect|office|salary|marketing|overhead/i.test(ch.ch_name)
+  );
+
+  const projWrap = document.getElementById('ae-proj-wrap-outer');
+  if (!projWrap) return;
+
+  if (_selType.et_key === 'vendor_bill') {
+    // vendor_bill: project required for direct, hidden+cleared for indirect
+    if (isIndirect) {
+      projWrap.style.display = 'none';
+      ssClear('ae-proj-wrap'); // clear any selected project
+    } else {
+      projWrap.style.display = '';
       const lbl = projWrap.querySelector('label');
-      if (lbl) lbl.innerHTML = isIndirect ? 'Project' : 'Project <span style="color:var(--red)">*</span>';
+      if (lbl) lbl.innerHTML = 'Project <span style="color:var(--red)">*</span>';
+    }
+  } else if (['expense_cash','expense_petty_cash','expense_bank'].includes(_selType.et_key)) {
+    // expense entries: project required, but indirect heads → hide project
+    if (isIndirect) {
+      projWrap.style.display = 'none';
+      ssClear('ae-proj-wrap');
+    } else {
+      projWrap.style.display = '';
+      const lbl = projWrap.querySelector('label');
+      if (lbl) lbl.innerHTML = 'Project <span style="color:var(--red)">*</span>';
     }
   }
 }
@@ -1230,10 +1256,15 @@ function pickType(el, key) {
   const docRule = rules.doc || 'hidden';
   document.getElementById('ae-doc-f')?.classList.toggle('hidden', docRule === 'hidden');
 
-  // DR/CR preview
+  // Show form card
+  document.getElementById('ae-form-card')?.classList.remove('hidden');
+  // Update type label in form
+  const tn = document.getElementById('ae-type-name');
+  if (tn) tn.innerHTML = `<span class="badge bg" style="font-size:11px">DR: ${_selType.dr}</span>&nbsp;<span class="badge br" style="font-size:11px">CR: ${_selType.cr}</span>&nbsp;<strong>${_selType.label}</strong>${_selType.hint?'<span style="font-size:11px;color:var(--muted);margin-left:6px">'+_selType.hint+'</span>':''}`;
+
+  // Hide old preview div (now shown in form header)
   const prev=document.getElementById('ae-preview');
-  prev.style.display='block';
-  prev.innerHTML=`<span class="badge bg">DR: ${_selType.dr}</span> &nbsp; <span class="badge br">CR: ${_selType.cr}</span> &nbsp; <span style="font-size:11px;color:var(--muted)">${_selType.hint||_selType.label}</span>`;
+  if (prev) prev.style.display='none';
 }
 
 async function saveEntry() {
@@ -1249,7 +1280,12 @@ async function saveEntry() {
   if(!co){toast('Select company','err');return;}
   if(!amt||amt<=0){toast('Enter valid amount','err');return;}
   const rules=FIELD_RULES[_selType.et_key]||{};
-  if(rules.project==='required'&&!proj){toast('Project is required for this entry type','err');return;}
+  if(rules.project==='required'&&!proj){
+    // Check if cost head is indirect — if so, project is not required
+    const selCh=_chs.find(c=>c.ch_id===ch);
+    const selChIndirect=selCh&&(/indirect|office|salary|marketing|overhead/i.test(selCh.ch_name)||selCh.ac_key==='EXP_INDIRECT'||selCh.ac_key==='EXP_OTHER');
+    if(!selChIndirect){toast('Project is required for this entry type','err');return;}
+  }
   if(rules.vendor==='required'&&!vendor){toast('Vendor is required for this entry type','err');return;}
   if(rules.cost_head==='required'&&!ch){toast('Cost Head is required for this entry type','err');return;}
 
@@ -1263,16 +1299,28 @@ async function saveEntry() {
     const crInfo=res.cr_account||'—';
     toast(`✓ Entry saved | DR: ${drInfo} | CR: ${crInfo}`);
     dbg(`Entry ${res.entry_id}: DR=${drInfo} CR=${crInfo} Amt=${amt}`, 'ok');
-    document.getElementById('ae-amt').value='';
-    document.getElementById('ae-narr').value='';
-    document.getElementById('ae-doc-url').value='';
-    document.getElementById('ae-preview').style.display='none';
-    document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
-    _selType=null;
+    resetEntryForm();
   } else {
     toast(res.error,'err');
     dbg('addEntry failed: '+res.error,'err');
   }
+}
+
+function resetEntryForm() {
+  // Hide form, clear selections, reset to unselected state
+  document.getElementById('ae-form-card')?.classList.add('hidden');
+  document.getElementById('ae-amt').value = '';
+  document.getElementById('ae-narr').value = '';
+  const docUrl = document.getElementById('ae-doc-url');
+  if (docUrl) docUrl.value = '';
+  ssClear('ae-proj-wrap');
+  ssClear('ae-vendor-wrap');
+  ssClear('ae-ch-wrap');
+  document.querySelectorAll('.type-opt').forEach(t => t.classList.remove('sel'));
+  _selType = null;
+  // Re-show project wrap for next entry
+  const pw = document.getElementById('ae-proj-wrap-outer');
+  if (pw) pw.style.display = '';
 }
 
 // ── PROJECTS ─────────────────────────────────────────────────
