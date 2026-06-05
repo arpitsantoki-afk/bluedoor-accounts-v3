@@ -2090,7 +2090,7 @@ async function loadProjectRpt(pid){
   el.innerHTML='<span class="spin"></span>';
 
   const [res, ledRes] = await Promise.all([
-    api('getProjectReport',{project_id:pid,fyid:curFY}),
+    api('getProjectReport',{project_id:pid,fyid:curFY,company_id:curCo||undefined}),
     api('getLedger',{fyid:curFY,company_id:curCo||undefined})
   ]);
   const p=res.project||{}; const es=res.entries||[];
@@ -2098,30 +2098,50 @@ async function loadProjectRpt(pid){
   const pLed=ledRes.ledger?.filter(l=>l.project_id===pid)||[];
 
   // ── Build structured report per Excel spec ──────────────────────────────────
-  // a. Total Income: SALES cr entries for this project
-  const salesEntries = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='SALES'||et?.cr==='RECEIVABLE'; });
+  // Helper: get entry type object
+  const getET = e => _ets.find(t=>t.et_key===e.entry_type);
+
+  // a. Sales / Invoiced ONLY — entry types that have cr=SALES (invoice_raised)
+  // NOT cash_payment_received (that has cr=RECEIVABLE, it's a receipt not a sale)
+  const salesEntries = es.filter(e=>{ const et=getET(e); return et?.cr==='SALES'; });
   const totalIncome = salesEntries.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // b. Received Cash (cr=CASH, not ADV_RECV)
-  const rcvCash = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='CASH'&&et?.cr!=='ADV_RECV'; });
+  // b. Received Cash — dr=CASH AND cr=RECEIVABLE (payment against invoice)
+  const rcvCash = es.filter(e=>{ const et=getET(e); return et?.dr==='CASH'&&et?.cr==='RECEIVABLE'; });
   const totalRcvCash = rcvCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // c. Received via Bank (dr=BANK, not ADV_RECV)
-  const rcvBank = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='BANK'&&et?.cr!=='ADV_RECV'; });
+  // c. Received via Bank — dr=BANK AND cr=RECEIVABLE
+  const rcvBank = es.filter(e=>{ const et=getET(e); return et?.dr==='BANK'&&et?.cr==='RECEIVABLE'; });
   const totalRcvBank = rcvBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // d. Advances Received (cr=ADV_RECV)
-  const advances = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='ADV_RECV'; });
+  // d. Advances Received from client — cr=ADV_RECV
+  const advances = es.filter(e=>{ const et=getET(e); return et?.cr==='ADV_RECV'; });
   const totalAdvances = advances.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // e. Total Direct Expense (dr=COST_HEAD)
-  const directExp = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='COST_HEAD'||et?.needs_ch; });
+  // e. Direct Expenses — ONLY entries where dr=COST_HEAD AND needs_ch=true
+  //    These are actual expense entries (vendor_bill, expense_cash, expense_bank, expense_petty_cash)
+  //    NOT vendor payments (vendor_paid_cash/bank which have dr=PAYABLE)
+  const directExpEntryTypes = new Set(_ets.filter(t=>t.dr==='COST_HEAD'&&t.needs_ch).map(t=>t.et_key));
+  const directExp = es.filter(e=>directExpEntryTypes.has(e.entry_type));
   const totalDirectExp = directExp.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // f/g/h. Paid: cash, petty cash, bank (not advances)
-  const paidCash = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='CASH'&&et?.dr!=='ADV_PAID'; });
-  const paidPetty = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='PETTY_CASH'; });
-  const paidBank = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='BANK'&&et?.dr!=='ADV_PAID'; });
+  // Group direct expenses by cost head for display
+  const expByCH = {};
+  directExp.forEach(e=>{
+    const chId = e.cost_head_id||'_none';
+    const ch = _chs.find(c=>c.ch_id===chId);
+    const chName = ch?.ch_name||'Other';
+    if(!expByCH[chId]) expByCH[chId]={name:chName,entries:[],total:0};
+    expByCH[chId].entries.push(e);
+    expByCH[chId].total+=parseFloat(e.amount||0);
+  });
+
+  // f. Paid Cash — vendor payments via cash (dr=PAYABLE, cr=CASH)
+  const paidCash = es.filter(e=>{ const et=getET(e); return et?.dr==='PAYABLE'&&et?.cr==='CASH'; });
+  // g. Paid Petty Cash — dr=COST_HEAD or PAYABLE, cr=PETTY_CASH
+  const paidPetty = es.filter(e=>{ const et=getET(e); return et?.cr==='PETTY_CASH'; });
+  // h. Paid Bank — dr=PAYABLE, cr=BANK
+  const paidBank = es.filter(e=>{ const et=getET(e); return et?.dr==='PAYABLE'&&et?.cr==='BANK'; });
   const totalPaidCash=paidCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
   const totalPaidPetty=paidPetty.reduce((s,e)=>s+parseFloat(e.amount||0),0);
   const totalPaidBank=paidBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
@@ -2130,11 +2150,11 @@ async function loadProjectRpt(pid){
   // i. Payable = Total Direct Expense − Total Paid
   const payable = totalDirectExp - totalPaid;
 
-  // j. Advances paid to vendors (dr=ADV_PAID)
-  const advPaid = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='ADV_PAID'; });
+  // j. Advances paid to vendors — dr=ADV_PAID
+  const advPaid = es.filter(e=>{ const et=getET(e); return et?.dr==='ADV_PAID'; });
   const totalAdvPaid = advPaid.reduce((s,e)=>s+parseFloat(e.amount||0),0);
 
-  // k. Total Cash Flow = a + d + e + j (net of income, advances, expenses, advance payments)
+  // k. Net Cash Flow = Income + Advances received − Direct Expenses − Vendor Advances
   const cashFlow = totalIncome + totalAdvances - totalDirectExp - totalAdvPaid;
 
   const section = (label, rows, total, cls='dr') => rows.length===0?'':`
@@ -2171,7 +2191,20 @@ async function loadProjectRpt(pid){
       <div class="card">
         <div class="chd"><h3 style="color:var(--red)">💸 Expense</h3><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
         <div class="cbd">
-          ${section('(e) Direct Expenses', directExp, totalDirectExp, 'cr')}
+          <!-- (e) Direct Expenses grouped by cost head -->
+          <div style="margin-bottom:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">(E) Direct Expenses — by Cost Head</div>
+            ${Object.values(expByCH).sort((a,b)=>b.total-a.total).map(ch=>`
+              <div style="margin:5px 0 3px;font-size:11px;font-weight:600;color:var(--text);padding:2px 0;border-bottom:1px dashed var(--border)">${ch.name}</div>
+              ${ch.entries.map(e=>`<div class="rsb" style="padding:2px 0;font-size:12px;padding-left:8px">
+                <span>${fmtDate(e.date)} · ${e.narration||getET(e)?.label||e.entry_type}</span>
+                <span class="amt cr">${fmtAmt(e.amount)}</span>
+              </div>`).join('')}
+              <div class="rsb" style="padding:2px 0 4px 8px;font-size:11px;color:var(--muted)">
+                <span>Subtotal</span><span class="amt cr">${fmtAmt(ch.total)}</span>
+              </div>`).join('')}
+            <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+          </div>
           ${section('(f) Paid — Cash', paidCash, totalPaidCash, 'cr')}
           ${section('(g) Paid — Petty Cash', paidPetty, totalPaidPetty, 'cr')}
           ${section('(h) Paid — Bank', paidBank, totalPaidBank, 'cr')}
