@@ -699,6 +699,8 @@ function setCo(id, label) {
 // ═══════════════════════════════════════════════════════════════
 async function loadMasters() {
   dbg('Loading masters...');
+  // Run schema migrations on first load (idempotent)
+  mig({step:'migrate_schema'}).then(r=>dbg('Schema: '+JSON.stringify(r.schema_results||{}))).catch(()=>{});
   const [c,p,v,ch,et,ac] = await Promise.all([
     api('listCompanies'), api('listProjects'), api('listVendors'),
     api('listCostHeads'), api('listEntryTypes'), api('listAccounts')
