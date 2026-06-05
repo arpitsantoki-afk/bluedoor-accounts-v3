@@ -1134,18 +1134,27 @@ async function renderLedger() {
   if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No entries found</td></tr>'; return; }
 
   // Group ledger rows by entry_id to show delete once per entry
-  const entryIds=new Set();
+  const seenIds=new Set();
   tbody.innerHTML=rows.map(r=>{
-    const isFirst=!entryIds.has(r.entry_id);
-    if(isFirst) entryIds.add(r.entry_id);
-    return`<tr>
-      <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+    const isFirst=!seenIds.has(r.entry_id);
+    if(isFirst) seenIds.add(r.entry_id);
+    const amt=r.debit>0?r.debit:r.credit;
+    const narr=(r.narration||r.ac_name||'').replace(/['"<>]/g,'');
+    return`<tr style="${!isFirst?'background:rgba(255,255,255,.015)':''}">
+      <td style="white-space:nowrap;font-size:12px">${isFirst?fmtDate(r.date):'↳'}</td>
       <td style="font-size:11px">${r.company_id}</td>
       <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
-      <td style="font-size:11px;max-width:140px">${r.narration||'—'}</td>
+      <td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.narration||'—'}</td>
       <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
       <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
-      <td>${isFirst?`<button class="btn btn-d btn-xs" title="Delete this journal entry (both DR+CR)" onclick="deleteEntry('${r.entry_id}','${(r.narration||r.ac_name).replace(/'/g,'')}',${ r.debit||r.credit})">🗑</button>`:''}</td>
+      <td style="white-space:nowrap;min-width:58px">${isFirst?`
+        <button class="btn btn-o btn-xs" onclick="showEditEntry('${r.entry_id}')" title="Edit">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="btn btn-d btn-xs" onclick="deleteEntry('${r.entry_id}','${narr}',${amt})" title="Delete">
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="3,6 5,6 21,6"/><path d="M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6"/><path d="M10 11v6M14 11v6"/></svg>
+        </button>
+      `:''}</td>
     </tr>`;}).join('');
 
   // Footer totals + opening balance
