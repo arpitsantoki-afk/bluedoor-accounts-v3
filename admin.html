@@ -11,6 +11,11 @@
   --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
   --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
 }
+body.light-theme{
+  --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;--accent:#2563eb;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;
+  --text:#1e293b;--muted:#64748b;
+}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
 #topbar{height:var(--top-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;gap:8px}
@@ -132,9 +137,10 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
-    <div class="row" style="gap:6px">
+    <div class="row" style="gap:4px">
+      <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" onclick="doSync()" title="Sync / Refresh data">🔄</button>
       <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" onclick="toggleDebug()" title="Debug">🐞</button>
-      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" id="user-btn">👤</button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;padding:4px" id="user-btn" onclick="toggleMenu('user-menu')">👤</button>
     </div>
   </div>
 
@@ -152,7 +158,18 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <div style="font-weight:600;font-size:13px" id="um-name">—</div>
       <div style="font-size:11px;color:var(--muted)" id="um-role">—</div>
     </div>
-    <div style="padding:4px 8px 6px">
+    <div style="padding:4px 8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 6px;font-size:13px">
+        <span>🌙 Dark Mode</span>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" id="theme-toggle" checked onchange="toggleTheme(this.checked)" style="opacity:0;width:0;height:0">
+          <span id="theme-track" style="position:absolute;inset:0;background:var(--accent);border-radius:20px;transition:.2s">
+            <span id="theme-thumb" style="position:absolute;left:2px;bottom:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;transform:translateX(16px)"></span>
+          </span>
+        </label>
+      </div>
+    </div>
+    <div style="padding:0 8px 6px">
       <button class="btn btn-d btn-sm" style="width:100%;justify-content:center" onclick="doLogout()">Sign Out</button>
     </div>
   </div>
@@ -235,7 +252,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="row" style="gap:5px">
           <button class="btn btn-o btn-xs" onclick="resetLedgerFilters()">Reset</button>
           <button class="btn btn-o btn-xs" onclick="downloadLedgerXLS()">⬇ XLS</button>
-          <button class="btn btn-o btn-xs" onclick="printLedger()">🖨 Print</button>
+          <button class="btn btn-o btn-xs" onclick="printLedgerPDF()">🖨 PDF</button>
         </div>
       </div>
       <div class="tw">
@@ -276,7 +293,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
             </div>
             <div class="g2">
               <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
-              <div class="field"><label>Company *</label><select id="ae-co"></select></div>
+              <div class="field"><label>Company *</label><select id="ae-co" id="ae-co"></select><div id="ae-co-lock" style="display:none;font-size:11px;color:var(--muted);margin-top:3px">🔒 Set by top bar selection</div></div>
             </div>
             <div class="field" id="ae-proj-wrap-outer">
               <label>Project <span style="color:var(--red)">*</span></label>
@@ -433,6 +450,20 @@ function dbg(msg, type='info') {
   log.appendChild(div);
   log.scrollTop = log.scrollHeight;
 }
+function toggleTheme(isDark) {
+  if (isDark) {
+    document.body.classList.remove('light-theme');
+    localStorage.setItem('bd_theme', 'dark');
+  } else {
+    document.body.classList.add('light-theme');
+    localStorage.setItem('bd_theme', 'light');
+  }
+  const thumb = document.getElementById('theme-thumb');
+  const track = document.getElementById('theme-track');
+  if (thumb) thumb.style.transform = isDark ? 'translateX(16px)' : 'translateX(0)';
+  if (track) track.style.background = isDark ? 'var(--accent)' : 'var(--muted)';
+}
+
 function toggleDebug() {
   _debugOpen = !_debugOpen;
   document.getElementById('debug-panel').classList.toggle('open', _debugOpen);
@@ -644,13 +675,54 @@ async function doInlineLogin() {
   loadMasters().then(()=>initView());
 }
 
+function showAddCompany() {
+  document.getElementById('co-menu').classList.add('hidden');
+  showEditModal('Add Company', `
+    <div class="field"><label>Company Name *</label><input id="nc-name" placeholder="e.g. BlueDoor Design LLP"></div>
+    <div class="field"><label>Short ID *</label><input id="nc-id" placeholder="e.g. BDD" style="text-transform:uppercase" maxlength="10" oninput="this.value=this.value.toUpperCase()"></div>
+    <div class="field"><label>Google Drive Folder ID <span style="color:var(--muted);font-size:10px">(optional)</span></label><input id="nc-drive" placeholder="Folder ID from Drive URL"></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addCompany()">Create</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function addCompany() {
+  const name = document.getElementById('nc-name')?.value.trim();
+  const id = document.getElementById('nc-id')?.value.trim().toUpperCase();
+  const drive = document.getElementById('nc-drive')?.value.trim();
+  if (!name || !id) { toast('Name and ID required', 'err'); return; }
+  const r = await api('addCompany', { company_id: id, company_name: name, drive_folder: drive });
+  if (r.ok) {
+    toast('Company added ✓');
+    closeEditModal();
+    await loadMasters();
+  } else toast(r.error, 'err');
+}
+
+async function doSync() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) { btn.style.animation = 'spin .6s linear 2'; btn.textContent = '🔄'; }
+  await loadMasters();
+  refreshView();
+  toast('Data refreshed ✓');
+  if (btn) setTimeout(()=>{ btn.style.animation=''; }, 1200);
+}
+
 async function doLogout() {
   await api('logout').catch(()=>{});
   localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
   window.location.href='/bluedoor-accounts-v3/index.html?logout=1';
 }
 
-window.addEventListener('DOMContentLoaded', checkSession);
+window.addEventListener('DOMContentLoaded', () => {
+  checkSession();
+  const theme = localStorage.getItem('bd_theme') || 'dark';
+  const toggle = document.getElementById('theme-toggle');
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+    if (toggle) { toggle.checked = false; toggleTheme(false); }
+  }
+});
 
 // ═══════════════════════════════════════════════════════════════
 // MENUS
@@ -695,8 +767,14 @@ function setFY(fy) {
 function setCo(id, label) {
   curCo=id; document.getElementById('co-pill').textContent=(label||'All')+' ▾';
   document.getElementById('co-menu').classList.add('hidden');
-  // Persist selection
   try { localStorage.setItem('bd_co', id); localStorage.setItem('bd_co_label', label||'All'); } catch(e){}
+  // Sync entry form company field
+  const aeCo = document.getElementById('ae-co');
+  const aeLock = document.getElementById('ae-co-lock');
+  if (aeCo) {
+    if (id) { aeCo.value = id; aeCo.disabled = true; if(aeLock) aeLock.style.display='block'; }
+    else { aeCo.disabled = false; if(aeLock) aeLock.style.display='none'; }
+  }
   refreshView();
 }
 function setFY(fy) {
@@ -728,6 +806,7 @@ async function loadMasters() {
   const coL=document.getElementById('co-list');
   coL.innerHTML=`<div style="padding:6px 13px;font-size:13px;cursor:pointer" onclick="setCo('','All')">All Companies</div>`;
   _cos.forEach(co=>coL.innerHTML+=`<div style="padding:6px 13px;font-size:13px;cursor:pointer" onclick="setCo('${co.company_id}','${co.company_name}')">${co.company_name}</div>`);
+  coL.innerHTML+=`<div style="padding:6px 13px;font-size:12px;color:var(--accent);cursor:pointer;border-top:1px solid var(--border);margin-top:4px" onclick="showAddCompany()">+ Add Company</div>`;
 
   // Init SearchSelects for filters
   createSS('lf-ac-wrap', [{value:'',label:'All Accounts'},..._acs.map(a=>({value:a.ac_code,label:`${a.ac_code} — ${a.ac_name}`}))], 'All Accounts', ()=>renderLedger());
@@ -757,7 +836,11 @@ async function loadMasters() {
     const savedCoLabel = localStorage.getItem('bd_co_label') || 'All';
     const savedFY = localStorage.getItem('bd_fy') || 'FY2627';
     if (savedFY !== curFY) { curFY = savedFY; document.getElementById('fy-pill').textContent = savedFY + ' ▾'; }
-    if (savedCo) { curCo = savedCo; document.getElementById('co-pill').textContent = savedCoLabel + ' ▾'; }
+    if (savedCo) {
+      curCo = savedCo; document.getElementById('co-pill').textContent = savedCoLabel + ' ▾';
+      const aeCo=document.getElementById('ae-co');const aeLock=document.getElementById('ae-co-lock');
+      if(aeCo){aeCo.value=savedCo;aeCo.disabled=true;if(aeLock)aeLock.style.display='block';}
+    }
   } catch(e) {}
 }
 
@@ -789,7 +872,7 @@ function renderView(v) {
 async function renderHome() {
   const [dash, pending, entries, tb] = await Promise.all([
     api('getDashboard',{fyid:curFY,company_id:curCo}),
-    api('listPending',{fyid:curFY,company_id:curCo}),
+    api('listPending',{fyid:curFY,company_id:curCo,status:'Pending'}),
     api('listEntries',{fyid:curFY,company_id:curCo,limit:15}),
     api('getTrialBalance',{fyid:curFY,company_id:curCo})
   ]);
@@ -979,6 +1062,85 @@ function resetLedgerFilters() {
   renderLedger();
 }
 
+function printLedgerPDF() {
+  if(!_ledgerRows.length){toast('No data to print','err');return;}
+  const coName = _cos.find(c=>c.company_id===curCo)?.company_name || 'BlueDoor Accounts';
+  const acFilter = ssGet('lf-ac-wrap');
+  const acName = acFilter ? (_acs.find(a=>a.ac_code===acFilter)?.ac_name || acFilter) : 'All Accounts';
+  const fromDate = document.getElementById('lf-from').value;
+  const toDate = document.getElementById('lf-to').value;
+  const dateRange = fromDate && toDate ? `${fmtDate(fromDate)} to ${fmtDate(toDate)}` : curFY;
+
+  // Group by account for Tally-style ledger
+  const byAccount = {};
+  _ledgerRows.forEach(r => {
+    const key = r.ac_code;
+    if (!byAccount[key]) byAccount[key] = {name: r.ac_name, code: r.ac_code, rows: []};
+    byAccount[key].rows.push(r);
+  });
+
+  let accountSections = '';
+  Object.values(byAccount).forEach(ac => {
+    const totDr = ac.rows.reduce((s,r)=>s+parseFloat(r.debit||0),0);
+    const totCr = ac.rows.reduce((s,r)=>s+parseFloat(r.credit||0),0);
+    accountSections += `
+      <div class="ac-section">
+        <div class="ac-title">${ac.name} (${ac.code})</div>
+        <table>
+          <thead><tr><th>Date</th><th>Particulars</th><th>Vch Type</th><th>Vch No.</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th></tr></thead>
+          <tbody>
+            ${ac.rows.map(r=>`<tr>
+              <td>${fmtDate(r.date)}</td>
+              <td>${r.narration||'—'}</td>
+              <td>${_ets.find(t=>t.et_key===r.entry_type)?.label||'Journal'}</td>
+              <td style="font-size:9px">${r.entry_id?.substring(0,12)||''}</td>
+              <td style="text-align:right">${r.debit>0?'₹'+fmt(r.debit):''}</td>
+              <td style="text-align:right">${r.credit>0?'₹'+fmt(r.credit):''}</td>
+            </tr>`).join('')}
+          </tbody>
+          <tfoot>
+            <tr class="totals-row"><td colspan="4"><strong>Totals</strong></td>
+              <td style="text-align:right"><strong>₹${fmt(totDr)}</strong></td>
+              <td style="text-align:right"><strong>₹${fmt(totCr)}</strong></td>
+            </tr>
+            <tr class="closing-row"><td colspan="4"><strong>Closing Balance</strong></td>
+              <td style="text-align:right">${totDr>totCr?'<strong>₹'+fmt(totDr-totCr)+'</strong>':''}</td>
+              <td style="text-align:right">${totCr>totDr?'<strong>₹'+fmt(totCr-totDr)+'</strong>':''}</td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>`;
+  });
+
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Ledger — ${coName}</title>
+  <style>
+    body { font-family: Arial, sans-serif; font-size: 11px; margin: 20px; color: #000; }
+    .header { text-align: center; margin-bottom: 16px; border-bottom: 2px solid #000; padding-bottom: 8px; }
+    .header h2 { font-size: 16px; margin: 0 0 2px; }
+    .header h3 { font-size: 13px; margin: 0 0 2px; font-weight: normal; }
+    .header p { font-size: 11px; margin: 0; color: #444; }
+    .ac-section { margin-bottom: 20px; page-break-inside: avoid; }
+    .ac-title { font-weight: bold; font-size: 12px; margin: 0 0 4px; padding: 4px 6px; background: #f5f5f5; border-left: 3px solid #333; }
+    table { width: 100%; border-collapse: collapse; }
+    th { background: #f0f0f0; border: 1px solid #ccc; padding: 4px 6px; font-size: 10px; text-transform: uppercase; }
+    td { border: 1px solid #ddd; padding: 3px 6px; }
+    tr:nth-child(even) { background: #fafafa; }
+    .totals-row td { border-top: 2px solid #666; background: #f5f5f5; }
+    .closing-row td { background: #e8f4e8; font-weight: bold; }
+    @media print { body { margin: 10mm; } .ac-section { page-break-inside: avoid; } }
+  </style></head><body>
+  <div class="header">
+    <h2>${coName}</h2>
+    <h3>Ledger Account</h3>
+    <p>${dateRange}</p>
+  </div>
+  ${accountSections}
+  </body></html>`);
+  w.document.close();
+  w.print();
+}
+
 function downloadLedgerXLS() {
   if(!_ledgerRows.length){toast('No data','err');return;}
   const ws=XLSX.utils.json_to_sheet(_ledgerRows.map(r=>({
@@ -1026,6 +1188,8 @@ function setEntryCat(cat, el) {
   _curEntryCat=cat; _selType=null;
   document.querySelectorAll('#entry-cats .ctab').forEach(t=>t.classList.remove('active'));
   if(el) el.classList.add('active');
+  // Hide form when switching category
+  document.getElementById('ae-form-card')?.classList.add('hidden');
   const types=_ets.filter(t=>t.category===cat&&t.active);
   const grid=document.getElementById('type-grid');
   if(!types.length){grid.innerHTML='<div class="empty">No entry types</div>';return;}
@@ -1745,42 +1909,69 @@ function printPL(){
 }
 
 async function renderBS(el){
-  const res=await api('getBS',{fyid:curFY,company_id:curCo});
-  const obRes=await api('listOpeningBalances',{fyid:curFY,company_id:curCo||undefined});
+  const [res, obRes] = await Promise.all([
+    api('getBS',{fyid:curFY,company_id:curCo}),
+    api('listOpeningBalances',{fyid:curFY,company_id:curCo||undefined})
+  ]);
   const rows=res.balance_sheet||[];
   const obs=obRes.opening_balances||[];
 
-  // Group by type — Indian double-entry format: Assets on left, Liabilities+Equity on right
-  const assets=rows.filter(r=>r.ac_type==='Asset');
-  const liab=rows.filter(r=>r.ac_type==='Liability');
-  const equity=rows.filter(r=>r.ac_type==='Equity'||r.ac_type==='Contra-Equity');
+  // Compute closing balance = OB ± period activity
+  function closingBalance(acKey, acType, totalDr, totalCr) {
+    const ob = obs.find(o=>o.ac_key===acKey)||{};
+    const obAmt = parseFloat(ob.amount||0);
+    const obDrCr = (ob.dr_cr||'DR').toUpperCase();
+    const obNet = obDrCr==='DR' ? obAmt : -obAmt;
+    const actNet = parseFloat(totalDr||0) - parseFloat(totalCr||0);
+    const closeNet = obNet + actNet;
+    return { amount: Math.abs(closeNet), drCr: closeNet>=0?'DR':'CR', obAmt, obDrCr };
+  }
 
-  const sumAmt=(arr,side)=>arr.reduce((s,r)=>s+parseFloat(side==='dr'?r.total_dr:r.total_cr||0),0);
-  const totalAssets=sumAmt(assets,'dr')+obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Asset'}).reduce((s,o)=>s+parseFloat(o.amount||0),0);
-  const totalLiab=sumAmt(liab,'cr')+obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Liability'}).reduce((s,o)=>s+parseFloat(o.amount||0),0);
-  const totalEq=sumAmt(equity,'cr');
+  const assets = rows.filter(r=>r.ac_type==='Asset');
+  const liab   = rows.filter(r=>r.ac_type==='Liability');
+  const equity = rows.filter(r=>r.ac_type==='Equity'||r.ac_type==='Contra-Equity');
 
+  // Compute closing totals
+  let totalAssets=0, totalLiab=0, totalEq=0;
+  assets.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.amount>0) totalAssets+=c.amount; });
+  liab.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.drCr==='CR') totalLiab+=c.amount; });
+  equity.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.drCr==='CR') totalEq+=c.amount; });
+
+  function rowLine(r, side) {
+    const acKey = r.ac_key || _acs.find(a=>a.ac_code===r.ac_code)?.ac_key;
+    const c = closingBalance(acKey, r.ac_type, r.total_dr, r.total_cr);
+    if (c.amount < 0.01) return '';
+    const cls = side==='dr'?'dr':'cr';
+    return `<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px">${r.ac_name}</span>
+      <div style="text-align:right">
+        <span class="amt ${cls}">${fmtAmt(c.amount)}</span>
+        ${c.obAmt>0?`<div style="font-size:10px;color:var(--muted)">${fmtAmt(c.obAmt)} OB + activity</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  const diff = Math.abs(totalAssets-(totalLiab+totalEq));
   const colStyle='width:50%;vertical-align:top;padding:8px';
   el.innerHTML=`
     ${rptActions('exportBSXLS','printBS')}
     <div class="card"><div class="cbd">
       <table style="min-width:0"><tbody><tr>
         <td style="${colStyle};border-right:2px solid var(--border)">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent)">ASSETS</div>
-          ${assets.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt dr">${fmtAmt(r.total_dr)}</span></div>`).join('')}
-          ${obs.filter(o=>{const ac=_acs.find(a=>a.ac_key===o.ac_key);return ac?.ac_type==='Asset'}).map(o=>`<div class="rsb" style="padding:4px 0;font-style:italic;font-size:11px;color:var(--muted)"><span>OB: ${o.ac_name}</span><span class="amt dr">${fmtAmt(o.amount)}</span></div>`).join('')}
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent)">ASSETS (Closing)</div>
+          ${assets.map(r=>rowLine(r,'dr')).filter(Boolean).join('')}
           <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total Assets</span><span class="amt dr">${fmtAmt(totalAssets)}</span></div>
         </td>
         <td style="${colStyle}">
-          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--red)">LIABILITIES & EQUITY</div>
-          ${liab.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt cr">${fmtAmt(r.total_cr)}</span></div>`).join('')}
-          ${equity.map(r=>`<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)"><span style="font-size:12px">${r.ac_name}</span><span class="amt cr">${fmtAmt(r.total_cr)}</span></div>`).join('')}
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--red)">LIABILITIES & EQUITY (Closing)</div>
+          ${liab.map(r=>rowLine(r,'cr')).filter(Boolean).join('')}
+          ${equity.map(r=>rowLine(r,'cr')).filter(Boolean).join('')}
           <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total L+E</span><span class="amt cr">${fmtAmt(totalLiab+totalEq)}</span></div>
         </td>
       </tr></tbody></table>
-      <div class="rsb" style="padding:8px;background:${Math.abs(totalAssets-(totalLiab+totalEq))<1?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)'};border-radius:6px;margin-top:8px">
-        <span style="font-size:12px">Balance Check</span>
-        <span class="badge ${Math.abs(totalAssets-(totalLiab+totalEq))<1?'bg':'br'}">${Math.abs(totalAssets-(totalLiab+totalEq))<1?'✓ Balanced':'✗ Diff: '+fmtAmt(Math.abs(totalAssets-(totalLiab+totalEq)))}</span>
+      <div class="rsb" style="padding:8px;background:${diff<1?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)'};border-radius:6px;margin-top:8px">
+        <span style="font-size:12px">Balance Check (Closing)</span>
+        <span class="badge ${diff<1?'bg':'br'}">${diff<1?'✓ Balanced':'✗ Diff: '+fmtAmt(diff)}</span>
       </div>
     </div></div>`;
   window._bsData={assets,liab,equity};
@@ -1887,38 +2078,152 @@ function exportVendorXLS(vid){
 }
 
 function renderProjectRptPicker(el){
-  el.innerHTML=`<div class="field"><label>Select Project</label><div class="ss-wrap" id="rpt-p-wrap"></div></div><div id="proj-rpt-out"></div>`;
-  createSS('rpt-p-wrap',_projs.map(p=>({value:p.project_id,label:p.project_name})),'— Select Project —',loadProjectRpt);
+  el.innerHTML=`
+    <div class="field"><label>Select Project</label><div class="ss-wrap" id="rpt-p-wrap"></div></div>
+    <div id="proj-rpt-out"></div>`;
+  createSS('rpt-p-wrap',_projs.map(p=>({value:p.project_id,label:p.project_name+' · '+(p.client||'')})),'— Select Project —',loadProjectRpt);
 }
+
 async function loadProjectRpt(pid){
   if(!pid) return;
   const el=document.getElementById('proj-rpt-out');
   el.innerHTML='<span class="spin"></span>';
-  const res=await api('getProjectReport',{project_id:pid,fyid:curFY});
+
+  const [res, ledRes] = await Promise.all([
+    api('getProjectReport',{project_id:pid,fyid:curFY}),
+    api('getLedger',{fyid:curFY,company_id:curCo||undefined})
+  ]);
   const p=res.project||{}; const es=res.entries||[];
+  // Filter ledger rows for this project
+  const pLed=ledRes.ledger?.filter(l=>l.project_id===pid)||[];
+
+  // ── Build structured report per Excel spec ──────────────────────────────────
+  // a. Total Income: SALES cr entries for this project
+  const salesEntries = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='SALES'||et?.cr==='RECEIVABLE'; });
+  const totalIncome = salesEntries.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // b. Received Cash (cr=CASH, not ADV_RECV)
+  const rcvCash = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='CASH'&&et?.cr!=='ADV_RECV'; });
+  const totalRcvCash = rcvCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // c. Received via Bank (dr=BANK, not ADV_RECV)
+  const rcvBank = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='BANK'&&et?.cr!=='ADV_RECV'; });
+  const totalRcvBank = rcvBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // d. Advances Received (cr=ADV_RECV)
+  const advances = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='ADV_RECV'; });
+  const totalAdvances = advances.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // e. Total Direct Expense (dr=COST_HEAD)
+  const directExp = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='COST_HEAD'||et?.needs_ch; });
+  const totalDirectExp = directExp.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // f/g/h. Paid: cash, petty cash, bank (not advances)
+  const paidCash = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='CASH'&&et?.dr!=='ADV_PAID'; });
+  const paidPetty = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='PETTY_CASH'; });
+  const paidBank = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.cr==='BANK'&&et?.dr!=='ADV_PAID'; });
+  const totalPaidCash=paidCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaidPetty=paidPetty.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaidBank=paidBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaid=totalPaidCash+totalPaidPetty+totalPaidBank;
+
+  // i. Payable = Total Direct Expense − Total Paid
+  const payable = totalDirectExp - totalPaid;
+
+  // j. Advances paid to vendors (dr=ADV_PAID)
+  const advPaid = es.filter(e=>{ const et=_ets.find(t=>t.et_key===e.entry_type); return et?.dr==='ADV_PAID'; });
+  const totalAdvPaid = advPaid.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // k. Total Cash Flow = a + d + e + j (net of income, advances, expenses, advance payments)
+  const cashFlow = totalIncome + totalAdvances - totalDirectExp - totalAdvPaid;
+
+  const section = (label, rows, total, cls='dr') => rows.length===0?'':`
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">${label}</div>
+      ${rows.map(e=>{const et=_ets.find(t=>t.et_key===e.entry_type); return`<div class="rsb" style="padding:3px 0;font-size:12px"><span>${fmtDate(e.date)} · ${e.narration||et?.label||e.entry_type}</span><span class="amt ${cls}">${fmtAmt(e.amount)}</span></div>`;}).join('')}
+      <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Subtotal</span><span class="amt ${cls}">${fmtAmt(total)}</span></div>
+    </div>`;
+
   el.innerHTML=`
-    <div class="rsb" style="margin-bottom:8px"><span style="font-weight:600">${p.project_name||pid} · ${p.client||''}</span>
-      <div class="row" style="gap:5px"><button class="btn btn-o btn-xs" onclick="exportProjXLS('${pid}')">⬇ XLS</button><button class="btn btn-o btn-xs" onclick="window.print()">🖨 Print</button></div></div>
-    <div class="tw"><table style="min-width:350px">
-      <thead><tr><th>Date</th><th>Type</th><th>Narration</th><th>DR Account</th><th>CR Account</th><th>Amount</th></tr></thead>
-      <tbody>${es.map(e=>{
-        const et=_ets.find(t=>t.et_key===e.entry_type);
-        return`<tr>
-          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
-          <td><code style="font-size:10px">${et?.label||e.entry_type}</code></td>
-          <td style="font-size:11px">${e.narration||'—'}</td>
-          <td><span class="badge bx" style="font-size:9px">${et?.dr||'—'}</span></td>
-          <td><span class="badge bx" style="font-size:9px">${et?.cr||'—'}</span></td>
-          <td class="amt dr" style="text-align:right">${fmtAmt(e.amount)}</td>
-        </tr>`;}).join('')}
-      </tbody>
-      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)"><td colspan="5">Total</td><td class="amt dr" style="text-align:right">${fmtAmt(res.total)}</td></tr></tfoot>
-    </table></div>`;
-  window._projRptData={project:p,entries:es};
+    <div class="rsb" style="margin-bottom:10px">
+      <div>
+        <div style="font-weight:700;font-size:14px">${p.project_name||pid}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.client||''} · ${p.location||''} · ${p.status||''}</div>
+      </div>
+      <div class="row" style="gap:5px">
+        <button class="btn btn-o btn-xs" onclick="exportProjXLS('${pid}')">⬇ XLS</button>
+        <button class="btn btn-o btn-xs" onclick="printProjectRpt()">🖨 PDF</button>
+      </div>
+    </div>
+
+    <div class="g2" style="gap:10px">
+      <!-- Income side -->
+      <div class="card">
+        <div class="chd"><h3 style="color:var(--green)">💰 Income</h3><span class="amt dr">${fmtAmt(totalIncome)}</span></div>
+        <div class="cbd">
+          ${section('(a) Invoiced / Sales', salesEntries, totalIncome, 'dr')}
+          ${section('(b) Received — Cash', rcvCash, totalRcvCash, 'dr')}
+          ${section('(c) Received — Bank', rcvBank, totalRcvBank, 'dr')}
+          ${section('(d) Advances Received', advances, totalAdvances, 'dr')}
+        </div>
+      </div>
+      <!-- Expense side -->
+      <div class="card">
+        <div class="chd"><h3 style="color:var(--red)">💸 Expense</h3><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+        <div class="cbd">
+          ${section('(e) Direct Expenses', directExp, totalDirectExp, 'cr')}
+          ${section('(f) Paid — Cash', paidCash, totalPaidCash, 'cr')}
+          ${section('(g) Paid — Petty Cash', paidPetty, totalPaidPetty, 'cr')}
+          ${section('(h) Paid — Bank', paidBank, totalPaidBank, 'cr')}
+          ${section('(j) Vendor Advances Paid', advPaid, totalAdvPaid, 'cr')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card">
+      <div class="chd"><h3>📊 Project Summary</h3></div>
+      <div class="cbd">
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(a) Total Income / Invoiced</span><span class="amt dr">${fmtAmt(totalIncome)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(d) Advances Received</span><span class="amt dr">${fmtAmt(totalAdvances)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(e) Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(i) Outstanding Payable <span style="font-size:10px;color:var(--muted)">(e−paid)</span></span><span class="amt cr">${fmtAmt(Math.max(0,payable))}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(j) Vendor Advances Paid</span><span class="amt cr">${fmtAmt(totalAdvPaid)}</span></div>
+        <div class="rsb" style="padding:6px 0;font-weight:700;font-size:13px;border-top:2px solid var(--border)">
+          <span>(k) Net Cash Flow <span style="font-size:10px;color:var(--muted)">(a+d−e−j)</span></span>
+          <span class="amt ${cashFlow>=0?'dr':'cr'}">${fmtAmt(Math.abs(cashFlow))} ${cashFlow>=0?'surplus':'deficit'}</span>
+        </div>
+      </div>
+    </div>`;
+
+  window._projRptData={project:p,entries:es,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
+}
+function printProjectRpt(){
+  const d=window._projRptData||{};const p=d.project||{};const s=d.summary||{};
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Project Report — ${p.project_name||''}</title>
+  <style>body{font-family:Arial;font-size:11px;margin:20px}.header{text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:8px}h2{font-size:15px;margin:0 0 2px}h3{font-size:12px;margin:0;font-weight:normal}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f0f0}.dr{color:green}.cr{color:red}</style></head><body>
+  <div class="header"><h2>${p.project_name||''}</h2><h3>${p.client||''} · ${p.location||''}</h3><p>FY: ${curFY}</p></div>
+  <table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>
+  <tr><td>(a) Total Income</td><td class="dr">₹${fmt(s.totalIncome)}</td></tr>
+  <tr><td>(d) Advances Received</td><td class="dr">₹${fmt(s.totalAdvances)}</td></tr>
+  <tr><td>(e) Total Direct Expense</td><td class="cr">₹${fmt(s.totalDirectExp)}</td></tr>
+  <tr><td>(i) Outstanding Payable</td><td class="cr">₹${fmt(Math.max(0,s.payable))}</td></tr>
+  <tr><td>(j) Vendor Advances Paid</td><td class="cr">₹${fmt(s.totalAdvPaid)}</td></tr>
+  <tr><td><strong>(k) Net Cash Flow</strong></td><td class="${s.cashFlow>=0?'dr':'cr'}"><strong>₹${fmt(Math.abs(s.cashFlow))} ${s.cashFlow>=0?'surplus':'deficit'}</strong></td></tr>
+  </tbody></table></body></html>`);w.print();
 }
 function exportProjXLS(pid){
-  const d=window._projRptData||{};
-  const rows=(d.entries||[]).map(e=>({Date:fmtDate(e.date),Type:e.entry_type,Narration:e.narration||'',Amount:e.amount,Company:e.company_id}));
+  const d=window._projRptData||{}; const s=d.summary||{};
+  const rows=[
+    {Item:'(a) Total Income',Amount:s.totalIncome},
+    {Item:'(d) Advances Received',Amount:s.totalAdvances},
+    {Item:'(e) Total Direct Expense',Amount:s.totalDirectExp},
+    {Item:'(i) Outstanding Payable',Amount:Math.max(0,s.payable)},
+    {Item:'(j) Vendor Advances Paid',Amount:s.totalAdvPaid},
+    {Item:'(k) Net Cash Flow',Amount:s.cashFlow},
+    ...(d.entries||[]).map(e=>({Date:fmtDate(e.date),Type:e.entry_type,Narration:e.narration||'',Amount:e.amount,Company:e.company_id}))
+  ];
   const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Project');
   XLSX.writeFile(wb,`Project_${pid}_${curFY}.xlsx`);
 }
