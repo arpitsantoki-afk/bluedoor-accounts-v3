@@ -359,16 +359,60 @@ async function handleListEntries({ fyid, company_id, project_id, vendor_id, entr
 async function handleAddEntry(params, sess, env) {
   const { date, fyid, project_id = '', cost_head_id = '', vendor_id = '', entry_type, amount, narration = '', company_id = '' } = params;
   if (!date || !fyid || !entry_type || !amount) return err('date, fyid, entry_type, amount required');
+
+  // Get entry type definition
   const et = await env.DB.prepare('SELECT * FROM entry_types WHERE et_key = ?').bind(entry_type).first();
-  if (!et) return err('Invalid entry_type');
+  if (!et) return err('Invalid entry_type: ' + entry_type);
+
   const eid = `E${Date.now()}${Math.floor(Math.random() * 1000)}`;
   const now = new Date().toISOString();
-  const drAc = await env.DB.prepare('SELECT ac_code, ac_name FROM chart_of_accounts WHERE ac_key = ?').bind(et.dr).first();
-  const crAc = await env.DB.prepare('SELECT ac_code, ac_name FROM chart_of_accounts WHERE ac_key = ?').bind(et.cr).first();
-  await env.DB.prepare('INSERT INTO entries (entry_id, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)').bind(eid, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, sess.username, now, company_id).run();
-  if (drAc) await env.DB.prepare("INSERT INTO ledger (entry_id, date, fyid, ac_code, ac_name, dr_cr, debit, credit, project_id, cost_head_id, vendor_id, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,'DR',?,0,?,?,?,?,?,?,?)").bind(eid, date, fyid, drAc.ac_code, drAc.ac_name, amount, project_id, cost_head_id, vendor_id, narration, sess.username, now, company_id).run();
-  if (crAc) await env.DB.prepare("INSERT INTO ledger (entry_id, date, fyid, ac_code, ac_name, dr_cr, debit, credit, project_id, cost_head_id, vendor_id, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,'CR',0,?,?,?,?,?,?,?,?)").bind(eid, date, fyid, crAc.ac_code, crAc.ac_name, amount, project_id, cost_head_id, vendor_id, narration, sess.username, now, company_id).run();
-  return ok({ entry_id: eid });
+
+  // Resolve account keys — COST_HEAD means use the cost head's linked account
+  // PAYABLE / RECEIVABLE / etc. are direct keys in chart_of_accounts
+  async function resolveAccount(acKey) {
+    if (!acKey) return null;
+    if (acKey === 'COST_HEAD') {
+      // Use cost_head's ac_key to find the account
+      if (!cost_head_id) return null;
+      const ch = await env.DB.prepare('SELECT ac_key FROM cost_heads WHERE ch_id = ?').bind(cost_head_id).first();
+      if (!ch || !ch.ac_key) return null;
+      return env.DB.prepare('SELECT ac_code, ac_name FROM chart_of_accounts WHERE ac_key = ?').bind(ch.ac_key).first();
+    }
+    return env.DB.prepare('SELECT ac_code, ac_name FROM chart_of_accounts WHERE ac_key = ?').bind(acKey).first();
+  }
+
+  const [drAc, crAc] = await Promise.all([resolveAccount(et.dr), resolveAccount(et.cr)]);
+
+  // Insert main entry record
+  await env.DB.prepare(
+    'INSERT INTO entries (entry_id, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
+  ).bind(eid, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, sess.username, now, company_id).run();
+
+  // Insert DEBIT ledger entry
+  if (drAc) {
+    await env.DB.prepare(
+      "INSERT INTO ledger (entry_id, date, fyid, ac_code, ac_name, dr_cr, debit, credit, project_id, cost_head_id, vendor_id, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,'DR',?,0,?,?,?,?,?,?,?)"
+    ).bind(eid, date, fyid, drAc.ac_code, drAc.ac_name, amount, project_id, cost_head_id, vendor_id, narration, sess.username, now, company_id).run();
+  } else {
+    // Log warning — DR account not resolved
+    console.warn(`[addEntry] DR account not resolved for et_key=${entry_type} dr=${et.dr} cost_head_id=${cost_head_id}`);
+  }
+
+  // Insert CREDIT ledger entry
+  if (crAc) {
+    await env.DB.prepare(
+      "INSERT INTO ledger (entry_id, date, fyid, ac_code, ac_name, dr_cr, debit, credit, project_id, cost_head_id, vendor_id, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,'CR',0,?,?,?,?,?,?,?,?)"
+    ).bind(eid, date, fyid, crAc.ac_code, crAc.ac_name, amount, project_id, cost_head_id, vendor_id, narration, sess.username, now, company_id).run();
+  } else {
+    console.warn(`[addEntry] CR account not resolved for et_key=${entry_type} cr=${et.cr}`);
+  }
+
+  return ok({
+    entry_id: eid,
+    dr_account: drAc ? `${drAc.ac_code} ${drAc.ac_name}` : `unresolved(${et.dr})`,
+    cr_account: crAc ? `${crAc.ac_code} ${crAc.ac_name}` : `unresolved(${et.cr})`,
+    amount
+  });
 }
 async function handleUpdateEntry(params, sess, env) {
   const { entry_id, date, project_id, cost_head_id, vendor_id, amount, narration } = params;
@@ -397,8 +441,21 @@ async function handleUpdateEntry(params, sess, env) {
 async function handleDeleteEntry({ entry_id }, sess, env) {
   if (!entry_id) return err('entry_id required');
   if (sess.role !== 'Admin') return err('Forbidden', 403);
-  await env.DB.batch([env.DB.prepare('DELETE FROM entries WHERE entry_id = ?').bind(entry_id), env.DB.prepare('DELETE FROM ledger WHERE entry_id = ?').bind(entry_id)]);
-  return ok();
+  // Verify entry exists first
+  const existing = await env.DB.prepare('SELECT entry_id, entry_type, amount, date FROM entries WHERE entry_id = ?').bind(entry_id).first();
+  if (!existing) return err('Entry not found', 404);
+  // Count ledger rows that will be deleted
+  const ledgerCount = await env.DB.prepare('SELECT COUNT(*) as cnt FROM ledger WHERE entry_id = ?').bind(entry_id).first();
+  // Delete atomically: entry + both ledger rows (DR and CR)
+  await env.DB.batch([
+    env.DB.prepare('DELETE FROM entries WHERE entry_id = ?').bind(entry_id),
+    env.DB.prepare('DELETE FROM ledger WHERE entry_id = ?').bind(entry_id)
+  ]);
+  return ok({
+    deleted_entry: entry_id,
+    deleted_ledger_rows: ledgerCount?.cnt || 0,
+    entry: existing
+  });
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PENDING ENTRIES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
@@ -525,11 +582,30 @@ async function handleGetVendorReport({ vendor_id, fyid, company_id }, sess, env)
   if (!vendor_id) return err('vendor_id required');
   const vendor = await env.DB.prepare('SELECT * FROM vendors WHERE vendor_id = ?').bind(vendor_id).first();
   if (!vendor) return err('Vendor not found', 404);
+
+  // Get entries for this vendor
   let q = 'SELECT * FROM entries WHERE vendor_id = ?'; const vals = [vendor_id];
   if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
   if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
-  const entries = await env.DB.prepare(q + ' ORDER BY date DESC').bind(...vals).all();
-  return ok({ vendor, entries: entries.results, total: entries.results.reduce((s, e) => s + (e.amount || 0), 0) });
+  const entries = await env.DB.prepare(q + ' ORDER BY date ASC').bind(...vals).all();
+
+  // Get ledger rows for this vendor (DR and CR sides)
+  let lq = 'SELECT * FROM ledger WHERE vendor_id = ?'; const lvals = [vendor_id];
+  if (fyid) { lq += ' AND fyid = ?'; lvals.push(fyid); }
+  if (company_id) { lq += ' AND company_id = ?'; lvals.push(company_id); }
+  const ledger = await env.DB.prepare(lq + ' ORDER BY date ASC').bind(...lvals).all();
+
+  // Get opening balance — try with company filter first, then without
+  let ob = null;
+  if (company_id) {
+    ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ? AND company_id = ?').bind(vendor_id, fyid || 'FY2627', company_id).first();
+  }
+  if (!ob) {
+    ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ?').bind(vendor_id, fyid || 'FY2627').first();
+  }
+
+  const total = entries.results.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+  return ok({ vendor, entries: entries.results, ledger: ledger.results, opening_balance: ob || null, total });
 }
 async function handleGetDashboard({ fyid, company_id }, sess, env) {
   const vals = []; let where = '1=1';
