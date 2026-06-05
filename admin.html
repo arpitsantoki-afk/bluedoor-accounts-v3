@@ -777,7 +777,7 @@ async function renderHome() {
   document.getElementById('d-pending').textContent=dash.pending_count||0;
 
   let income=0,expense=0;
-  (tb.trial_balance||[]).forEach(row=>{
+  (tb.trial_balance||[]).forEach(row=>{ if(row.dr_cr) row.dr_cr=row.dr_cr.toUpperCase(); 
     const ac=_acs.find(a=>a.ac_code===row.ac_code);
     if(ac?.ac_type==='Income') income+=parseFloat(row.total_cr||0)-parseFloat(row.total_dr||0);
     if(ac?.ac_type==='Expense') expense+=parseFloat(row.total_dr||0)-parseFloat(row.total_cr||0);
@@ -918,7 +918,7 @@ async function renderLedger() {
   _ledgerRows=rows;
 
   let totDr=0,totCr=0;
-  rows.forEach(r=>{totDr+=parseFloat(r.debit||0);totCr+=parseFloat(r.credit||0);});
+  rows.forEach(r=>{ r.dr_cr=(r.dr_cr||'').toUpperCase(); totDr+=parseFloat(r.debit||0);totCr+=parseFloat(r.credit||0);});
   const net=totDr-totCr;
   document.getElementById('ledger-sum').textContent=`${rows.length} rows | DR: ${fmtAmt(totDr)} | CR: ${fmtAmt(totCr)} | Net: ${fmtAmt(Math.abs(net))} ${net>0?'DR':'CR'}`;
 
@@ -1195,7 +1195,7 @@ async function loadOpeningBalances(){
         const ob=obs.find(o=>o.ac_key===ac.ac_key)||{};
         const tb=tbRows.find(t=>t.ac_code===ac.ac_code)||{};
         const obAmt=parseFloat(ob.amount||0);
-        const obDrCr=ob.dr_cr||'DR';
+        const obDrCr=(ob.dr_cr||'DR').toUpperCase();
         const actDr=parseFloat(tb.total_dr||0);
         const actCr=parseFloat(tb.total_cr||0);
         // Net activity
@@ -1212,7 +1212,7 @@ async function loadOpeningBalances(){
           <td>${obAmt>0?`<span class="amt ${obDrCr==='DR'?'dr':'cr'}">${fmtAmt(obAmt)} ${obDrCr}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
           <td><span class="amt dr" style="font-size:11px">${actDr>0?fmtAmt(actDr)+' DR':''}</span>${actDr>0&&actCr>0?' / ':''}<span class="amt cr" style="font-size:11px">${actCr>0?fmtAmt(actCr)+' CR':''}</span></td>
           <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
-          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${ob.dr_cr||'DR'}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${(ob.dr_cr||'DR').toUpperCase()}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
         </tr>`;}).filter(r=>r).join('')}
       </tbody></table></div>`;
 
@@ -1226,7 +1226,7 @@ async function loadOpeningBalances(){
         const actDr=vLed.reduce((s2,l)=>s2+parseFloat(l.debit||0),0); // payments
         const actCr=vLed.reduce((s2,l)=>s2+parseFloat(l.credit||0),0); // bills
         const obAmt=parseFloat(ob.amount||0);
-        const obDrCr=ob.dr_cr||'CR';
+        const obDrCr=(ob.dr_cr||'CR').toUpperCase();
         // Vendor OB typically CR (we owe them)
         const obNet=obDrCr==='CR'?-obAmt:obAmt; // negative = owe vendor
         const actNet=actDr-actCr; // positive = net paid
@@ -1240,7 +1240,7 @@ async function loadOpeningBalances(){
           <td class="amt dr">${actDr>0?fmtAmt(actDr):''}</td>
           <td class="amt cr">${actCr>0?fmtAmt(actCr):''}</td>
           <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
-          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${ob.dr_cr||'CR'}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${(ob.dr_cr||'CR').toUpperCase()}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
         </tr>`;}).filter(r=>r).join('')}
       </tbody></table></div>`;
 }
@@ -1551,7 +1551,7 @@ async function loadVendorRpt(vid){
   const v=res.vendor||{}; const es=res.entries||[];
   // Use opening_balance from response (already tries with/without company filter)
   const ob=res.opening_balance||null;
-  const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=ob?.dr_cr||'CR';
+  const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=((ob?.dr_cr||'CR').toUpperCase()).toUpperCase();
   dbg(`Vendor ${v.vendor_name}: OB=${obAmt} ${obDrCr}, entries=${es.length}`);
   let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
   // Build running balance for vendor ledger
