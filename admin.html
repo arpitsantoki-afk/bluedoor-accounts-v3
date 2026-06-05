@@ -240,7 +240,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       </div>
       <div class="tw">
         <table>
-          <thead><tr><th>Date</th><th>Company</th><th>Account</th><th>Narration</th><th style="text-align:right">Debit ₹</th><th style="text-align:right">Credit ₹</th></tr></thead>
+          <thead><tr><th>Date</th><th>Company</th><th>Account</th><th>Narration</th><th style="text-align:right">Debit ₹</th><th style="text-align:right">Credit ₹</th><th></th></tr></thead>
           <tbody id="ledger-body"></tbody>
           <tfoot id="ledger-foot"></tfoot>
         </table>
@@ -819,6 +819,23 @@ async function renderHome() {
 }
 async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
 
+async function deleteEntry(id, label, amount) {
+  confirm2(
+    'Delete Journal Entry',
+    `Delete "${label}" (${fmtAmt(amount)})? This will delete the entry AND both ledger rows (DR + CR).`,
+    async () => {
+      const r = await api('deleteEntry', { entry_id: id });
+      if (r.ok) {
+        toast(`Deleted: ${r.deleted_ledger_rows} ledger rows removed`);
+        renderHome();
+        if (_curView === 'ledger') renderLedger();
+      } else {
+        toast(r.error, 'err');
+      }
+    }
+  );
+}
+
 // ═══════════════════════════════════════════════════════════════
 // LEDGER
 // ═══════════════════════════════════════════════════════════════
@@ -905,14 +922,20 @@ async function renderLedger() {
 
   if (!rows.length) { tbody.innerHTML='<tr><td colspan="6" class="empty">No entries found</td></tr>'; return; }
 
-  tbody.innerHTML=rows.map(r=>`<tr>
-    <td style="white-space:nowrap">${fmtDate(r.date)}</td>
-    <td style="font-size:11px">${r.company_id}</td>
-    <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
-    <td style="font-size:11px;max-width:150px">${r.narration||'—'}</td>
-    <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
-    <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
-  </tr>`).join('');
+  // Group ledger rows by entry_id to show delete once per entry
+  const entryIds=new Set();
+  tbody.innerHTML=rows.map(r=>{
+    const isFirst=!entryIds.has(r.entry_id);
+    if(isFirst) entryIds.add(r.entry_id);
+    return`<tr>
+      <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+      <td style="font-size:11px">${r.company_id}</td>
+      <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
+      <td style="font-size:11px;max-width:140px">${r.narration||'—'}</td>
+      <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
+      <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
+      <td>${isFirst?`<button class="btn btn-d btn-xs" title="Delete this journal entry (both DR+CR)" onclick="deleteEntry('${r.entry_id}','${(r.narration||r.ac_name).replace(/'/g,'')}',${ r.debit||r.credit})">🗑</button>`:''}</td>
+    </tr>`;}).join('');
 
   // Footer totals + opening balance
   const foot=document.getElementById('ledger-foot');
@@ -1026,14 +1049,21 @@ async function saveEntry() {
     project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr
   });
   if(res.ok){
-    toast('Entry saved ✓');
+    // Show DR/CR confirmation
+    const drInfo=res.dr_account||'—';
+    const crInfo=res.cr_account||'—';
+    toast(`✓ Entry saved | DR: ${drInfo} | CR: ${crInfo}`);
+    dbg(`Entry ${res.entry_id}: DR=${drInfo} CR=${crInfo} Amt=${amt}`, 'ok');
     document.getElementById('ae-amt').value='';
     document.getElementById('ae-narr').value='';
     document.getElementById('ae-doc-url').value='';
     document.getElementById('ae-preview').style.display='none';
     document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
     _selType=null;
-  } else toast(res.error,'err');
+  } else {
+    toast(res.error,'err');
+    dbg('addEntry failed: '+res.error,'err');
+  }
 }
 
 // ── PROJECTS ─────────────────────────────────────────────────
@@ -1514,10 +1544,13 @@ async function loadVendorRpt(vid){
   if(!vid) return;
   const el=document.getElementById('vendor-rpt-out');
   el.innerHTML='<span class="spin"></span>';
-  const [res,obRes]=await Promise.all([api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo}),api('listVendorOpeningBalances',{fyid:curFY})]);
+  // getVendorReport now returns opening_balance directly
+  const res=await api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo});
   const v=res.vendor||{}; const es=res.entries||[];
-  const ob=(obRes.vendor_opening_balances||[]).find(o=>o.vendor_id===vid);
+  // Use opening_balance from response (already tries with/without company filter)
+  const ob=res.opening_balance||null;
   const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=ob?.dr_cr||'CR';
+  dbg(`Vendor ${v.vendor_name}: OB=${obAmt} ${obDrCr}, entries=${es.length}`);
   let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
   // Build running balance for vendor ledger
   // OB CR means we owe vendor (liability), OB DR means vendor owes us
