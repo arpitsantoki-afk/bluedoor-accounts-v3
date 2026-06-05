@@ -274,8 +274,8 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
               <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
               <div class="field"><label>Company *</label><select id="ae-co"></select></div>
             </div>
-            <div class="field">
-              <label>Project <span id="ae-proj-req" style="color:var(--red)">*</span></label>
+            <div class="field" id="ae-proj-wrap-outer">
+              <label>Project <span style="color:var(--red)">*</span></label>
               <div class="ss-wrap" id="ae-proj-wrap"></div>
             </div>
             <div class="field hidden" id="ae-vendor-f">
@@ -691,6 +691,14 @@ function setFY(fy) {
 function setCo(id, label) {
   curCo=id; document.getElementById('co-pill').textContent=(label||'All')+' ▾';
   document.getElementById('co-menu').classList.add('hidden');
+  // Persist selection
+  try { localStorage.setItem('bd_co', id); localStorage.setItem('bd_co_label', label||'All'); } catch(e){}
+  refreshView();
+}
+function setFY(fy) {
+  curFY=fy; document.getElementById('fy-pill').textContent=fy+' ▾';
+  document.getElementById('fy-menu').classList.add('hidden');
+  try { localStorage.setItem('bd_fy', fy); } catch(e){}
   refreshView();
 }
 
@@ -739,6 +747,14 @@ async function loadMasters() {
   setEntryCat('client', document.querySelector('#entry-cats .ctab'));
 
   dbg('Masters loaded ✓', 'ok');
+  // Restore last selected company and FY
+  try {
+    const savedCo = localStorage.getItem('bd_co') || '';
+    const savedCoLabel = localStorage.getItem('bd_co_label') || 'All';
+    const savedFY = localStorage.getItem('bd_fy') || 'FY2627';
+    if (savedFY !== curFY) { curFY = savedFY; document.getElementById('fy-pill').textContent = savedFY + ' ▾'; }
+    if (savedCo) { curCo = savedCo; document.getElementById('co-pill').textContent = savedCoLabel + ' ▾'; }
+  } catch(e) {}
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -1016,20 +1032,208 @@ function setEntryCat(cat, el) {
     </div>`).join('');
 }
 
+function onCostHeadChange(chId) {
+  // For vendor_bill: if cost head is indirect expense category, project is not required
+  if (_selType?.et_key === 'vendor_bill') {
+    const ch = _chs.find(c => c.ch_id === chId);
+    const isIndirect = ch?.ac_key === 'EXP_INDIRECT' || ch?.ch_name?.toLowerCase().includes('indirect') || ch?.ch_name?.toLowerCase().includes('office') || ch?.ch_name?.toLowerCase().includes('salary');
+    const projWrap = document.getElementById('ae-proj-wrap-outer');
+    if (projWrap) {
+      projWrap.style.display = isIndirect ? 'none' : '';
+      const lbl = projWrap.querySelector('label');
+      if (lbl) lbl.innerHTML = isIndirect ? 'Project' : 'Project <span style="color:var(--red)">*</span>';
+    }
+  }
+}
+
+// Field requirement rules from Excel spec
+const FIELD_RULES = {
+  "invoice_raised": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "cash_payment_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "Bank_payment_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_received_bank": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_adjusted_cr": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_bill": {
+    "project": "conditional",
+    "vendor": "required",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "credit_note": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_paid_cash": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_paid_bank": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_paid_vendor": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_bank": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_adjusted_dr": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "expense_cash": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "expense_petty_cash": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "expense_bank": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "transfer_cash_to_petty": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "transfer_cash_to_bank": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "transfer_bank_to_cash": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "drawings_cash": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "drawings_bank": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  }
+};
+
+function getFieldRule(key, field) {
+  const r = FIELD_RULES[key];
+  return r ? (r[field] || 'hidden') : 'hidden';
+}
+
 function pickType(el, key) {
   document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
   el.classList.add('sel');
   _selType=_ets.find(t=>t.et_key===key);
   if(!_selType) return;
-  // Show/hide conditional fields
-  document.getElementById('ae-vendor-f').classList.toggle('hidden', _selType.category!=='vendor');
-  document.getElementById('ae-ch-f').classList.toggle('hidden', !_selType.needs_ch);
-  const showDoc=_selType.category==='vendor'||(_selType.category==='expense'&&key!=='expense_petty_cash');
-  document.getElementById('ae-doc-f').classList.toggle('hidden',!showDoc);
-  // Preview DR/CR
+
+  const rules = FIELD_RULES[key] || {};
+
+  // Project field
+  const projRule = rules.project || 'hidden';
+  const projWrap = document.getElementById('ae-proj-wrap-outer');
+  if (projWrap) {
+    projWrap.style.display = projRule === 'hidden' ? 'none' : '';
+    const projLabel = projWrap.querySelector('label');
+    if (projLabel) {
+      projLabel.innerHTML = projRule === 'required'
+        ? 'Project <span style="color:var(--red)">*</span>'
+        : projRule === 'conditional'
+        ? 'Project <span style="color:var(--amber);font-size:10px">(if direct expense)</span>'
+        : 'Project <span style="color:var(--muted);font-size:10px">(optional)</span>';
+    }
+  }
+
+  // Vendor field
+  const vendRule = rules.vendor || 'hidden';
+  const vendWrap = document.getElementById('ae-vendor-f');
+  if (vendWrap) {
+    vendWrap.classList.toggle('hidden', vendRule === 'hidden');
+    const vendLabel = vendWrap.querySelector('label');
+    if (vendLabel) vendLabel.innerHTML = vendRule === 'required'
+      ? 'Vendor <span style="color:var(--red)">*</span>'
+      : 'Vendor <span style="color:var(--muted);font-size:10px">(optional)</span>';
+  }
+
+  // Cost Head field
+  const chRule = rules.cost_head || 'hidden';
+  const chWrap = document.getElementById('ae-ch-f');
+  if (chWrap) {
+    chWrap.classList.toggle('hidden', chRule === 'hidden');
+    const chLabel = chWrap.querySelector('label');
+    if (chLabel) chLabel.innerHTML = chRule === 'required'
+      ? 'Cost Head <span style="color:var(--red)">*</span>'
+      : 'Cost Head <span style="color:var(--muted);font-size:10px">(optional)</span>';
+  }
+
+  // Document field
+  const docRule = rules.doc || 'hidden';
+  document.getElementById('ae-doc-f')?.classList.toggle('hidden', docRule === 'hidden');
+
+  // DR/CR preview
   const prev=document.getElementById('ae-preview');
   prev.style.display='block';
-  prev.innerHTML=`<span class="badge bg">DR: ${_selType.dr}</span> &nbsp; <span class="badge br">CR: ${_selType.cr}</span> &nbsp; <span style="font-size:11px;color:var(--muted)">${_selType.label}</span>`;
+  prev.innerHTML=`<span class="badge bg">DR: ${_selType.dr}</span> &nbsp; <span class="badge br">CR: ${_selType.cr}</span> &nbsp; <span style="font-size:11px;color:var(--muted)">${_selType.hint||_selType.label}</span>`;
 }
 
 async function saveEntry() {
@@ -1044,7 +1248,10 @@ async function saveEntry() {
   if(!date){toast('Select a date','err');return;}
   if(!co){toast('Select company','err');return;}
   if(!amt||amt<=0){toast('Enter valid amount','err');return;}
-  if(_selType.needs_ch&&!ch){toast('Select cost head','err');return;}
+  const rules=FIELD_RULES[_selType.et_key]||{};
+  if(rules.project==='required'&&!proj){toast('Project is required for this entry type','err');return;}
+  if(rules.vendor==='required'&&!vendor){toast('Vendor is required for this entry type','err');return;}
+  if(rules.cost_head==='required'&&!ch){toast('Cost Head is required for this entry type','err');return;}
 
   const res=await api('addEntry',{
     date,fyid:curFY,company_id:co,entry_type:_selType.et_key,
