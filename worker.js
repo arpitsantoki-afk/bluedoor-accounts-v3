@@ -637,6 +637,50 @@ async function handleGetDashboard({ fyid, company_id }, sess, env) {
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DRIVE / GAS PROXY ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+// ── ONBOARDING EMAIL ─────────────────────────────────────────────────────────
+async function handleSendOnboarding({ user_id }, sess, env) {
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
+  if (!user_id) return err('user_id required');
+  const user = await env.DB.prepare('SELECT * FROM users WHERE user_id = ?').bind(user_id).first();
+  if (!user) return err('User not found', 404);
+  if (!user.google_email) return err('No email address for this user. Set Google Email first.', 400);
+
+  const gasUrl = env.GAS_URL;
+  if (!gasUrl) return err('GAS_URL not configured');
+
+  const role = user.role;
+  const appUrl = role === 'Admin'
+    ? 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/admin.html'
+    : 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/supervisor.html';
+
+  try {
+    const url = new URL(gasUrl);
+    url.searchParams.set('action', 'sendOnboarding');
+    const payload = {
+      action: 'sendOnboarding',
+      to: user.google_email,
+      username: user.username,
+      role: user.role,
+      password: user.password,
+      app_url: appUrl,
+      login_url: 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/index.html',
+    };
+    const resp = await fetch(url.toString(), {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(payload),
+      redirect: 'follow'
+    });
+    const text = await resp.text();
+    let result;
+    try { result = JSON.parse(text); } catch { result = { raw: text.substring(0, 300) }; }
+    return ok({ sent: true, to: user.google_email, gas_response: result });
+  } catch(e) {
+    return err('Email send failed: ' + e.message);
+  }
+}
+
 async function handleDriveProxy({ file_url }, sess, env) {
   if (!file_url) return err('file_url required');
   if (!file_url.includes('drive.google.com') && !file_url.includes('docs.google.com')) return err('Only Google Drive URLs are allowed');
