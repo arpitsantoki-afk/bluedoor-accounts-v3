@@ -2578,7 +2578,6 @@ async function rejectPending(id){const reason=prompt('Reason (optional):')||'';c
 async function deletePending(id){confirm2('Delete','Delete this pending entry?',async()=>{const r=await api('deletePending',{entry_id:id});if(r.ok){toast('Deleted');renderPending();}else toast(r.error,'err');});}
 
 // Users
-async 
 // ── SUPERVISOR VENDOR ACCESS ─────────────────────────────────
 async function manageVendorAccess(userId, username) {
   // Load current allowed_vendors for this user
