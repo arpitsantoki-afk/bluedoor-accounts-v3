@@ -602,7 +602,7 @@ function showEditModal(title, bodyHTML, afterRender) {
   document.getElementById('edit-modal-title').textContent = title;
   document.getElementById('edit-modal-body').innerHTML = bodyHTML;
   document.getElementById('edit-modal').classList.remove('hidden');
-  if (afterRender) setTimeout(afterRender, 0);
+  if (afterRender) setTimeout(afterRender, 50);
 }
 function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
@@ -940,14 +940,13 @@ async function renderHome() {
   const es=entries.entries||[];
   document.getElementById('dash-recent').innerHTML=es.length?`
     <div class="tw"><table>
-      <thead><tr><th>Date</th><th>Type</th><th>DR</th><th>CR</th><th>Amount</th><th>Co</th><th>By</th></tr></thead>
+      <thead><tr><th>Date</th><th>Narration</th><th>Type</th><th>Amount</th><th>Co</th><th>By</th></tr></thead>
       <tbody>${es.map(e=>{
         const et=_ets.find(t=>t.et_key===e.entry_type);
         return`<tr>
           <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td style="font-size:11px;color:var(--muted);max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${e.narration||'—'}</td>
           <td><code style="font-size:10px">${et?.label||e.entry_type}</code></td>
-          <td><span class="badge bx" style="font-size:9px">${et?.dr||'—'}</span></td>
-          <td><span class="badge bx" style="font-size:9px">${et?.cr||'—'}</span></td>
           <td class="amt dr">${fmtAmt(e.amount)}</td>
           <td style="font-size:11px">${e.company_id}</td>
           <td style="font-size:11px;color:var(--muted)">${e.created_by}</td>
@@ -2677,15 +2676,19 @@ function showUserForm() {
     <div class="field"><label>Google Email <span style="color:var(--muted, () => {
     const list = document.getElementById('uf-cos');
     if (!list) return;
+    if (!_cos || !_cos.length) {
+      list.innerHTML = '<em style="color:var(--muted);font-size:12px">No companies loaded — sync first</em>';
+      return;
+    }
     list.innerHTML = '';
     _cos.forEach(c => {
       const label = document.createElement('label');
-      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px';
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;user-select:none';
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'uf-co-cb';
       cb.value = c.company_id;
-      cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      cb.style.cssText = 'width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
       label.appendChild(cb);
       label.appendChild(document.createTextNode(' ' + c.company_name));
       list.appendChild(label);
@@ -2766,16 +2769,20 @@ function showEditUser(uid) {
     // Render checkboxes via JS after modal DOM is ready
     const list = document.getElementById('eu-co-list');
     if (!list) return;
+    if (!_cos || !_cos.length) {
+      list.innerHTML = '<em style="color:var(--muted);font-size:12px">No companies loaded — sync first</em>';
+      return;
+    }
     list.innerHTML = '';
     _cos.forEach(c => {
       const label = document.createElement('label');
-      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px';
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;user-select:none';
       const cb = document.createElement('input');
       cb.type = 'checkbox';
       cb.className = 'eu-co-cb';
       cb.value = c.company_id;
       cb.checked = cos.includes(c.company_id);
-      cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      cb.style.cssText = 'width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
       label.appendChild(cb);
       label.appendChild(document.createTextNode(' ' + c.company_name));
       list.appendChild(label);
