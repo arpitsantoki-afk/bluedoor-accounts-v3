@@ -89,9 +89,10 @@ function handleSuccess(data) {
   localStorage.setItem('bd_user', JSON.stringify(data.user));
   setStatus('Welcome, ' + data.user.username + '!', 'ok');
   setTimeout(function() {
-    window.location.href = data.user.role === 'Admin'
-      ? '/bluedoor-accounts-v3/admin.html'
-      : '/bluedoor-accounts-v3/app.html';
+    const role = data.user.role;
+    if (role === 'Admin') window.location.href = '/bluedoor-accounts-v3/admin.html';
+    else if (role === 'Supervisor') window.location.href = '/bluedoor-accounts-v3/supervisor.html';
+    else window.location.href = '/bluedoor-accounts-v3/admin.html';
   }, 600);
 }
 
