@@ -1,28 +1,51 @@
 <!DOCTYPE html>
 <html>
-<head><title>Drive Auth</title></head>
+<head><title>Drive Auth</title>
+<style>body{font-family:sans-serif;padding:30px;background:#0d0f14;color:#e2e8f0;text-align:center}
+.box{background:#161920;border:1px solid #232630;border-radius:12px;padding:24px;max-width:480px;margin:0 auto}
+code{background:#0d0f14;padding:12px;border-radius:8px;display:block;word-break:break-all;font-size:13px;color:#4f8ef7;margin:12px 0;border:1px solid #232630}
+button{background:#4f8ef7;color:#fff;border:none;padding:10px 20px;border-radius:8px;cursor:pointer;font-size:14px;margin-top:8px}
+</style>
+</head>
 <body>
+<div class="box">
 <script>
-// Parse token from URL hash (implicit flow)
-const params = new URLSearchParams(window.location.hash.substring(1));
-const token = params.get('access_token');
-const expiresIn = parseInt(params.get('expires_in') || '3600');
-const error = params.get('error');
+const params = new URLSearchParams(window.location.search);
+const hashParams = new URLSearchParams(window.location.hash.substring(1));
+
+const code = params.get('code');
+const token = hashParams.get('access_token');
+const expiresIn = parseInt(hashParams.get('expires_in') || '3600');
+const error = params.get('error') || hashParams.get('error');
 
 if (token) {
-  // Send token back to parent window
+  // Implicit flow token — send to parent
   if (window.opener) {
     window.opener.postMessage({ type: 'drive_token', token, expires_in: expiresIn }, 'https://arpitsantoki-afk.github.io');
-    window.close();
+    document.body.innerHTML = '<div class="box"><h2 style="color:#22c55e">✓ Drive Connected</h2><p>You can close this window.</p></div>';
+    setTimeout(() => window.close(), 1500);
+  }
+} else if (code) {
+  // Authorization code flow — display code for copy
+  document.getElementById('code-box').textContent = code;
+  document.getElementById('msg').style.display = 'block';
+  if (window.opener) {
+    window.opener.postMessage({ type: 'drive_code', code }, 'https://arpitsantoki-afk.github.io');
+    setTimeout(() => window.close(), 3000);
   }
 } else if (error) {
+  document.body.innerHTML = '<div class="box"><h2 style="color:#ef4444">✗ Auth Error</h2><p>' + error + '</p></div>';
   if (window.opener) {
     window.opener.postMessage({ type: 'drive_error', error }, 'https://arpitsantoki-afk.github.io');
-    window.close();
   }
 } else {
-  document.body.innerHTML = '<p style="font-family:sans-serif;padding:20px">Authenticating...</p>';
+  document.body.innerHTML = '<div class="box"><h2>Authenticating...</h2></div>';
 }
 </script>
+<h2 style="color:#22c55e">✓ Authorization Code</h2>
+<p id="msg" style="display:none;color:#64748b;font-size:13px">Copy this code and paste it back in the app:</p>
+<code id="code-box"></code>
+<button onclick="navigator.clipboard.writeText(document.getElementById('code-box').textContent).then(()=>this.textContent='Copied!')" id="msg">Copy Code</button>
+</div>
 </body>
 </html>
