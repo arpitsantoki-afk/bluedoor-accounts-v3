@@ -2644,6 +2644,8 @@ async function renderUsers(){
   const el=document.getElementById('more-out');
   const res=await api('listUsers');
   const rows=res.users||[];
+  window._usersMap={};
+  rows.forEach(u=>window._usersMap[u.user_id]=u);
   el.innerHTML=`
     <button class="btn btn-p btn-sm" style="margin-bottom:12px" onclick="showUserForm()">+ Add User</button>
     <div class="tw"><table><thead><tr><th>User</th><th>Role</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>
@@ -2653,7 +2655,7 @@ async function renderUsers(){
       <td style="font-size:11px">${u.google_email||'—'}</td>
       <td><span class="badge ${u.active?'bg':'br'}">${u.active?'Active':'Off'}</span></td>
       <td style="display:flex;gap:4px;flex-wrap:wrap">
-        <button class="btn btn-o btn-xs" onclick="showEditUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️ Edit</button>
+        <button class="btn btn-o btn-xs" onclick="showEditUser('${u.user_id}')">✏️ Edit</button>
         <button class="btn btn-o btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button>
         <button class="btn btn-xs" style="background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)" onclick="sendOnboarding('${u.user_id}')">📧</button>
         ${u.role==='Supervisor'?`<button class="btn btn-xs" style="background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)" onclick="manageVendorAccess('${u.user_id}','${u.username}')">Vendors</button>`:''}
@@ -2707,7 +2709,8 @@ async function addUser() {
   }
 }
 
-function showEditUser(u) {
+function showEditUser(uid) {
+  const u = window._usersMap[uid] || {};
   const cos = (() => { try { return JSON.parse(u.companies||'[]'); } catch(e) { return (u.companies||'').split(',').map(s=>s.trim()).filter(Boolean); } })();
   showEditModal(`Edit User — ${u.username}`, `
     <div class="g2">
