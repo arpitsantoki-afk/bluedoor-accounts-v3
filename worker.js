@@ -638,46 +638,107 @@ async function handleGetDashboard({ fyid, company_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DRIVE / GAS PROXY ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 
-// ── ONBOARDING EMAIL ─────────────────────────────────────────────────────────
+// ── ONBOARDING EMAIL via Resend ──────────────────────────────────────────────
 async function handleSendOnboarding({ user_id }, sess, env) {
   if (sess.role !== 'Admin') return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
+
   const user = await env.DB.prepare('SELECT * FROM users WHERE user_id = ?').bind(user_id).first();
   if (!user) return err('User not found', 404);
-  if (!user.google_email) return err('No email address for this user. Set Google Email first.', 400);
+  if (!user.google_email) return err('No email set for this user. Add their Google Email first.', 400);
 
-  const gasUrl = env.GAS_URL;
-  if (!gasUrl) return err('GAS_URL not configured');
-
+  const RESEND_KEY = env.RESEND_API_KEY || 're_KFacDqW4_D7G81p5gyPh31eiXDcooJ1QB';
+  const APP_URL = env.APP_URL || 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3';
   const role = user.role;
-  const appUrl = role === 'Admin'
-    ? 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/admin.html'
-    : 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/supervisor.html';
+  const appUrl = role === 'Admin' ? `${APP_URL}/admin.html` : `${APP_URL}/supervisor.html`;
+  const loginUrl = `${APP_URL}/index.html`;
+
+  const html = `<!DOCTYPE html>
+<html>
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#0d0f14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0f14;padding:40px 20px">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:520px;background:#161920;border-radius:16px;border:1px solid #232630;overflow:hidden">
+        <!-- Header -->
+        <tr><td style="background:#161920;padding:32px 32px 24px;text-align:center;border-bottom:1px solid #232630">
+          <div style="font-size:28px;font-weight:800;color:#4f8ef7;letter-spacing:-0.5px">BLUE DOOR</div>
+          <div style="font-size:12px;color:#64748b;letter-spacing:3px;text-transform:uppercase;margin-top:2px">ARCHITECTS</div>
+        </td></tr>
+        <!-- Body -->
+        <tr><td style="padding:32px">
+          <p style="color:#e2e8f0;font-size:20px;font-weight:700;margin:0 0 8px">Welcome, ${user.username}! 👋</p>
+          <p style="color:#64748b;font-size:14px;margin:0 0 24px">Your BlueDoor Accounts V3 access is ready.</p>
+
+          <!-- Credentials -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="background:#0d0f14;border-radius:10px;border:1px solid #232630;margin-bottom:24px">
+            <tr><td style="padding:20px">
+              <div style="margin-bottom:14px">
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Role</div>
+                <div style="color:#4f8ef7;font-size:14px;font-weight:600;background:rgba(79,142,247,.12);display:inline-block;padding:3px 10px;border-radius:6px">${role}</div>
+              </div>
+              <div style="margin-bottom:14px">
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Username</div>
+                <div style="color:#e2e8f0;font-size:14px;font-weight:600;font-family:monospace">${user.username}</div>
+              </div>
+              <div>
+                <div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:1px;margin-bottom:4px">Password</div>
+                <div style="color:#e2e8f0;font-size:14px;font-weight:600;font-family:monospace">${user.password}</div>
+              </div>
+            </td></tr>
+          </table>
+
+          <!-- CTA -->
+          <table width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px">
+            <tr>
+              <td style="padding-right:6px">
+                <a href="${loginUrl}" style="display:block;background:#4f8ef7;color:#fff;text-decoration:none;text-align:center;padding:13px;border-radius:9px;font-size:14px;font-weight:600">Sign In →</a>
+              </td>
+            </tr>
+          </table>
+
+          <!-- Install hint -->
+          <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.15);border-radius:10px;padding:16px;margin-bottom:24px">
+            <div style="color:#4f8ef7;font-size:12px;font-weight:600;margin-bottom:6px">📱 Install as App</div>
+            <div style="color:#94a3b8;font-size:12px;line-height:1.6">
+              Open the link in Chrome or Edge on your phone or desktop.<br>
+              Tap <strong style="color:#e2e8f0">Install App</strong> when prompted, or use browser menu → "Add to Home Screen".
+            </div>
+          </div>
+
+          <p style="color:#64748b;font-size:12px;margin:0">
+            Please change your password after first login. If you have any issues, contact your administrator.
+          </p>
+        </td></tr>
+        <!-- Footer -->
+        <tr><td style="padding:20px 32px;border-top:1px solid #232630;text-align:center">
+          <div style="color:#475569;font-size:11px">Blue Door Architects · BlueDoor Accounts V3</div>
+        </td></tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>`;
 
   try {
-    const url = new URL(gasUrl);
-    url.searchParams.set('action', 'sendOnboarding');
-    const payload = {
-      action: 'sendOnboarding',
-      to: user.google_email,
-      username: user.username,
-      role: user.role,
-      password: user.password,
-      app_url: appUrl,
-      login_url: 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/index.html',
-    };
-    const resp = await fetch(url.toString(), {
+    const resp = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(payload),
-      redirect: 'follow'
+      headers: {
+        'Authorization': `Bearer ${RESEND_KEY}`,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        from: 'Blue Door Architects <onboarding@resend.dev>',
+        to: [user.google_email],
+        subject: `Welcome to BlueDoor Accounts, ${user.username}!`,
+        html
+      })
     });
-    const text = await resp.text();
-    let result;
-    try { result = JSON.parse(text); } catch { result = { raw: text.substring(0, 300) }; }
-    return ok({ sent: true, to: user.google_email, gas_response: result });
+    const result = await resp.json();
+    if (!resp.ok) return err('Resend error: ' + JSON.stringify(result), 500);
+    return ok({ sent: true, to: user.google_email, id: result.id });
   } catch(e) {
-    return err('Email send failed: ' + e.message);
+    return err('Email failed: ' + e.message);
   }
 }
 
