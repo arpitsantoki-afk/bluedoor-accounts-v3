@@ -3,6 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<link rel="manifest" href="manifest-supervisor.json">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="BD Supervisor">
+<meta name="theme-color" content="#4f8ef7">
+<meta name="mobile-web-app-capable" content="yes">
 <title>BlueDoor Supervisor</title>
 <style>
 :root{
@@ -140,6 +147,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
+      <button id="pwa-install-btn" onclick="showInstallPrompt()" style="display:none;align-items:center;gap:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap">⬇️ Install</button>
       <!-- Theme toggle -->
       <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
         <span style="font-size:10px;color:var(--muted)">🌙</span>
@@ -1046,6 +1054,37 @@ window.addEventListener('DOMContentLoaded', () => {
     if (toggle) { toggle.checked = false; toggleTheme(false); }
   }
 });
+</script>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js')
+      .then(r => console.log('SW registered:', r.scope))
+      .catch(e => console.log('SW failed:', e));
+  });
+}
+</script>
+<script>
+// PWA install prompt
+let _installPrompt = null;
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  _installPrompt = e;
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'flex';
+});
+window.addEventListener('appinstalled', () => {
+  const btn = document.getElementById('pwa-install-btn');
+  if (btn) btn.style.display = 'none';
+  _installPrompt = null;
+});
+function showInstallPrompt() {
+  if (_installPrompt) {
+    _installPrompt.prompt();
+    _installPrompt.userChoice.then(() => { _installPrompt = null; });
+  }
+}
 </script>
 </body>
 </html>
