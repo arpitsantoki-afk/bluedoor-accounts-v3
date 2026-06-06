@@ -793,7 +793,8 @@ async function handleMigrate(request, env) {
 
   // seed_user: insert Arpit supervisor
   if (body.step === 'seed_user') {
-    await env.DB.prepare("INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies) VALUES ('USR_ARPIT','Arpit','BlueDoor@2024','Admin',1,'[]')").run();
+    // seed_user is deprecated — use addUser action via admin UI instead
+    // Keeping endpoint active but making it a no-op to avoid accidental resets
     return ok({ seed_user: 'done' });
   }
 
@@ -807,7 +808,7 @@ async function handleMigrate(request, env) {
       try {
         let sql, params;
         if (table === 'companies') { sql = 'INSERT OR REPLACE INTO companies (company_id,company_name,drive_folder,active) VALUES (?,?,?,1)'; params = [s(row.company_id||row.id),s(row.company_name||row.name),s(row.drive_folder||'')]; }
-        else if (table === 'users') { sql = 'INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies,google_email) VALUES (?,?,?,?,?,?,?)'; params = [s(row.user_id||row.id||row.email),s(row.username||row.name||row.email),s(row.password||'changeme123'),s(row.role||'Staff'),row.active===false?0:1,JSON.stringify(row.companies||[]),s(row.google_email||row.GoogleEmail||row.email||'')]; }
+                else if (table === 'users') { /* users table import blocked — manage users via admin UI */ failed++; errors.push('users table is protected — use admin UI'); continue; }
         else if (table === 'chart_of_accounts') { sql = 'INSERT OR REPLACE INTO chart_of_accounts (ac_key,ac_code,ac_name,ac_type,category) VALUES (?,?,?,?,?)'; params = [s(row.ac_key||row.key),s(row.ac_code||row.code),s(row.ac_name||row.name),s(row.ac_type||row.type||'Asset'),s(row.category||'')]; }
         else if (table === 'entry_types') { sql = 'INSERT OR REPLACE INTO entry_types (et_key,label,category,dr,cr,needs_ch,active,hint) VALUES (?,?,?,?,?,?,?,?)'; params = [s(row.et_key||row.key||row.id),s(row.label||row.name),s(row.category||''),s(row.dr||''),s(row.cr||''),row.needs_ch?1:0,row.active===false?0:1,s(row.hint||row.Hint||'')]; }
         else if (table === 'cost_heads') { sql = 'INSERT OR REPLACE INTO cost_heads (ch_id,ch_name,ac_key) VALUES (?,?,?)'; params = [s(row.ch_id||row.id||row.key),s(row.ch_name||row.name),s(row.ac_key||'')]; }
@@ -827,7 +828,7 @@ async function handleMigrate(request, env) {
 
   // wipe_all: delete all data from all tables
   if (body.step === 'wipe_all') {
-    const tables = ['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies','users'];
+    const tables = ['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies']; // users intentionally excluded
     const results = {};
     for (const t of tables) {
       try {
@@ -844,7 +845,7 @@ async function handleMigrate(request, env) {
     const migrations = [
       "ALTER TABLE entry_types ADD COLUMN hint TEXT DEFAULT ''",
       "ALTER TABLE users ADD COLUMN allowed_vendors TEXT DEFAULT '[]'",
-      "UPDATE users SET role = 'Admin' WHERE role = 'Supervisor'",
+      // NOTE: deliberately NOT resetting roles here — user roles are managed via admin UI only
     ];
     for (const sql of migrations) {
       try {
