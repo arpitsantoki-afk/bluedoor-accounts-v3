@@ -1,0 +1,1099 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>BlueDoor Supervisor</title>
+<style>
+:root{
+  --bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
+}
+body.light-theme .bd-logo-dark{display:none!important}
+body.light-theme .bd-logo-light{display:block!important}
+body.light-theme{
+  --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;--accent:#2563eb;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;
+  --text:#1e293b;--muted:#64748b;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:var(--top-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;gap:8px}
+#topbar h1{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
+.top-pills{display:flex;gap:5px}
+.pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
+.pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+.view{display:none;padding:12px}
+.view.active{display:block}
+#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
+.nb .ni{width:20px;height:20px;display:block;margin:0 auto}
+.nb.active{color:var(--accent)}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
+.chd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
+.chd h3{font-size:13px;font-weight:600}
+.cbd{padding:13px 14px}
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.stat .sv{font-size:20px;font-weight:700}
+.stat .ss{font-size:11px;color:var(--muted);margin-top:2px}
+.tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
+th{text-align:left;padding:7px 9px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
+td{padding:8px 9px;border-bottom:1px solid rgba(35,38,48,.7);vertical-align:top}
+tr:last-child td{border-bottom:none}
+.badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
+.bg{background:rgba(34,197,94,.12);color:var(--green)}
+.br{background:rgba(239,68,68,.12);color:var(--red)}
+.ba{background:rgba(245,158,11,.12);color:var(--amber)}
+.bb{background:rgba(79,142,247,.12);color:var(--accent)}
+.bx{background:rgba(100,116,139,.12);color:var(--muted)}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;line-height:1}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:active{background:#3b7de8}
+.btn-s{background:var(--green);color:#fff}
+.btn-d{background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red)}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;transition:border .15s;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field select option{background:var(--bg)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.ss-wrap{position:relative}
+.ss-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;cursor:pointer}
+.ss-input:focus{border-color:var(--accent)}
+.ss-drop{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:220px;overflow-y:auto;margin-top:2px;display:none}
+.ss-drop.open{display:block}
+.ss-opt{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(35,38,48,.5)}
+.ss-opt:last-child{border-bottom:none}
+.ss-opt:hover,.ss-opt.hi{background:rgba(79,142,247,.1);color:var(--accent)}
+.ss-empty{padding:10px 11px;color:var(--muted);font-size:12px}
+.ctabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;scrollbar-width:none}
+.ctabs::-webkit-scrollbar{display:none}
+.ctab{flex-shrink:0;padding:6px 13px;border-radius:18px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);white-space:nowrap;transition:all .15s}
+.ctab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.type-opt{padding:14px;background:var(--bg);border:1px solid var(--border);border-radius:12px;cursor:pointer;transition:all .15s;margin-bottom:10px}
+.type-opt:active,.type-opt.sel{border-color:var(--accent);background:rgba(79,142,247,.08)}
+.type-opt .tol{font-size:14px;font-weight:600}
+.type-opt .toh{font-size:11px;color:var(--muted);margin-top:3px}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.center{align-items:center}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
+.modal.center{border-radius:16px;margin:16px}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
+.empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.amt{font-weight:600;font-family:monospace;font-size:12px}
+.dr{color:var(--green)}.cr{color:var(--red)}
+code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radius:4px;color:var(--accent)}
+.sh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;padding:0 2px}
+.row{display:flex;align-items:center;gap:8px}
+.rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mt2{margin-top:8px}.mt3{margin-top:12px}
+.hidden{display:none!important}
+#toast{position:fixed;bottom:calc(var(--nav-h)+10px);left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;text-align:center}
+.ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;margin-top:5px;display:inline-block}
+.ti-ok{border-left:3px solid var(--green)}.ti-err{border-left:3px solid var(--red)}
+@keyframes tup{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+#auth-check{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted)}
+/* Voucher print */
+@media print{
+  #nav,#topbar,#toast,.no-print{display:none!important}
+  body{background:#fff;color:#000}
+  .view{display:block!important;padding:0}
+  #v-petty{display:block!important}
+}
+/* Status pill colours */
+.s-pending{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
+.s-approved{background:rgba(34,197,94,.12);color:var(--green);border:1px solid rgba(34,197,94,.2)}
+.s-rejected{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)}
+.comment-box{background:rgba(239,68,68,.06);border:1px solid rgba(239,68,68,.2);border-radius:8px;padding:8px 11px;font-size:12px;color:var(--red);margin-top:5px}
+@media(max-width:600px){
+  .view{padding:10px}
+  .g2{grid-template-columns:1fr!important}
+  .tw{overflow-x:auto;max-width:calc(100vw - 24px)}
+  .nb{font-size:9px}
+  table{font-size:11px}
+  td,th{padding:6px 7px}
+}
+</style>
+</head>
+<body>
+
+<div id="auth-check"><span class="spin"></span>&nbsp; Loading...</div>
+
+<div id="app" style="display:none;flex-direction:column;height:100dvh">
+  <!-- Topbar -->
+  <div id="topbar">
+    <h1 style="display:flex;align-items:center;padding:0">
+      <img src="assets/logo-white.png" alt="Blue Door Architects" class="bd-logo bd-logo-dark" style="height:36px;width:auto;display:block">
+      <img src="assets/logo-black.png" alt="Blue Door Architects" class="bd-logo bd-logo-light" style="height:36px;width:auto;display:none">
+    </h1>
+    <div class="top-pills">
+      <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <!-- Theme toggle -->
+      <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
+        <span style="font-size:10px;color:var(--muted)">🌙</span>
+        <div style="position:relative;width:32px;height:18px" onclick="toggleTheme(!document.getElementById('theme-toggle').checked)">
+          <input type="checkbox" id="theme-toggle" checked style="opacity:0;position:absolute;width:0;height:0">
+          <span id="theme-track" style="position:absolute;inset:0;background:var(--accent);border-radius:20px;transition:.2s">
+            <span id="theme-thumb" style="position:absolute;left:2px;top:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:.2s;transform:translateX(16px)"></span>
+          </span>
+        </div>
+      </label>
+      <button id="user-btn" style="background:none;border:none;cursor:pointer;display:flex;flex-direction:column;align-items:flex-end">
+        <span style="font-size:12px;font-weight:600;color:var(--text)" id="um-name">—</span>
+        <span style="font-size:10px;color:var(--accent)" id="um-role">Supervisor</span>
+      </button>
+    </div>
+  </div>
+
+  <!-- Company menu -->
+  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+    <div id="co-list"></div>
+  </div>
+
+  <!-- User menu -->
+  <div id="user-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+    <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
+      <div style="font-size:12px;font-weight:600" id="um-name2">—</div>
+      <div style="font-size:10px;color:var(--muted)">Supervisor</div>
+    </div>
+    <div style="padding:6px 0">
+      <div style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red)" onclick="doLogout()">🚪 Sign Out</div>
+    </div>
+  </div>
+
+  <div id="scroll">
+
+    <!-- ═══ HOME ═══ -->
+    <div id="v-home" class="view active">
+      <div class="stats">
+        <div class="stat"><div class="sl">My Entries</div><div class="sv" id="d-mine">—</div></div>
+        <div class="stat"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)" id="d-pending">—</div></div>
+      </div>
+
+      <div class="card">
+        <div class="chd"><h3>My Pending Entries</h3><span class="badge ba" id="d-pcount">0</span></div>
+        <div class="cbd" id="home-pending"><div class="empty">No pending entries</div></div>
+      </div>
+
+      <div class="card">
+        <div class="chd"><h3>My Recent Entries</h3></div>
+        <div class="cbd" id="home-recent"><div class="empty">No entries yet</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ ADD ENTRY ═══ -->
+    <div id="v-add" class="view">
+      <div class="sh">Select Entry Type</div>
+
+      <div class="type-opt" id="type-vendor" onclick="selectEntryType('vendor_bill')">
+        <div class="tol">📄 Vendor Bill Received</div>
+        <div class="toh">Record a vendor bill / invoice received</div>
+      </div>
+
+      <div class="type-opt" id="type-petty" onclick="selectEntryType('expense_petty_cash')">
+        <div class="tol">💵 Petty Cash Expense</div>
+        <div class="toh">Record a petty cash expense</div>
+      </div>
+
+      <!-- Entry form (hidden until type selected) -->
+      <div id="entry-form" class="hidden">
+        <div class="card">
+          <div class="chd">
+            <h3 id="form-title">New Entry</h3>
+            <button class="btn btn-xs btn-o" onclick="resetForm()">✕ Cancel</button>
+          </div>
+          <div class="cbd">
+            <div class="g2">
+              <div class="field">
+                <label>Date *</label>
+                <input type="date" id="ae-date">
+              </div>
+              <div class="field">
+                <label>Amount (₹) *</label>
+                <input type="number" id="ae-amount" placeholder="0.00" min="0" step="0.01">
+              </div>
+            </div>
+
+            <!-- Vendor bill fields -->
+            <div id="vb-fields" class="hidden">
+              <div class="field">
+                <label>Vendor *</label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-vendor-inp" placeholder="Search vendor…" autocomplete="off" oninput="ssFilter('vendor')" onfocus="ssOpen('vendor')" onblur="setTimeout(()=>ssClose('vendor'),150)">
+                  <div class="ss-drop" id="ae-vendor-drop"></div>
+                  <input type="hidden" id="ae-vendor-val">
+                </div>
+              </div>
+              <div class="field">
+                <label>Project</label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-proj-inp" placeholder="Search project…" autocomplete="off" oninput="ssFilter('proj')" onfocus="ssOpen('proj')" onblur="setTimeout(()=>ssClose('proj'),150)">
+                  <div class="ss-drop" id="ae-proj-drop"></div>
+                  <input type="hidden" id="ae-proj-val">
+                </div>
+              </div>
+            </div>
+
+            <!-- Petty cash fields -->
+            <div id="pc-fields" class="hidden">
+              <div class="field">
+                <label>Cost Head *</label>
+                <select id="ae-ch">
+                  <option value="">Select cost head…</option>
+                </select>
+              </div>
+            </div>
+
+            <!-- Common -->
+            <div class="field">
+              <label>Company</label>
+              <select id="ae-co">
+                <option value="">— Select company —</option>
+              </select>
+            </div>
+
+            <div class="field">
+              <label>Narration</label>
+              <textarea id="ae-narration" rows="2" placeholder="Brief description…"></textarea>
+            </div>
+
+            <div class="field">
+              <label>Document URL (Drive link)</label>
+              <input type="url" id="ae-doc" placeholder="https://drive.google.com/…">
+            </div>
+
+            <button class="btn btn-p" style="width:100%;justify-content:center" onclick="submitEntry()">
+              Submit for Approval
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ═══ PETTY CASH LEDGER ═══ -->
+    <div id="v-petty" class="view">
+      <div class="card no-print">
+        <div class="cbd">
+          <div class="g2">
+            <div class="field">
+              <label>Month</label>
+              <input type="month" id="pc-month" onchange="renderPetty()">
+            </div>
+            <div class="field">
+              <label>Company</label>
+              <select id="pc-co" onchange="renderPetty()">
+                <option value="">All</option>
+              </select>
+            </div>
+          </div>
+          <div class="row">
+            <button class="btn btn-o btn-sm" onclick="renderPetty()">🔄 Refresh</button>
+            <button class="btn btn-p btn-sm" onclick="printVoucher()">🖨️ Monthly Voucher</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Print-only header -->
+      <div id="voucher-header" style="display:none">
+        <div style="text-align:center;margin-bottom:16px">
+          <div style="font-size:18px;font-weight:700">PETTY CASH VOUCHER</div>
+          <div style="font-size:13px;color:#555" id="voucher-period"></div>
+          <div style="font-size:12px;color:#777">Blue Door Architects</div>
+        </div>
+      </div>
+
+      <div class="card" id="petty-summary">
+        <div class="chd"><h3>Summary</h3></div>
+        <div class="cbd" id="petty-summary-body"><div class="empty">Select a month</div></div>
+      </div>
+
+      <div class="card">
+        <div class="chd"><h3>Petty Cash Entries</h3></div>
+        <div class="cbd" id="petty-table"><div class="empty">No entries</div></div>
+      </div>
+    </div>
+
+    <!-- ═══ VENDOR LEDGER ═══ -->
+    <div id="v-vendor" class="view">
+      <div class="card">
+        <div class="cbd">
+          <div class="field">
+            <label>Vendor</label>
+            <select id="vl-vendor" onchange="renderVendorLedger()">
+              <option value="">— select —</option>
+            </select>
+          </div>
+          <div class="g2">
+            <div class="field">
+              <label>FY</label>
+              <select id="vl-fy" onchange="renderVendorLedger()"></select>
+            </div>
+            <div class="field">
+              <label>Company</label>
+              <select id="vl-co" onchange="renderVendorLedger()">
+                <option value="">All</option>
+              </select>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div id="vl-content"><div class="empty">Select a vendor to view ledger</div></div>
+    </div>
+
+    <!-- ═══ ADD VENDOR ═══ -->
+    <div id="v-vendors" class="view">
+      <div class="card">
+        <div class="chd"><h3>Add Vendor</h3></div>
+        <div class="cbd">
+          <div class="g2">
+            <div class="field">
+              <label>Vendor ID *</label>
+              <input id="nv-id" placeholder="e.g. V001" oninput="this.value=this.value.toUpperCase()">
+            </div>
+            <div class="field">
+              <label>Type</label>
+              <select id="nv-type">
+                <option value="">General</option>
+                <option value="Subcontractor">Subcontractor</option>
+                <option value="Supplier">Supplier</option>
+                <option value="Consultant">Consultant</option>
+                <option value="Labour">Labour</option>
+                <option value="Other">Other</option>
+              </select>
+            </div>
+          </div>
+          <div class="field">
+            <label>Name *</label>
+            <input id="nv-name" placeholder="Vendor / Company Name">
+          </div>
+          <div class="g2">
+            <div class="field">
+              <label>Contact</label>
+              <input id="nv-contact" placeholder="+91 …">
+            </div>
+            <div class="field">
+              <label>GSTIN</label>
+              <input id="nv-gstin" placeholder="22XXXXX…" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()">
+            </div>
+          </div>
+          <div class="field">
+            <label>Details / Notes</label>
+            <textarea id="nv-details" rows="2" placeholder="Address, notes…"></textarea>
+          </div>
+          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="addVendor()">Add Vendor</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="chd"><h3>All Vendors</h3><button class="btn btn-o btn-xs" onclick="loadVendorList()">🔄</button></div>
+        <div id="vendor-list"><div class="empty">Loading…</div></div>
+      </div>
+    </div>
+
+  </div><!-- /scroll -->
+
+  <!-- Bottom nav -->
+  <div id="nav">
+    <button class="nb active" onclick="showView('home')" id="nb-home">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Home</button>
+    <button class="nb" onclick="showView('add')" id="nb-add">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add</button>
+    <button class="nb" onclick="showView('petty')" id="nb-petty">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="5" width="20" height="14" rx="2"/><line x1="2" y1="10" x2="22" y2="10"/></svg>
+      Petty</button>
+    <button class="nb" onclick="showView('vendor')" id="nb-vendor">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/></svg>
+      Ledger</button>
+    <button class="nb" onclick="showView('vendors')" id="nb-vendors">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
+      Vendors</button>
+  </div>
+</div><!-- /app -->
+
+<!-- Confirm modal -->
+<div id="confirm-modal" class="modal-bg center hidden">
+  <div class="modal center">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:18px"></p>
+    <div class="row" style="justify-content:flex-end;gap:8px">
+      <button class="btn btn-o" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-d" id="confirm-ok-btn">Confirm</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIG & STATE
+// ═══════════════════════════════════════════════════════════════
+const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
+let S = { token: null, user: null };
+let curFY = 'FY2627', curCo = '';
+let _cos = [], _vendors = [], _chs = [], _ets = [], _projs = [];
+let _selType = null;
+let _curView = 'home';
+let _allowedVendors = []; // vendors whose ledger admin has enabled for supervisor
+
+// ═══════════════════════════════════════════════════════════════
+// API HELPER
+// ═══════════════════════════════════════════════════════════════
+async function api(action, params = {}) {
+  try {
+    const r = await fetch(API, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Session-Token': S.token || '' },
+      body: JSON.stringify({ action, ...params })
+    });
+    return await r.json();
+  } catch(e) { return { ok: false, error: e.message }; }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// UTILITIES
+// ═══════════════════════════════════════════════════════════════
+function fmtDate(d) { if (!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); }
+function fmtAmt(n) { return '₹' + (parseFloat(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+function toast(msg, type='ok') {
+  const t = document.getElementById('toast');
+  const d = document.createElement('div');
+  d.className = `ti ti-${type}`;
+  d.textContent = msg;
+  t.appendChild(d);
+  setTimeout(() => d.remove(), 3000);
+}
+function confirm2(title, msg, cb) {
+  document.getElementById('confirm-title').textContent = title;
+  document.getElementById('confirm-msg').textContent = msg;
+  document.getElementById('confirm-ok-btn').onclick = () => { closeConfirm(); cb(); };
+  document.getElementById('confirm-modal').classList.remove('hidden');
+}
+function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); }
+
+// ═══════════════════════════════════════════════════════════════
+// THEME
+// ═══════════════════════════════════════════════════════════════
+function toggleTheme(isDark) {
+  if (isDark) {
+    document.body.classList.remove('light-theme');
+    localStorage.setItem('bd_theme', 'dark');
+  } else {
+    document.body.classList.add('light-theme');
+    localStorage.setItem('bd_theme', 'light');
+  }
+  const thumb = document.getElementById('theme-thumb');
+  const track = document.getElementById('theme-track');
+  if (thumb) thumb.style.transform = isDark ? 'translateX(16px)' : 'translateX(0)';
+  if (track) track.style.background = isDark ? 'var(--accent)' : 'var(--muted)';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// NAVIGATION
+// ═══════════════════════════════════════════════════════════════
+function showView(v) {
+  document.querySelectorAll('.view').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.nb').forEach(el => el.classList.remove('active'));
+  document.getElementById(`v-${v}`).classList.add('active');
+  document.getElementById(`nb-${v}`).classList.add('active');
+  _curView = v;
+  document.getElementById('scroll').scrollTop = 0;
+  closeMenus();
+  if (v === 'home') renderHome();
+  else if (v === 'petty') { initPettyMonth(); renderPetty(); }
+  else if (v === 'vendor') populateVendorLedgerSelects();
+  else if (v === 'vendors') loadVendorList();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// MENUS
+// ═══════════════════════════════════════════════════════════════
+function toggleMenu(id) {
+  ['co-menu','user-menu'].forEach(m => {
+    if (m !== id) document.getElementById(m).classList.add('hidden');
+  });
+  document.getElementById(id).classList.toggle('hidden');
+}
+function closeMenus() { ['co-menu','user-menu'].forEach(m => document.getElementById(m).classList.add('hidden')); }
+document.addEventListener('click', e => {
+  if (!e.target.closest('#topbar') && !e.target.closest('[id$="-menu"]')) closeMenus();
+});
+
+// ═══════════════════════════════════════════════════════════════
+// AUTH
+// ═══════════════════════════════════════════════════════════════
+function checkSession() {
+  const token = localStorage.getItem('bd_token');
+  const userRaw = localStorage.getItem('bd_user');
+  if (!token || !userRaw) { showLogin(); return; }
+  fetch(API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
+    body: JSON.stringify({ action: 'getMe' })
+  }).then(r => r.json()).then(data => {
+    if (!data.ok || !data.user) { localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user'); showLogin(); return; }
+    // Supervisor check
+    const role = data.user.role;
+    if (role !== 'Supervisor' && role !== 'Admin') {
+      showLogin('Access denied — Supervisor only');
+      return;
+    }
+    S.token = token; S.user = data.user;
+    initApp();
+  }).catch(() => {
+    try {
+      const user = JSON.parse(userRaw);
+      S.token = token; S.user = user;
+      initApp();
+    } catch(e) { showLogin(); }
+  });
+}
+
+function showLogin(errMsg='') {
+  document.getElementById('auth-check').innerHTML = `
+    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:calc(100% - 32px);max-width:340px;text-align:center">
+      <img src="assets/logo-white.png" class="bd-logo-dark" style="height:40px;margin-bottom:12px">
+      <img src="assets/logo-black.png" class="bd-logo-light" style="height:40px;margin-bottom:12px;display:none">
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">Supervisor Portal</div>
+      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Blue Door Architects</div>
+      ${errMsg ? `<div style="font-size:12px;color:var(--red);margin-bottom:10px;padding:6px;background:rgba(239,68,68,.1);border-radius:6px">${errMsg}</div>` : ''}
+      <div id="il-err" style="display:none;font-size:12px;color:var(--red);margin-bottom:10px;padding:6px;background:rgba(239,68,68,.1);border-radius:6px"></div>
+      <div style="margin-bottom:10px;text-align:left">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
+        <input id="il-u" placeholder="Username" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none">
+      </div>
+      <div style="margin-bottom:16px;text-align:left">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Password</div>
+        <input id="il-p" type="password" placeholder="••••••••" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
+      </div>
+      <button onclick="doLogin()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
+    </div>`;
+}
+
+async function doLogin() {
+  const u = document.getElementById('il-u')?.value.trim();
+  const p = document.getElementById('il-p')?.value;
+  const errEl = document.getElementById('il-err');
+  if (!u || !p) { errEl.textContent = 'Enter credentials'; errEl.style.display = 'block'; return; }
+  const data = await fetch(API, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ action: 'login', username: u, password: p })
+  }).then(r => r.json());
+  if (!data.ok) { errEl.textContent = data.error || 'Login failed'; errEl.style.display = 'block'; return; }
+  const role = data.user?.role;
+  if (role !== 'Supervisor' && role !== 'Admin') {
+    errEl.textContent = 'Access denied — Supervisor only'; errEl.style.display = 'block'; return;
+  }
+  localStorage.setItem('bd_token', data.token);
+  localStorage.setItem('bd_user', JSON.stringify(data.user));
+  S.token = data.token; S.user = data.user;
+  initApp();
+}
+
+async function doLogout() {
+  await api('logout').catch(() => {});
+  localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
+  location.reload();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT APP
+// ═══════════════════════════════════════════════════════════════
+async function initApp() {
+  document.getElementById('auth-check').style.display = 'none';
+  document.getElementById('app').style.display = 'flex';
+  document.getElementById('um-name').textContent = S.user.username;
+  document.getElementById('um-name2').textContent = S.user.username;
+  document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
+  await loadMasters();
+  renderHome();
+}
+
+async function loadMasters() {
+  const [cos, vendors, chs, ets, projs] = await Promise.all([
+    api('listCompanies'),
+    api('listVendors'),
+    api('listCostHeads'),
+    api('listEntryTypes'),
+    api('listProjects', { fyid: curFY })
+  ]);
+  _cos = cos.companies || [];
+  _vendors = vendors.vendors || [];
+  _chs = chs.cost_heads || [];
+  _ets = ets.entry_types || [];
+  _projs = projs.projects || [];
+
+  // Load allowed vendors from user detail (stored in companies field as workaround,
+  // or via a convention: vendor IDs whose ledger is visible stored as KV in supervisor profile)
+  // For now, load all vendors — admin controls visibility via a separate flag in vendor details
+  // We'll read allowed vendors from the user's companies array as a special field
+  // Convention: admin sets supervisor companies array; we also check a special "allowed_vendors" 
+  // field that admin can populate via the admin panel update user flow
+  _allowedVendors = S.user?.allowed_vendors || [];
+
+  // Populate company dropdowns
+  const coSel = ['ae-co', 'pc-co', 'vl-co'];
+  coSel.forEach(id => {
+    const el = document.getElementById(id);
+    if (!el) return;
+    const oldVal = el.value;
+    while (el.options.length > 1) el.remove(1);
+    _cos.forEach(c => {
+      const o = new Option(c.company_name, c.company_id);
+      el.add(o);
+    });
+    if (oldVal) el.value = oldVal;
+  });
+
+  // Co pill dropdown
+  const coList = document.getElementById('co-list');
+  coList.innerHTML = '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo(\'\')">All Companies</div>';
+  _cos.forEach(c => {
+    coList.innerHTML += `<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo('${c.company_id}')">${c.company_name}</div>`;
+  });
+
+  // Cost heads
+  const chSel = document.getElementById('ae-ch');
+  while (chSel.options.length > 1) chSel.remove(1);
+  _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
+
+  // FY selector
+  const fyList = ['FY2627','FY2526','FY2425','FY2324'];
+  const fySel = document.getElementById('vl-fy');
+  fySel.innerHTML = '';
+  fyList.forEach(fy => fySel.add(new Option(fy, fy)));
+  fySel.value = curFY;
+
+  // Vendor ledger selects — only allowed vendors
+  populateVendorLedgerSelects();
+}
+
+function setCo(id) {
+  curCo = id;
+  const pill = document.getElementById('co-pill');
+  if (id) {
+    const co = _cos.find(c => c.company_id === id);
+    pill.textContent = (co?.company_name || id).substring(0,10) + ' ▾';
+  } else {
+    pill.textContent = 'All ▾';
+  }
+  closeMenus();
+  if (_curView === 'home') renderHome();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// HOME
+// ═══════════════════════════════════════════════════════════════
+async function renderHome() {
+  const me = S.user?.username || '';
+  const [pending, entries] = await Promise.all([
+    api('listPending', { fyid: curFY, company_id: curCo, status: 'Pending', submitted_by: me }),
+    api('listEntries', { fyid: curFY, company_id: curCo, limit: 15 })
+  ]);
+
+  const myEntries = (entries.entries || []).filter(e => e.created_by === me);
+  const ps = (pending.pending || []);
+
+  document.getElementById('d-mine').textContent = myEntries.length;
+  document.getElementById('d-pending').textContent = ps.length;
+  document.getElementById('d-pcount').textContent = ps.length;
+
+  // Pending table
+  const pendEl = document.getElementById('home-pending');
+  if (ps.length) {
+    pendEl.innerHTML = `<div class="tw"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+      <tbody>${ps.map(p => {
+        const et = _ets.find(t => t.et_key === p.entry_type);
+        const statusCls = p.status === 'Pending' ? 's-pending' : p.status === 'Approved' ? 's-approved' : 's-rejected';
+        return `<tr>
+          <td>${fmtDate(p.date)}</td>
+          <td><code style="font-size:10px">${et?.label || p.entry_type}</code></td>
+          <td class="amt dr">${fmtAmt(p.amount)}</td>
+          <td><span class="badge ${statusCls}">${p.status}</span>
+          ${p.reject_reason ? `<div class="comment-box">💬 ${p.reject_reason}</div>` : ''}
+          </td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  } else {
+    pendEl.innerHTML = '<div class="empty">No pending entries</div>';
+  }
+
+  // Recent entries (mine only)
+  const recEl = document.getElementById('home-recent');
+  if (myEntries.length) {
+    recEl.innerHTML = `<div class="tw"><table>
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Narration</th></tr></thead>
+      <tbody>${myEntries.slice(0,10).map(e => {
+        const et = _ets.find(t => t.et_key === e.entry_type);
+        return `<tr>
+          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td><code style="font-size:10px">${et?.label || e.entry_type}</code></td>
+          <td class="amt dr">${fmtAmt(e.amount)}</td>
+          <td style="font-size:11px;color:var(--muted)">${e.narration||'—'}</td>
+        </tr>`;
+      }).join('')}</tbody></table></div>`;
+  } else {
+    recEl.innerHTML = '<div class="empty">No entries yet</div>';
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// SEARCH-SELECT (combo)
+// ═══════════════════════════════════════════════════════════════
+const _ssState = {};
+function ssInit(name, items, labelFn, valFn) {
+  _ssState[name] = { items, labelFn, valFn };
+  const drop = document.getElementById(`ae-${name}-drop`);
+  drop.innerHTML = items.map((it,i) => `<div class="ss-opt" data-i="${i}">${labelFn(it)}</div>`).join('') || '<div class="ss-empty">None</div>';
+  drop.querySelectorAll('.ss-opt').forEach(el => {
+    el.addEventListener('mousedown', () => {
+      const it = items[+el.dataset.i];
+      document.getElementById(`ae-${name}-inp`).value = labelFn(it);
+      document.getElementById(`ae-${name}-val`).value = valFn(it);
+      ssClose(name);
+    });
+  });
+}
+function ssFilter(name) {
+  const q = (document.getElementById(`ae-${name}-inp`).value || '').toLowerCase();
+  const { items, labelFn, valFn } = _ssState[name] || {};
+  if (!items) return;
+  const drop = document.getElementById(`ae-${name}-drop`);
+  const filtered = items.filter(it => labelFn(it).toLowerCase().includes(q));
+  drop.innerHTML = filtered.map((it,i) => `<div class="ss-opt" data-i="${i}">${labelFn(it)}</div>`).join('') || '<div class="ss-empty">No results</div>';
+  drop.querySelectorAll('.ss-opt').forEach(el => {
+    el.addEventListener('mousedown', () => {
+      const it = filtered[+el.dataset.i];
+      document.getElementById(`ae-${name}-inp`).value = labelFn(it);
+      document.getElementById(`ae-${name}-val`).value = valFn(it);
+      ssClose(name);
+    });
+  });
+  drop.classList.add('open');
+}
+function ssOpen(name) { ssFilter(name); document.getElementById(`ae-${name}-drop`).classList.add('open'); }
+function ssClose(name) { document.getElementById(`ae-${name}-drop`)?.classList.remove('open'); }
+
+// ═══════════════════════════════════════════════════════════════
+// ADD ENTRY
+// ═══════════════════════════════════════════════════════════════
+function selectEntryType(key) {
+  _selType = _ets.find(t => t.et_key === key);
+  if (!_selType) { toast('Entry type not found', 'err'); return; }
+
+  document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
+  document.getElementById(key === 'vendor_bill' ? 'type-vendor' : 'type-petty').classList.add('sel');
+
+  document.getElementById('vb-fields').classList.toggle('hidden', key !== 'vendor_bill');
+  document.getElementById('pc-fields').classList.toggle('hidden', key !== 'expense_petty_cash');
+  document.getElementById('form-title').textContent = _selType.label;
+
+  // Init search-selects
+  if (key === 'vendor_bill') {
+    ssInit('vendor', _vendors, v => v.vendor_name, v => v.vendor_id);
+    ssInit('proj', _projs, p => p.project_name, p => p.project_id);
+  }
+
+  // Set today's date
+  if (!document.getElementById('ae-date').value) {
+    document.getElementById('ae-date').value = new Date().toISOString().slice(0,10);
+  }
+
+  document.getElementById('entry-form').classList.remove('hidden');
+  document.getElementById('entry-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function resetForm() {
+  _selType = null;
+  document.getElementById('entry-form').classList.add('hidden');
+  document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
+  ['ae-amount','ae-narration','ae-doc','ae-vendor-inp','ae-vendor-val','ae-proj-inp','ae-proj-val'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('ae-ch').value = '';
+}
+
+async function submitEntry() {
+  if (!_selType) return;
+  const date = document.getElementById('ae-date').value;
+  const amount = parseFloat(document.getElementById('ae-amount').value);
+  const narration = document.getElementById('ae-narration').value.trim();
+  const doc = document.getElementById('ae-doc').value.trim();
+  const co = document.getElementById('ae-co').value;
+
+  if (!date || !amount) { toast('Date and amount required', 'err'); return; }
+
+  const payload = {
+    date, fyid: curFY, entry_type: _selType.et_key, amount, narration,
+    drive_file_url: doc, company_id: co
+  };
+
+  if (_selType.et_key === 'vendor_bill') {
+    payload.vendor_id = document.getElementById('ae-vendor-val').value;
+    payload.project_id = document.getElementById('ae-proj-val').value;
+    if (!payload.vendor_id) { toast('Select a vendor', 'err'); return; }
+  }
+  if (_selType.et_key === 'expense_petty_cash') {
+    payload.cost_head_id = document.getElementById('ae-ch').value;
+    if (!payload.cost_head_id) { toast('Select a cost head', 'err'); return; }
+  }
+
+  const r = await api('submitPending', payload);
+  if (r.ok) {
+    toast('Submitted for approval ✓');
+    resetForm();
+    showView('home');
+  } else {
+    toast(r.error || 'Error submitting', 'err');
+  }
+}
+
+// ═══════════════════════════════════════════════════════════════
+// PETTY CASH LEDGER
+// ═══════════════════════════════════════════════════════════════
+function initPettyMonth() {
+  const el = document.getElementById('pc-month');
+  if (!el.value) {
+    const now = new Date();
+    el.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
+  }
+}
+
+async function renderPetty() {
+  const monthVal = document.getElementById('pc-month').value; // "2026-05"
+  const co = document.getElementById('pc-co').value;
+  if (!monthVal) return;
+
+  const [year, month] = monthVal.split('-').map(Number);
+  const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
+  const lastDay = new Date(year, month, 0).getDate();
+  const dateTo = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+
+  const me = S.user?.username || '';
+
+  // Get ALL petty cash entries (approved) in range — only mine
+  const [entries, pending, ob] = await Promise.all([
+    api('listEntries', { fyid: curFY, company_id: co, entry_type: 'expense_petty_cash', date_from: dateFrom, date_to: dateTo, limit: 500 }),
+    api('listPending', { fyid: curFY, company_id: co, submitted_by: me }),
+    api('listOpeningBalances', { fyid: curFY, company_id: co })
+  ]);
+
+  const myEntries = (entries.entries || []).filter(e => e.created_by === me);
+  const myPending = (pending.pending || []).filter(p => p.entry_type === 'expense_petty_cash');
+
+  // Find petty cash opening balance
+  const pettyCashAc = 'PETTY_CASH';
+  const obRow = (ob.opening_balances || []).find(r => r.ac_key === pettyCashAc && (!co || r.company_id === co));
+  const obAmt = obRow ? parseFloat(obRow.amount || 0) : 0;
+  const obDrCr = (obRow?.dr_cr || 'DR').toUpperCase();
+  const openingBalance = obDrCr === 'DR' ? obAmt : -obAmt;
+
+  const total = myEntries.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  const closing = openingBalance - total;
+
+  // Summary
+  const monthLabel = new Date(year, month-1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+  document.getElementById('voucher-period').textContent = monthLabel;
+
+  document.getElementById('petty-summary-body').innerHTML = `
+    <div class="g2" style="gap:12px">
+      <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(openingBalance)}</div></div>
+      <div class="stat"><div class="sl">Total Expenses</div><div class="sv" style="color:var(--red)">${fmtAmt(total)}</div></div>
+      <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closing>=0?'var(--green)':'var(--red)'}">${fmtAmt(closing)}</div></div>
+      <div class="stat"><div class="sl">Entries (${monthLabel})</div><div class="sv">${myEntries.length}</div></div>
+    </div>`;
+
+  // Table
+  const tbl = document.getElementById('petty-table');
+  if (!myEntries.length) {
+    tbl.innerHTML = '<div class="empty">No petty cash entries for this period</div>';
+    return;
+  }
+  let running = openingBalance;
+  tbl.innerHTML = `<div class="tw"><table>
+    <thead><tr><th>#</th><th>Date</th><th>Cost Head</th><th>Narration</th><th>Amount</th><th>Balance</th></tr></thead>
+    <tbody>
+      <tr style="background:rgba(79,142,247,.05)">
+        <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
+        <td></td>
+        <td class="amt" style="color:var(--accent)">${fmtAmt(running)}</td>
+      </tr>
+      ${myEntries.map((e, i) => {
+        const ch = _chs.find(c => c.ch_id === e.cost_head_id);
+        running -= parseFloat(e.amount || 0);
+        return `<tr>
+          <td style="color:var(--muted)">${i+1}</td>
+          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td>${ch?.ch_name || '—'}</td>
+          <td style="font-size:11px;color:var(--muted)">${e.narration||'—'}</td>
+          <td class="amt cr">${fmtAmt(e.amount)}</td>
+          <td class="amt" style="color:${running>=0?'var(--green)':'var(--red)'}">${fmtAmt(running)}</td>
+        </tr>`;
+      }).join('')}
+      <tr style="background:rgba(34,197,94,.05)">
+        <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Closing Balance</td>
+        <td class="amt cr">${fmtAmt(total)}</td>
+        <td class="amt" style="color:${closing>=0?'var(--green)':'var(--red)'}; font-weight:700">${fmtAmt(closing)}</td>
+      </tr>
+    </tbody></table></div>`;
+}
+
+function printVoucher() {
+  document.getElementById('voucher-header').style.display = 'block';
+  window.print();
+  setTimeout(() => { document.getElementById('voucher-header').style.display = 'none'; }, 1000);
+}
+
+// ═══════════════════════════════════════════════════════════════
+// VENDOR LEDGER
+// ═══════════════════════════════════════════════════════════════
+function populateVendorLedgerSelects() {
+  const sel = document.getElementById('vl-vendor');
+  const curVal = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+
+  // Only show vendors that admin has enabled for this supervisor
+  // Convention: if _allowedVendors is empty, show none (strict). Admin must explicitly allow.
+  // The allowed vendors list comes from S.user.allowed_vendors (set by admin via updateUser)
+  const allowed = S.user?.allowed_vendors || [];
+  const visibleVendors = allowed.length > 0
+    ? _vendors.filter(v => allowed.includes(v.vendor_id))
+    : [];
+
+  if (visibleVendors.length === 0) {
+    sel.innerHTML = '<option value="">No vendors enabled — contact admin</option>';
+    document.getElementById('vl-content').innerHTML = '<div class="empty">No vendor ledgers have been enabled for your account.<br>Ask an admin to enable access.</div>';
+    return;
+  }
+
+  visibleVendors.forEach(v => sel.add(new Option(`${v.vendor_name} (${v.vendor_type||'General'})`, v.vendor_id)));
+  if (curVal) sel.value = curVal;
+}
+
+async function renderVendorLedger() {
+  const vid = document.getElementById('vl-vendor').value;
+  const fy = document.getElementById('vl-fy').value;
+  const co = document.getElementById('vl-co').value;
+  const out = document.getElementById('vl-content');
+
+  if (!vid) { out.innerHTML = '<div class="empty">Select a vendor</div>'; return; }
+
+  out.innerHTML = '<div class="empty"><span class="spin"></span> Loading…</div>';
+
+  const r = await api('getVendorReport', { vendor_id: vid, fyid: fy, company_id: co });
+  if (!r.ok) { out.innerHTML = `<div class="empty">${r.error}</div>`; return; }
+
+  const { vendor, entries, ledger, opening_balance, total } = r;
+  const ob = opening_balance;
+  const obAmt = ob ? parseFloat(ob.amount || 0) : 0;
+  const obDrCr = (ob?.dr_cr || 'CR').toUpperCase();
+
+  // Net from ledger: sum CR - sum DR for vendor
+  const totalDr = (ledger||[]).filter(l => l.dr_cr === 'DR').reduce((s,l) => s + parseFloat(l.debit||0), 0);
+  const totalCr = (ledger||[]).filter(l => l.dr_cr === 'CR').reduce((s,l) => s + parseFloat(l.credit||0), 0);
+
+  out.innerHTML = `
+    <div class="card">
+      <div class="chd"><h3>${vendor.vendor_name}</h3><span class="badge bx">${vendor.vendor_type||'General'}</span></div>
+      <div class="cbd">
+        <div class="g2" style="margin-bottom:0">
+          <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(obAmt)} <span style="font-size:11px">${obDrCr}</span></div></div>
+          <div class="stat"><div class="sl">Total Transactions</div><div class="sv">${entries?.length||0}</div></div>
+          <div class="stat"><div class="sl">Total Debit</div><div class="sv" style="color:var(--green)">${fmtAmt(totalDr)}</div></div>
+          <div class="stat"><div class="sl">Total Credit</div><div class="sv" style="color:var(--red)">${fmtAmt(totalCr)}</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <div class="chd"><h3>Ledger</h3></div>
+      <div class="cbd">
+        ${(ledger||[]).length ? `<div class="tw"><table>
+          <thead><tr><th>Date</th><th>Account</th><th>DR/CR</th><th>Debit</th><th>Credit</th><th>Narration</th></tr></thead>
+          <tbody>${(ledger||[]).map(l => `<tr>
+            <td style="white-space:nowrap">${fmtDate(l.date)}</td>
+            <td style="font-size:11px">${l.ac_name}</td>
+            <td><span class="badge ${l.dr_cr==='DR'?'bg':'br'}">${l.dr_cr}</span></td>
+            <td class="amt ${l.dr_cr==='DR'?'dr':''}">${l.debit>0?fmtAmt(l.debit):'—'}</td>
+            <td class="amt ${l.dr_cr==='CR'?'cr':''}">${l.credit>0?fmtAmt(l.credit):'—'}</td>
+            <td style="font-size:11px;color:var(--muted)">${l.narration||'—'}</td>
+          </tr>`).join('')}</tbody>
+        </table></div>` : '<div class="empty">No ledger entries</div>'}
+      </div>
+    </div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADD VENDOR
+// ═══════════════════════════════════════════════════════════════
+async function addVendor() {
+  const vid = document.getElementById('nv-id').value.trim();
+  const name = document.getElementById('nv-name').value.trim();
+  const type = document.getElementById('nv-type').value;
+  const contact = document.getElementById('nv-contact').value.trim();
+  const gstin = document.getElementById('nv-gstin').value.trim();
+  const details = document.getElementById('nv-details').value.trim();
+
+  if (!vid || !name) { toast('ID and Name required', 'err'); return; }
+
+  const r = await api('addVendor', { vendor_id: vid, vendor_name: name, vendor_type: type, contact, gstin, details });
+  if (r.ok) {
+    toast('Vendor added ✓');
+    ['nv-id','nv-name','nv-contact','nv-gstin','nv-details'].forEach(id => document.getElementById(id).value = '');
+    document.getElementById('nv-type').value = '';
+    await loadMasters();
+    loadVendorList();
+  } else {
+    toast(r.error || 'Error adding vendor', 'err');
+  }
+}
+
+async function loadVendorList() {
+  const out = document.getElementById('vendor-list');
+  out.innerHTML = '<div class="empty"><span class="spin"></span></div>';
+  const r = await api('listVendors');
+  const vendors = r.vendors || [];
+  if (!vendors.length) { out.innerHTML = '<div class="empty">No vendors yet</div>'; return; }
+  out.innerHTML = `<div class="tw"><table>
+    <thead><tr><th>ID</th><th>Name</th><th>Type</th><th>Contact</th><th>GSTIN</th></tr></thead>
+    <tbody>${vendors.map(v => `<tr>
+      <td><code style="font-size:10px">${v.vendor_id}</code></td>
+      <td>${v.vendor_name}</td>
+      <td><span class="badge bx">${v.vendor_type||'—'}</span></td>
+      <td style="font-size:11px">${v.contact||'—'}</td>
+      <td style="font-size:11px">${v.gstin||'—'}</td>
+    </tr>`).join('')}</tbody>
+  </table></div>`;
+}
+
+// ═══════════════════════════════════════════════════════════════
+// INIT
+// ═══════════════════════════════════════════════════════════════
+window.addEventListener('DOMContentLoaded', () => {
+  checkSession();
+  const theme = localStorage.getItem('bd_theme') || 'dark';
+  const toggle = document.getElementById('theme-toggle');
+  if (theme === 'light') {
+    document.body.classList.add('light-theme');
+    if (toggle) { toggle.checked = false; toggleTheme(false); }
+  }
+});
+</script>
+</body>
+</html>
