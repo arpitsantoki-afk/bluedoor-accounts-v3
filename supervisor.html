@@ -158,8 +158,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
-      <button id="pwa-install-btn" onclick="showInstallPrompt()" style="display:none;align-items:center;gap:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap">⬇️ Install</button>
-            <!-- Sync button -->
+      <!-- Sync button -->
       <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
       </button>
@@ -253,31 +252,64 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
               </div>
             </div>
 
+            <div class="field">
+              <label>Company *</label>
+              <select id="ae-co">
+                <option value="">— Select company —</option>
+              </select>
+            </div>
+
             <!-- Vendor bill fields -->
             <div id="vb-fields" class="hidden">
               <div class="field">
                 <label>Vendor *</label>
                 <div class="ss-wrap">
-                  <input class="ss-input" id="ae-vendor-inp" placeholder="Search vendor…" autocomplete="off" oninput="ssFilter('vendor')" onfocus="ssOpen('vendor')" onblur="setTimeout(()=>ssClose('vendor'),150)">
+                  <input class="ss-input" id="ae-vendor-inp" placeholder="Search vendor…" autocomplete="off"
+                    oninput="ssFilter('vendor')" onfocus="ssOpen('vendor')" onblur="setTimeout(()=>ssClose('vendor'),150)">
                   <div class="ss-drop" id="ae-vendor-drop"></div>
                   <input type="hidden" id="ae-vendor-val">
                 </div>
               </div>
-              <div class="field">
-                <label>Project</label>
+              <div id="proj-wrap-vb" class="field">
+                <label>Project <span id="proj-req-label" style="color:var(--muted);font-size:10px">(required for direct expenses)</span></label>
                 <div class="ss-wrap">
-                  <input class="ss-input" id="ae-proj-inp" placeholder="Search project…" autocomplete="off" oninput="ssFilter('proj')" onfocus="ssOpen('proj')" onblur="setTimeout(()=>ssClose('proj'),150)">
+                  <input class="ss-input" id="ae-proj-inp" placeholder="Search project…" autocomplete="off"
+                    oninput="ssFilter('proj')" onfocus="ssOpen('proj')" onblur="setTimeout(()=>ssClose('proj'),150)">
                   <div class="ss-drop" id="ae-proj-drop"></div>
                   <input type="hidden" id="ae-proj-val">
                 </div>
+              </div>
+              <div class="field">
+                <label>Cost Head *</label>
+                <select id="ae-ch-vb" onchange="onVbCostHeadChange()">
+                  <option value="">Select cost head…</option>
+                </select>
               </div>
             </div>
 
             <!-- Petty cash fields -->
             <div id="pc-fields" class="hidden">
               <div class="field">
+                <label>Project *</label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-proj-pc-inp" placeholder="Search project…" autocomplete="off"
+                    oninput="ssFilter('proj-pc')" onfocus="ssOpen('proj-pc')" onblur="setTimeout(()=>ssClose('proj-pc'),150)">
+                  <div class="ss-drop" id="ae-proj-pc-drop"></div>
+                  <input type="hidden" id="ae-proj-pc-val">
+                </div>
+              </div>
+              <div class="field">
+                <label>Vendor <span style="color:var(--muted);font-size:10px">(optional)</span></label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-vendor-pc-inp" placeholder="Search vendor…" autocomplete="off"
+                    oninput="ssFilter('vendor-pc')" onfocus="ssOpen('vendor-pc')" onblur="setTimeout(()=>ssClose('vendor-pc'),150)">
+                  <div class="ss-drop" id="ae-vendor-pc-drop"></div>
+                  <input type="hidden" id="ae-vendor-pc-val">
+                </div>
+              </div>
+              <div class="field">
                 <label>Cost Head *</label>
-                <select id="ae-ch">
+                <select id="ae-ch-pc">
                   <option value="">Select cost head…</option>
                 </select>
               </div>
@@ -285,29 +317,42 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
             <!-- Common -->
             <div class="field">
-              <label>Company</label>
-              <select id="ae-co">
-                <option value="">— Select company —</option>
-              </select>
-            </div>
-
-            <div class="field">
-              <label>Narration</label>
+              <label>Narration <span style="color:var(--muted);font-size:10px">(optional)</span></label>
               <textarea id="ae-narration" rows="2" placeholder="Brief description…"></textarea>
             </div>
 
+            <!-- Document upload — browse or camera -->
             <div class="field">
-              <label>Document URL (Drive link)</label>
-              <input type="url" id="ae-doc" placeholder="https://drive.google.com/…">
+              <label id="doc-label">Document <span id="doc-req" style="color:var(--red);font-size:10px">* Required</span></label>
+              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+                <label style="flex:1;min-width:120px;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px;color:var(--muted)">
+                  📎 Browse
+                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf"
+                    style="display:none" onchange="onDocFileChange(this)">
+                </label>
+                <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px;color:var(--muted)">
+                  📷 Camera
+                  <input type="file" id="ae-doc-camera" accept="image/*" capture="environment"
+                    style="display:none" onchange="onDocFileChange(this)">
+                </label>
+              </div>
+              <div id="doc-preview" style="margin-top:6px;font-size:12px;color:var(--green);display:none"></div>
+              <input type="hidden" id="ae-doc-b64">
+              <input type="hidden" id="ae-doc-name">
+              <div class="field" style="margin-top:8px;margin-bottom:0">
+                <label style="text-transform:none;font-size:11px;color:var(--muted)">Or paste Drive link</label>
+                <input type="url" id="ae-doc-url" placeholder="https://drive.google.com/…" style="font-size:12px">
+              </div>
             </div>
 
-            <button class="btn btn-p" style="width:100%;justify-content:center" onclick="submitEntry()">
+            <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:4px" onclick="submitEntry()">
               Submit for Approval
             </button>
           </div>
         </div>
       </div>
-    </div>
+
+    <!-- ═══ PETTY CASH LEDGER ═══ -->    </div>
 
     <!-- ═══ PETTY CASH LEDGER ═══ -->
     <div id="v-petty" class="view">
@@ -515,7 +560,7 @@ async function api(action, params = {}) {
 // ═══════════════════════════════════════════════════════════════
 // UTILITIES
 // ═══════════════════════════════════════════════════════════════
-function fmtDate(d) { if (!d) return '—'; return new Date(d+'T00:00:00').toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'}); }
+function fmtDate(d) { if (!d) return '—'; const dt=new Date(d+'T00:00:00'); const dd=String(dt.getDate()).padStart(2,'0'); const mm=String(dt.getMonth()+1).padStart(2,'0'); const yyyy=dt.getFullYear(); return `${dd}-${mm}-${yyyy}`; }
 function fmtAmt(n) { return '₹' + (parseFloat(n)||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 function toast(msg, type='ok') {
   const t = document.getElementById('toast');
@@ -801,19 +846,37 @@ function ssClose(name) { document.getElementById(`ae-${name}-drop`)?.classList.r
 // ═══════════════════════════════════════════════════════════════
 function selectEntryType(key) {
   _selType = _ets.find(t => t.et_key === key);
-  if (!_selType) { toast('Entry type not found', 'err'); return; }
+  if (!_selType) { toast('Entry type not found in DB', 'err'); return; }
 
   document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
   document.getElementById(key === 'vendor_bill' ? 'type-vendor' : 'type-petty').classList.add('sel');
 
-  document.getElementById('vb-fields').classList.toggle('hidden', key !== 'vendor_bill');
-  document.getElementById('pc-fields').classList.toggle('hidden', key !== 'expense_petty_cash');
+  const isVendor = key === 'vendor_bill';
+  const isPetty  = key === 'expense_petty_cash';
+
+  document.getElementById('vb-fields').classList.toggle('hidden', !isVendor);
+  document.getElementById('pc-fields').classList.toggle('hidden', !isPetty);
   document.getElementById('form-title').textContent = _selType.label;
 
+  // Doc required for both types per Excel rules
+  document.getElementById('doc-req').style.display = 'inline';
+
   // Init search-selects
-  if (key === 'vendor_bill') {
+  if (isVendor) {
     ssInit('vendor', _vendors, v => v.vendor_name, v => v.vendor_id);
-    ssInit('proj', _projs, p => p.project_name, p => p.project_id);
+    ssInit('proj',   _projs,   p => p.project_name, p => p.project_id);
+    // Populate vendor bill cost heads
+    const chSel = document.getElementById('ae-ch-vb');
+    chSel.innerHTML = '<option value="">Select cost head…</option>';
+    _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
+  }
+  if (isPetty) {
+    ssInit('proj-pc',   _projs,   p => p.project_name, p => p.project_id);
+    ssInit('vendor-pc', _vendors, v => v.vendor_name,   v => v.vendor_id);
+    // Populate petty cash cost heads
+    const chSel = document.getElementById('ae-ch-pc');
+    chSel.innerHTML = '<option value="">Select cost head…</option>';
+    _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
   }
 
   // Set today's date
@@ -825,45 +888,116 @@ function selectEntryType(key) {
   document.getElementById('entry-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
+// When vendor bill cost head changes — check if indirect expense → hide project
+function onVbCostHeadChange() {
+  const chId  = document.getElementById('ae-ch-vb').value;
+  const ch    = _chs.find(c => c.ch_id === chId);
+  const projW = document.getElementById('proj-wrap-vb');
+  // Indirect: no ch or ch linked to indirect expense account
+  // Simple heuristic: if ch_name contains 'indirect' or 'overhead' → hide project
+  const isIndirect = ch && (ch.ch_name.toLowerCase().includes('indirect') || ch.ch_name.toLowerCase().includes('overhead') || ch.ch_name.toLowerCase().includes('general'));
+  if (isIndirect) {
+    projW.style.display = 'none';
+    document.getElementById('ae-proj-val').value = '';
+    document.getElementById('ae-proj-inp').value = '';
+  } else {
+    projW.style.display = '';
+  }
+}
+
+// Document file handler — convert to base64 for upload
+function onDocFileChange(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const preview = document.getElementById('doc-preview');
+  const b64el   = document.getElementById('ae-doc-b64');
+  const nameEl  = document.getElementById('ae-doc-name');
+  preview.style.display = 'block';
+  preview.textContent = '⏳ Reading file…';
+  const reader = new FileReader();
+  reader.onload = e => {
+    b64el.value  = e.target.result; // data:...;base64,...
+    nameEl.value = file.name;
+    preview.textContent = `✓ ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+    preview.style.color = 'var(--green)';
+    // Clear other input
+    if (input.id === 'ae-doc-file') document.getElementById('ae-doc-camera').value = '';
+    else document.getElementById('ae-doc-file').value = '';
+  };
+  reader.readAsDataURL(file);
+}
+
 function resetForm() {
   _selType = null;
   document.getElementById('entry-form').classList.add('hidden');
   document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
-  ['ae-amount','ae-narration','ae-doc','ae-vendor-inp','ae-vendor-val','ae-proj-inp','ae-proj-val'].forEach(id => {
+  ['ae-amount','ae-narration','ae-doc-url',
+   'ae-vendor-inp','ae-vendor-val','ae-proj-inp','ae-proj-val',
+   'ae-vendor-pc-inp','ae-vendor-pc-val','ae-proj-pc-inp','ae-proj-pc-val',
+   'ae-doc-b64','ae-doc-name'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
-  document.getElementById('ae-ch').value = '';
+  ['ae-doc-file','ae-doc-camera'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  const prev = document.getElementById('doc-preview');
+  if (prev) { prev.style.display = 'none'; prev.textContent = ''; }
 }
 
 async function submitEntry() {
   if (!_selType) return;
-  const date = document.getElementById('ae-date').value;
-  const amount = parseFloat(document.getElementById('ae-amount').value);
-  const narration = document.getElementById('ae-narration').value.trim();
-  const doc = document.getElementById('ae-doc').value.trim();
-  const co = document.getElementById('ae-co').value;
+  const date     = document.getElementById('ae-date').value;
+  const amount   = parseFloat(document.getElementById('ae-amount').value);
+  const narration= document.getElementById('ae-narration').value.trim();
+  const co       = document.getElementById('ae-co').value;
+  const docB64   = document.getElementById('ae-doc-b64').value;
+  const docName  = document.getElementById('ae-doc-name').value;
+  const docUrl   = document.getElementById('ae-doc-url').value.trim();
 
-  if (!date || !amount) { toast('Date and amount required', 'err'); return; }
+  if (!date)   { toast('Date required', 'err'); return; }
+  if (!amount || amount <= 0) { toast('Valid amount required', 'err'); return; }
+  if (!co)     { toast('Company required', 'err'); return; }
+
+  // Doc required for both entry types
+  if (!docB64 && !docUrl) { toast('Document required — upload file or paste Drive link', 'err'); return; }
 
   const payload = {
-    date, fyid: curFY, entry_type: _selType.et_key, amount, narration,
-    drive_file_url: doc, company_id: co
+    date, fyid: curFY, entry_type: _selType.et_key,
+    amount, narration, company_id: co,
+    drive_file_url: docUrl || docName || ''
   };
 
   if (_selType.et_key === 'vendor_bill') {
-    payload.vendor_id = document.getElementById('ae-vendor-val').value;
-    payload.project_id = document.getElementById('ae-proj-val').value;
-    if (!payload.vendor_id) { toast('Select a vendor', 'err'); return; }
-  }
-  if (_selType.et_key === 'expense_petty_cash') {
-    payload.cost_head_id = document.getElementById('ae-ch').value;
-    if (!payload.cost_head_id) { toast('Select a cost head', 'err'); return; }
+    payload.vendor_id    = document.getElementById('ae-vendor-val').value;
+    payload.project_id   = document.getElementById('ae-proj-val').value;
+    payload.cost_head_id = document.getElementById('ae-ch-vb').value;
+    if (!payload.vendor_id)    { toast('Vendor required', 'err'); return; }
+    if (!payload.cost_head_id) { toast('Cost head required', 'err'); return; }
+    // Project required unless indirect
+    const projWrap = document.getElementById('proj-wrap-vb');
+    if (projWrap.style.display !== 'none' && !payload.project_id) {
+      toast('Project required for this cost head', 'err'); return;
+    }
   }
 
+  if (_selType.et_key === 'expense_petty_cash') {
+    payload.project_id   = document.getElementById('ae-proj-pc-val').value;
+    payload.vendor_id    = document.getElementById('ae-vendor-pc-val').value;
+    payload.cost_head_id = document.getElementById('ae-ch-pc').value;
+    if (!payload.project_id)   { toast('Project required', 'err'); return; }
+    if (!payload.cost_head_id) { toast('Cost head required', 'err'); return; }
+  }
+
+  // If file uploaded, include base64 in payload
+  if (docB64) payload.doc_base64 = docB64;
+
+  addDebug(`submitEntry: ${_selType.et_key} ₹${amount}`);
   const r = await api('submitPending', payload);
   if (r.ok) {
     toast('Submitted for approval ✓');
+    addDebug('Entry submitted: ' + r.entry_id, 'ok');
     resetForm();
     showView('home');
   } else {
@@ -871,6 +1005,9 @@ async function submitEntry() {
   }
 }
 
+
+// ═══════════════════════════════════════════════════════════════
+// PETTY CASH LEDGER
 // ═══════════════════════════════════════════════════════════════
 // PETTY CASH LEDGER
 // ═══════════════════════════════════════════════════════════════
@@ -888,78 +1025,89 @@ async function renderPetty() {
   summaryEl.innerHTML = '<div class="empty"><span class="spin"></span> Loading…</div>';
   tbl.innerHTML = '';
 
-  // Fetch full FY petty cash ledger entries + opening balance
-  const [ledgerRes, obRes] = await Promise.all([
-    api('getLedger', { fyid: fy, company_id: co, ac_code: 'PETTY_CASH' }),
+  addDebug(`renderPetty fy=${fy} co=${co}`);
+
+  // Fetch petty cash entries (approved, in entries table) + opening balance
+  const [entriesRes, pendingRes, obRes] = await Promise.all([
+    api('listEntries', { fyid: fy, company_id: co, entry_type: 'expense_petty_cash', limit: 500 }),
+    api('listPending',  { fyid: fy, company_id: co, status: 'Pending' }),
     api('listOpeningBalances', { fyid: fy, company_id: co })
   ]);
 
-  addDebug(`Petty ledger: ${JSON.stringify(ledgerRes).substring(0,80)}`);
+  const entries  = (entriesRes.entries || []).sort((a,b) => a.date.localeCompare(b.date));
+  const pending  = (pendingRes.pending || []).filter(p => p.entry_type === 'expense_petty_cash');
 
-  const ledgerRows = (ledgerRes.ledger || []);
+  addDebug(`Petty entries: ${entries.length}, pending: ${pending.length}`, 'ok');
+
+  // Opening balance — look for PETTY_CASH ac_key
   const obRow = (obRes.opening_balances || []).find(r =>
-    (r.ac_key === 'PETTY_CASH' || r.ac_code === 'PETTY_CASH') && (!co || r.company_id === co)
+    (r.ac_key === 'PETTY_CASH' || r.ac_key === 'petty_cash') && (!co || r.company_id === co)
   );
-
   const obAmt = obRow ? parseFloat(obRow.amount || 0) : 0;
   const obDrCr = (obRow?.dr_cr || 'DR').toUpperCase();
   const openingBalance = obDrCr === 'DR' ? obAmt : -obAmt;
 
-  // Calculate totals from ledger
-  let totalDr = 0, totalCr = 0;
-  ledgerRows.forEach(r => {
-    totalDr += parseFloat(r.debit || 0);
-    totalCr += parseFloat(r.credit || 0);
-  });
+  const totalSpent = entries.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  const pendingAmt  = pending.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
+  const closingBalance = openingBalance - totalSpent;
 
-  // For petty cash: debits = replenishment (inflow), credits = expenses (outflow)
-  const netExpenses = totalCr - totalDr;
-  const closingBalance = openingBalance - netExpenses;
-
-  // Summary cards
+  // Summary
   summaryEl.innerHTML = `
     <div class="g2" style="gap:12px">
       <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(openingBalance)}</div></div>
-      <div class="stat"><div class="sl">Total Expenses</div><div class="sv" style="color:var(--red)">${fmtAmt(netExpenses)}</div></div>
-      <div class="stat"><div class="sl">Replenishments</div><div class="sv" style="color:var(--green)">${fmtAmt(totalDr)}</div></div>
-      <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closingBalance>=0?'var(--green)':'var(--red);font-size:16px'}">${fmtAmt(closingBalance)}</div></div>
+      <div class="stat"><div class="sl">Total Spent (${fy})</div><div class="sv" style="color:var(--red)">${fmtAmt(totalSpent)}</div></div>
+      <div class="stat"><div class="sl">Pending Approval</div><div class="sv" style="color:var(--amber)">${fmtAmt(pendingAmt)}</div><div class="ss">${pending.length} entries</div></div>
+      <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closingBalance>=0?'var(--green)':'var(--red)'}">${fmtAmt(closingBalance)}</div></div>
     </div>`;
 
-  // Full ledger table
-  if (!ledgerRows.length) {
-    tbl.innerHTML = '<div class="empty">No petty cash ledger entries for this FY</div>';
+  // Ledger table with running balance
+  if (!entries.length) {
+    tbl.innerHTML = '<div class="empty">No approved petty cash entries for this FY</div>';
     return;
   }
 
   let running = openingBalance;
   tbl.innerHTML = `<div class="tw"><table>
-    <thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
+    <thead><tr><th>Date</th><th>Cost Head</th><th>Project</th><th>Narration</th><th>Amount</th><th>Balance</th></tr></thead>
     <tbody>
       <tr style="background:rgba(79,142,247,.06)">
-        <td colspan="3" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
-        <td></td>
+        <td colspan="5" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance — ${fy}</td>
         <td class="amt" style="color:var(--accent);font-weight:700">${fmtAmt(running)}</td>
       </tr>
-      ${ledgerRows.map(r => {
-        const dr = parseFloat(r.debit || 0);
-        const cr = parseFloat(r.credit || 0);
-        running = running + dr - cr;
+      ${entries.map(e => {
+        const ch = _chs.find(c => c.ch_id === e.cost_head_id);
+        const proj = _projs.find(p => p.project_id === e.project_id);
+        running -= parseFloat(e.amount || 0);
         return `<tr>
-          <td style="white-space:nowrap">${fmtDate(r.date)}</td>
-          <td style="font-size:11px;color:var(--muted)">${r.narration||r.ac_name||'—'}</td>
-          <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
-          <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
-          <td class="amt" style="color:${running>=0?'var(--green)':'var(--red)'}">${fmtAmt(running)}</td>
+          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
+          <td style="font-size:11px">${ch?.ch_name || '—'}</td>
+          <td style="font-size:11px;color:var(--muted)">${proj?.project_name || '—'}</td>
+          <td style="font-size:11px;color:var(--muted)">${e.narration||'—'}</td>
+          <td class="amt cr">${fmtAmt(e.amount)}</td>
+          <td class="amt" style="color:${running>=0?'var(--green)':'var(--red)'};font-weight:600">${fmtAmt(running)}</td>
         </tr>`;
       }).join('')}
-      <tr style="background:rgba(34,197,94,.05);font-weight:700">
-        <td colspan="2" style="font-size:11px;color:var(--muted)">Closing Balance</td>
-        <td class="amt dr">${fmtAmt(totalDr)}</td>
-        <td class="amt cr">${fmtAmt(netExpenses)}</td>
-        <td class="amt" style="color:${closingBalance>=0?'var(--green)':'var(--red)'}; font-weight:700">${fmtAmt(closingBalance)}</td>
+      <tr style="background:rgba(34,197,94,.05)">
+        <td colspan="4" style="font-weight:700;font-size:11px;color:var(--muted)">Closing Balance</td>
+        <td class="amt cr" style="font-weight:700">${fmtAmt(totalSpent)}</td>
+        <td class="amt" style="color:${closingBalance>=0?'var(--green)':'var(--red)'};font-weight:700">${fmtAmt(closingBalance)}</td>
       </tr>
-    </tbody></table></div>`;
+    </tbody></table></div>
+  ${pending.length ? `<div class="sh" style="margin-top:16px">Pending Approval (${pending.length})</div>
+  <div class="tw"><table>
+    <thead><tr><th>Date</th><th>Cost Head</th><th>Amount</th><th>Status</th></tr></thead>
+    <tbody>${pending.map(p => {
+      const ch = _chs.find(c => c.ch_id === p.cost_head_id);
+      return `<tr>
+        <td>${fmtDate(p.date)}</td>
+        <td>${ch?.ch_name||'—'}</td>
+        <td class="amt" style="color:var(--amber)">${fmtAmt(p.amount)}</td>
+        <td><span class="badge ba">Pending</span></td>
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>` : ''}`;
 }
+
 
 function printVoucher() {
   document.getElementById('voucher-header').style.display = 'block';
@@ -995,55 +1143,159 @@ function populateVendorLedgerSelects() {
 
 async function renderVendorLedger() {
   const vid = document.getElementById('vl-vendor').value;
-  const fy = document.getElementById('vl-fy').value;
-  const co = document.getElementById('vl-co').value;
+  const fy  = document.getElementById('vl-fy').value;
+  const co  = document.getElementById('vl-co').value;
   const out = document.getElementById('vl-content');
 
   if (!vid) { out.innerHTML = '<div class="empty">Select a vendor</div>'; return; }
-
   out.innerHTML = '<div class="empty"><span class="spin"></span> Loading…</div>';
+  addDebug(`Vendor ledger: vid=${vid} fy=${fy}`);
 
   const r = await api('getVendorReport', { vendor_id: vid, fyid: fy, company_id: co });
   if (!r.ok) { out.innerHTML = `<div class="empty">${r.error}</div>`; return; }
 
-  const { vendor, entries, ledger, opening_balance, total } = r;
-  const ob = opening_balance;
-  const obAmt = ob ? parseFloat(ob.amount || 0) : 0;
-  const obDrCr = (ob?.dr_cr || 'CR').toUpperCase();
+  const { vendor, ledger } = r;
+  const allRows = ledger || [];
 
-  // Net from ledger: sum CR - sum DR for vendor
-  const totalDr = (ledger||[]).filter(l => l.dr_cr === 'DR').reduce((s,l) => s + parseFloat(l.debit||0), 0);
-  const totalCr = (ledger||[]).filter(l => l.dr_cr === 'CR').reduce((s,l) => s + parseFloat(l.credit||0), 0);
+  // Split ledger by account type
+  // Account Payable rows: ac_name contains 'payable' or 'Payable' or ac_code matches
+  const apRows  = allRows.filter(l =>
+    l.ac_name?.toLowerCase().includes('payable') ||
+    l.ac_code?.toLowerCase().includes('payable') ||
+    l.ac_code?.toLowerCase().includes('ap_')
+  );
+  // Advances rows: ac_name contains 'advance' or 'Advance'
+  const advRows = allRows.filter(l =>
+    l.ac_name?.toLowerCase().includes('advance') ||
+    l.ac_code?.toLowerCase().includes('advance') ||
+    l.ac_code?.toLowerCase().includes('adv_')
+  );
+
+  // Opening balances
+  const obAmt = r.opening_balance ? parseFloat(r.opening_balance.amount || 0) : 0;
+  const obDrCr = (r.opening_balance?.dr_cr || 'CR').toUpperCase();
+
+  function calcBalance(rows, openingDr, openingCr) {
+    let dr = openingDr, cr = openingCr;
+    rows.forEach(l => { dr += parseFloat(l.debit||0); cr += parseFloat(l.credit||0); });
+    return { dr, cr, net: cr - dr }; // net > 0 = payable (owe vendor)
+  }
+
+  // For AP: opening from vendor_opening_balances
+  const apOb   = obDrCr === 'DR' ? obAmt : 0;
+  const apObCr = obDrCr === 'CR' ? obAmt : 0;
+  const apTotals = calcBalance(apRows, apOb, apObCr);
+
+  // For Advances: usually DR balance (we paid them advance)
+  const advTotals = calcBalance(advRows, 0, 0);
+
+  function ledgerTable(rows, obDr, obCr, label) {
+    if (!rows.length && obDr === 0 && obCr === 0) return '<div class="empty">No entries</div>';
+    let runDr = obDr, runCr = obCr;
+    let running = runCr - runDr; // positive = we owe them
+    return `<div class="tw"><table>
+      <thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
+      <tbody>
+        <tr style="background:rgba(79,142,247,.06)">
+          <td colspan="2" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
+          <td class="amt dr">${obDr > 0 ? fmtAmt(obDr) : '—'}</td>
+          <td class="amt cr">${obCr > 0 ? fmtAmt(obCr) : '—'}</td>
+          <td class="amt" style="color:var(--accent);font-weight:700">${fmtAmt(Math.abs(running))} ${running>=0?'CR':'DR'}</td>
+        </tr>
+        ${rows.map(l => {
+          const dr = parseFloat(l.debit||0);
+          const cr = parseFloat(l.credit||0);
+          running = running + cr - dr;
+          return `<tr>
+            <td style="white-space:nowrap">${fmtDate(l.date)}</td>
+            <td style="font-size:11px;color:var(--muted)">${l.narration||l.ac_name||'—'}</td>
+            <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
+            <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
+            <td class="amt" style="color:${running>=0?'var(--red)':'var(--green)'}">
+              ${fmtAmt(Math.abs(running))} <span style="font-size:9px">${running>=0?'CR':'DR'}</span>
+            </td>
+          </tr>`;
+        }).join('')}
+        <tr style="background:rgba(34,197,94,.05);font-weight:700">
+          <td colspan="2" style="font-size:11px;color:var(--muted)">Closing Balance</td>
+          <td class="amt dr">${fmtAmt(apTotals.dr)}</td>
+          <td class="amt cr">${fmtAmt(apTotals.cr)}</td>
+          <td class="amt" style="color:${running>=0?'var(--red)':'var(--green)'};font-weight:700">
+            ${fmtAmt(Math.abs(running))} <span style="font-size:10px">${running>=0?'CR (Payable)':'DR (Receivable)'}</span>
+          </td>
+        </tr>
+      </tbody></table></div>`;
+  }
 
   out.innerHTML = `
+    <!-- Vendor header -->
     <div class="card">
-      <div class="chd"><h3>${vendor.vendor_name}</h3><span class="badge bx">${vendor.vendor_type||'General'}</span></div>
+      <div class="chd">
+        <h3>${vendor.vendor_name}</h3>
+        <span class="badge bx">${vendor.vendor_type||'General'}</span>
+      </div>
       <div class="cbd">
-        <div class="g2" style="margin-bottom:0">
-          <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(obAmt)} <span style="font-size:11px">${obDrCr}</span></div></div>
-          <div class="stat"><div class="sl">Total Transactions</div><div class="sv">${entries?.length||0}</div></div>
-          <div class="stat"><div class="sl">Total Debit</div><div class="sv" style="color:var(--green)">${fmtAmt(totalDr)}</div></div>
-          <div class="stat"><div class="sl">Total Credit</div><div class="sv" style="color:var(--red)">${fmtAmt(totalCr)}</div></div>
+        <div class="g2">
+          <div class="stat"><div class="sl">AP Closing Balance</div>
+            <div class="sv" style="color:${apTotals.net>=0?'var(--red)':'var(--green)'}">
+              ${fmtAmt(Math.abs(apTotals.net))}
+            </div>
+            <div class="ss">${apTotals.net>=0?'Payable':'Receivable'}</div>
+          </div>
+          <div class="stat"><div class="sl">Advance Closing</div>
+            <div class="sv" style="color:${advTotals.net<=0?'var(--green)':'var(--red)'}">
+              ${fmtAmt(Math.abs(advTotals.dr - advTotals.cr))}
+            </div>
+            <div class="ss">${advTotals.dr > advTotals.cr ? 'Advance Given' : 'Adjusted'}</div>
+          </div>
         </div>
       </div>
     </div>
+
+    <!-- Account Payable Ledger -->
     <div class="card">
-      <div class="chd"><h3>Ledger</h3></div>
-      <div class="cbd">
-        ${(ledger||[]).length ? `<div class="tw"><table>
-          <thead><tr><th>Date</th><th>Account</th><th>DR/CR</th><th>Debit</th><th>Credit</th><th>Narration</th></tr></thead>
-          <tbody>${(ledger||[]).map(l => `<tr>
-            <td style="white-space:nowrap">${fmtDate(l.date)}</td>
-            <td style="font-size:11px">${l.ac_name}</td>
-            <td><span class="badge ${l.dr_cr==='DR'?'bg':'br'}">${l.dr_cr}</span></td>
-            <td class="amt ${l.dr_cr==='DR'?'dr':''}">${l.debit>0?fmtAmt(l.debit):'—'}</td>
-            <td class="amt ${l.dr_cr==='CR'?'cr':''}">${l.credit>0?fmtAmt(l.credit):'—'}</td>
-            <td style="font-size:11px;color:var(--muted)">${l.narration||'—'}</td>
-          </tr>`).join('')}</tbody>
-        </table></div>` : '<div class="empty">No ledger entries</div>'}
-      </div>
+      <div class="chd"><h3>Account Payable Ledger</h3></div>
+      <div class="cbd">${ledgerTable(apRows, apOb, apObCr, 'AP')}</div>
+    </div>
+
+    <!-- Advances Ledger -->
+    <div class="card">
+      <div class="chd"><h3>Advances</h3></div>
+      <div class="cbd">${advRows.length ?
+        `<div class="tw"><table>
+          <thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
+          <tbody>
+            <tr style="background:rgba(79,142,247,.06)">
+              <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
+              <td class="amt" style="color:var(--accent)">—</td>
+            </tr>
+            ${(() => {
+              let run = 0;
+              return advRows.map(l => {
+                const dr = parseFloat(l.debit||0);
+                const cr = parseFloat(l.credit||0);
+                run = run + dr - cr;
+                return `<tr>
+                  <td style="white-space:nowrap">${fmtDate(l.date)}</td>
+                  <td style="font-size:11px;color:var(--muted)">${l.narration||'—'}</td>
+                  <td class="amt dr">${dr>0?fmtAmt(dr):'—'}</td>
+                  <td class="amt cr">${cr>0?fmtAmt(cr):'—'}</td>
+                  <td class="amt" style="color:${run>0?'var(--green)':'var(--muted)'}">
+                    ${fmtAmt(Math.abs(run))} <span style="font-size:9px">${run>0?'DR':'CR'}</span>
+                  </td>
+                </tr>`;
+              }).join('');
+            })()}
+            <tr style="background:rgba(34,197,94,.05);font-weight:700">
+              <td colspan="4" style="font-size:11px;color:var(--muted)">Closing Advance Balance</td>
+              <td class="amt" style="color:var(--green);font-weight:700">${fmtAmt(Math.abs(advTotals.dr - advTotals.cr))}</td>
+            </tr>
+          </tbody></table></div>`
+        : '<div class="empty">No advance entries for this vendor</div>'
+      }</div>
     </div>`;
 }
+
 
 // ═══════════════════════════════════════════════════════════════
 // ADD VENDOR
@@ -1150,23 +1402,7 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 <script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
+// PWA install prompt);
   }
 }
 </script>
