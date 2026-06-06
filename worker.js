@@ -647,7 +647,7 @@ async function handleSendOnboarding({ user_id }, sess, env) {
   if (!user) return err('User not found', 404);
   if (!user.google_email) return err('No email set for this user. Add their Google Email first.', 400);
 
-  const RESEND_KEY = env.RESEND_API_KEY || 're_KFacDqW4_D7G81p5gyPh31eiXDcooJ1QB';
+  const RESEND_KEY = env.RESEND_API_KEY || 're_apoTnUiS_NmAvgB2c8w3gsdM8qJCEUx12';
   const APP_URL = env.APP_URL || 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3';
   const role = user.role;
   const appUrl = role === 'Admin' ? `${APP_URL}/admin.html` : `${APP_URL}/supervisor.html`;
