@@ -3,44 +3,41 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
-<title>BlueDoor Accounts</title>
+<title>BlueDoor Accounts — Sign In</title>
 <script src="https://accounts.google.com/gsi/client" async></script>
 <style>
-  :root { --bg:#0d0f14; --card:#161920; --border:#232630; --accent:#4f8ef7; --text:#e2e8f0; --muted:#64748b; }
+  :root{--bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;--text:#e2e8f0;--muted:#64748b;--green:#22c55e;--red:#ef4444}
   *{box-sizing:border-box;margin:0;padding:0}
-  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-    min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
-  .box{background:var(--card);border:1px solid var(--border);border-radius:20px;
-    padding:36px 28px;width:100%;max-width:380px;text-align:center}
-  .logo{font-size:48px;margin-bottom:12px}
-  h1{font-size:22px;font-weight:700;margin-bottom:4px}
-  .sub{color:var(--muted);font-size:13px;margin-bottom:28px}
-  #g-wrap{display:flex;justify-content:center;margin-bottom:16px;min-height:44px}
-  #status{min-height:36px;display:flex;align-items:center;justify-content:center;font-size:13px;gap:8px;margin-bottom:8px}
-  .divider{display:flex;align-items:center;gap:12px;margin:12px 0;color:var(--muted);font-size:12px}
+  body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px}
+  .box{background:var(--card);border:1px solid var(--border);border-radius:20px;padding:36px 28px;width:100%;max-width:360px;text-align:center}
+  .logo{height:52px;width:auto;margin-bottom:16px}
+  h1{font-size:18px;font-weight:700;margin-bottom:3px}
+  .sub{color:var(--muted);font-size:12px;margin-bottom:28px}
+  #g-wrap{display:flex;justify-content:center;margin-bottom:14px;min-height:44px}
+  .divider{display:flex;align-items:center;gap:10px;margin:14px 0;color:var(--muted);font-size:11px}
   .divider::before,.divider::after{content:'';flex:1;height:1px;background:var(--border)}
-  .field{margin-bottom:12px;text-align:left}
-  .field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px}
-  .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);
-    padding:11px 14px;border-radius:9px;font-size:14px;outline:none;transition:border .15s}
+  .field{margin-bottom:11px;text-align:left}
+  .field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+  .field input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:11px 14px;border-radius:9px;font-size:14px;outline:none;transition:border .15s}
   .field input:focus{border-color:var(--accent)}
-  .btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;
-    border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;margin-top:4px}
-  .toggle{font-size:12px;color:var(--accent);cursor:pointer;text-decoration:underline;display:block;margin-top:12px}
-  .spin{display:inline-block;width:16px;height:16px;border:2px solid var(--border);
-    border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite}
+  .btn{width:100%;padding:12px;background:var(--accent);color:#fff;border:none;border-radius:9px;font-size:14px;font-weight:600;cursor:pointer;transition:background .15s}
+  .btn:active{background:#3b7de8}
+  #status{min-height:38px;display:flex;align-items:center;justify-content:center;font-size:13px;gap:8px;margin-top:14px;border-radius:8px;padding:0 8px}
+  .status-err{background:rgba(239,68,68,.08);border:1px solid rgba(239,68,68,.2);color:var(--red)}
+  .status-ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green)}
+  .status-loading{color:var(--muted)}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;flex-shrink:0}
   @keyframes spin{to{transform:rotate(360deg)}}
-  .err{color:#ef4444}.ok{color:#22c55e}
-  #manual{display:none}
-  .version{font-size:11px;color:var(--muted);margin-top:20px}
+  .version{font-size:10px;color:var(--muted);margin-top:20px}
 </style>
 </head>
 <body>
 <div class="box">
-  <div class="logo">&#x1F537;</div>
+  <img src="assets/logo-white.png" class="logo" alt="Blue Door Architects">
   <h1>BlueDoor Accounts</h1>
-  <p class="sub">V3 &mdash; Interior Design Finance</p>
+  <p class="sub">V3 — Sign in to continue</p>
 
+  <!-- Google Sign-In -->
   <div id="g-wrap">
     <div id="g_id_onload"
       data-client_id="449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.googleusercontent.com"
@@ -58,126 +55,117 @@
     </div>
   </div>
 
-  <div id="status"></div>
+  <div class="divider">or</div>
 
-  <div class="divider">or use password</div>
-
-  <div id="manual">
-    <div class="field"><label>Username</label><input id="mu" placeholder="Arpit"></div>
-    <div class="field"><label>Password</label><input id="mp" type="password" placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;"></div>
-    <button class="btn" onclick="manualLogin()">Sign In</button>
+  <!-- Password login -->
+  <div class="field">
+    <label>Username</label>
+    <input id="u" placeholder="Username" autocomplete="username">
   </div>
-  <span class="toggle" onclick="toggleManual()">Sign in with username &amp; password</span>
+  <div class="field">
+    <label>Password</label>
+    <input id="p" type="password" placeholder="••••••••" autocomplete="current-password"
+      onkeydown="if(event.key==='Enter')doLogin()">
+  </div>
+  <button class="btn" onclick="doLogin()">Sign In</button>
 
+  <div id="status" style="display:none"></div>
   <p class="version">BlueDoor Accounts V3</p>
 </div>
 
 <script>
 const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
 function setStatus(msg, type) {
   const el = document.getElementById('status');
-  if (!type) { el.innerHTML = ''; return; }
-  if (type === 'loading') el.innerHTML = '<span class="spin"></span> ' + msg;
-  else if (type === 'err')  el.innerHTML = '<span class="err">&#x26A0; ' + msg + '</span>';
-  else if (type === 'ok')   el.innerHTML = '<span class="ok">&#x2713; ' + msg + '</span>';
+  el.style.display = 'flex';
+  el.className = type === 'err' ? 'status-err' : type === 'ok' ? 'status-ok' : 'status-loading';
+  el.innerHTML = type === 'loading'
+    ? '<span class="spin"></span>' + msg
+    : msg;
+}
+
+function redirectByRole(role) {
+  if (role === 'Admin') {
+    window.location.href = 'admin.html';
+  } else if (role === 'Supervisor') {
+    window.location.href = 'supervisor.html';
+  } else {
+    // Staff or unknown — send to supervisor UI for now
+    window.location.href = 'supervisor.html';
+  }
 }
 
 function handleSuccess(data) {
   localStorage.setItem('bd_token', data.token);
   localStorage.setItem('bd_user', JSON.stringify(data.user));
-  setStatus('Welcome, ' + data.user.username + '!', 'ok');
-  setTimeout(function() {
-    const role = data.user.role;
-    if (role === 'Admin') window.location.href = '/bluedoor-accounts-v3/admin.html';
-    else if (role === 'Supervisor') window.location.href = '/bluedoor-accounts-v3/supervisor.html';
-    else window.location.href = '/bluedoor-accounts-v3/admin.html';
-  }, 600);
+  setStatus('Welcome, ' + data.user.username + '! Redirecting…', 'ok');
+  setTimeout(() => redirectByRole(data.user.role), 600);
 }
 
-// ── Google Sign-In callback (must be global) ──────────────────────────────────
+// Google Sign-In callback — must be global
 function onGoogleLogin(response) {
-  setStatus('Signing in with Google...', 'loading');
+  setStatus('Signing in with Google…', 'loading');
   fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'googleLogin', id_token: response.credential })
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'googleLogin', id_token: response.credential})
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data.ok) { setStatus(data.error || 'Login failed', 'err'); return; }
+  .then(r => r.json())
+  .then(data => {
+    if (!data.ok) { setStatus('⚠ ' + (data.error || 'Login failed'), 'err'); return; }
     handleSuccess(data);
   })
-  .catch(function(e) { setStatus('Network error: ' + e.message, 'err'); });
+  .catch(e => setStatus('⚠ Network error: ' + e.message, 'err'));
 }
 
-// ── Manual login ──────────────────────────────────────────────────────────────
-function manualLogin() {
-  var u = document.getElementById('mu').value.trim();
-  var p = document.getElementById('mp').value;
-  if (!u || !p) { setStatus('Enter username and password', 'err'); return; }
-  setStatus('Signing in...', 'loading');
+// Password login
+function doLogin() {
+  const u = document.getElementById('u').value.trim();
+  const p = document.getElementById('p').value;
+  if (!u || !p) { setStatus('⚠ Enter username and password', 'err'); return; }
+  setStatus('Signing in…', 'loading');
   fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'login', username: u, password: p })
+    headers: {'Content-Type': 'application/json'},
+    body: JSON.stringify({action: 'login', username: u, password: p})
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
-    if (!data.ok) { setStatus(data.error || 'Invalid credentials', 'err'); return; }
+  .then(r => r.json())
+  .then(data => {
+    if (!data.ok) { setStatus('⚠ ' + (data.error || 'Invalid credentials'), 'err'); return; }
     handleSuccess(data);
   })
-  .catch(function(e) { setStatus('Network error: ' + e.message, 'err'); });
+  .catch(e => setStatus('⚠ Network error: ' + e.message, 'err'));
 }
 
-document.getElementById('mp').addEventListener('keydown', function(e) {
-  if (e.key === 'Enter') manualLogin();
-});
-
-function toggleManual() {
-  var f = document.getElementById('manual');
-  var showing = f.style.display === 'block';
-  f.style.display = showing ? 'none' : 'block';
-  document.querySelector('.toggle').textContent = showing
-    ? 'Sign in with username & password'
-    : 'Hide manual login';
-}
-
-// ── Auto-restore valid session ────────────────────────────────────────────────
+// Auto-restore existing session
 (function() {
-  // ?logout=1 means user explicitly signed out — clear and stay here
-  if (window.location.search.indexOf('logout=1') !== -1) {
+  if (window.location.search.includes('logout=1')) {
     localStorage.removeItem('bd_token');
     localStorage.removeItem('bd_user');
     return;
   }
-
-  var token = localStorage.getItem('bd_token');
+  const token = localStorage.getItem('bd_token');
   if (!token) return;
 
-  setStatus('Checking session...', 'loading');
+  setStatus('Checking session…', 'loading');
   fetch(API, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-    body: JSON.stringify({ action: 'getMe' })
+    headers: {'Content-Type': 'application/json', 'X-Session-Token': token},
+    body: JSON.stringify({action: 'getMe'})
   })
-  .then(function(r) { return r.json(); })
-  .then(function(data) {
+  .then(r => r.json())
+  .then(data => {
     if (data.ok && data.user) {
       setStatus('Welcome back, ' + data.user.username + '!', 'ok');
-      setTimeout(function() {
-        window.location.href = data.user.role === 'Admin'
-          ? '/bluedoor-accounts-v3/admin.html'
-          : '/bluedoor-accounts-v3/app.html';
-      }, 600);
+      setTimeout(() => redirectByRole(data.user.role), 600);
     } else {
       localStorage.removeItem('bd_token');
       localStorage.removeItem('bd_user');
-      setStatus('', '');
+      document.getElementById('status').style.display = 'none';
     }
   })
-  .catch(function() { setStatus('', ''); });
+  .catch(() => { document.getElementById('status').style.display = 'none'; });
 })();
 </script>
 </body>
