@@ -150,10 +150,11 @@ async function handleGoogleLogin({ id_token }, env) {
 
     const token = genToken();
     const companies = user.companies ? JSON.parse(user.companies) : [];
-    const normalizedRole = (user.role === 'Supervisor') ? 'Admin' : user.role;
-    const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email };
+    const normalizedRole = (user.role === 'Supervisor') ? 'Supervisor' : user.role;
+    const allowed_vendors = user.allowed_vendors ? JSON.parse(user.allowed_vendors) : [];
+    const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email, allowed_vendors };
     await env.SESSIONS.put(`sess:${token}`, JSON.stringify(sessData), { expirationTtl: 28800 });
-    return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email } });
+    return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email, allowed_vendors } });
   } catch (e) {
     return err('Google auth error: ' + e.message, 500);
   }
@@ -166,10 +167,11 @@ async function handleLogin({ username, password }, env) {
   if (user.password !== password) return err('Invalid credentials', 401);
   const token = genToken();
   const companies = user.companies ? JSON.parse(user.companies) : [];
-  const normalizedRole = (user.role === 'Supervisor') ? 'Admin' : user.role;
-  const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies };
+  const normalizedRole = (user.role === 'Supervisor') ? 'Supervisor' : user.role;
+  const allowed_vendors = user.allowed_vendors ? JSON.parse(user.allowed_vendors) : [];
+  const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies, allowed_vendors };
   await env.SESSIONS.put(`sess:${token}`, JSON.stringify(sessData), { expirationTtl: 28800 });
-  return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies } });
+  return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies, allowed_vendors } });
 }
 async function handleLogout({ token }, req, env) {
   const t = token || req.headers.get('X-Session-Token') || '';
@@ -180,7 +182,7 @@ async function handleLogout({ token }, req, env) {
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ USERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleListUsers(params, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
-  const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies FROM users ORDER BY username').all();
+  const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies, google_email, allowed_vendors FROM users ORDER BY username').all();
   return ok({ users: rows.results });
 }
 async function handleAddUser({ username, password, role, companies = [] }, sess, env) {
@@ -190,7 +192,7 @@ async function handleAddUser({ username, password, role, companies = [] }, sess,
   await env.DB.prepare('INSERT INTO users (user_id, username, password, role, active, companies) VALUES (?,?,?,?,1,?)').bind(uid, username, password, role, JSON.stringify(companies)).run();
   return ok({ user_id: uid });
 }
-async function handleUpdateUser({ user_id, role, active, companies, google_email }, sess, env) {
+async function handleUpdateUser({ user_id, role, active, companies, google_email, allowed_vendors }, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
   const fields = [], vals = [];
@@ -198,6 +200,7 @@ async function handleUpdateUser({ user_id, role, active, companies, google_email
   if (active !== undefined) { fields.push('active = ?'); vals.push(active ? 1 : 0); }
   if (companies !== undefined) { fields.push('companies = ?'); vals.push(JSON.stringify(companies)); }
   if (google_email !== undefined) { fields.push('google_email = ?'); vals.push(google_email); }
+  if (params.allowed_vendors !== undefined) { fields.push('allowed_vendors = ?'); vals.push(JSON.stringify(params.allowed_vendors)); }
   if (!fields.length) return err('Nothing to update');
   vals.push(user_id);
   await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`).bind(...vals).run();
@@ -725,6 +728,7 @@ async function handleMigrate(request, env) {
     const results = {};
     const migrations = [
       "ALTER TABLE entry_types ADD COLUMN hint TEXT DEFAULT ''",
+      "ALTER TABLE users ADD COLUMN allowed_vendors TEXT DEFAULT '[]'",
       "UPDATE users SET role = 'Admin' WHERE role = 'Supervisor'",
     ];
     for (const sql of migrations) {
