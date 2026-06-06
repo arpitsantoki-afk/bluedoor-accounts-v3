@@ -161,6 +161,11 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
+      <!-- Drive connect button -->
+      <button id="drive-connect-btn" onclick="requestDriveAccess()" title="Connect Google Drive for document uploads"
+        style="background:none;border:none;color:var(--accent);cursor:pointer;padding:5px;font-size:11px;white-space:nowrap;display:flex;align-items:center;gap:3px">
+        📁 Connect Drive
+      </button>
       <!-- Sync button -->
       <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
@@ -712,6 +717,8 @@ async function initApp() {
   document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
   await loadMasters();
   renderHome();
+  // Try silent Drive token in background (won't bother user if fails)
+  setTimeout(tryDriveTokenSilent, 2000);
 }
 
 async function loadMasters() {
@@ -1068,31 +1075,50 @@ async function submitEntry() {
   // Upload document to Google Drive if file selected
   if (window._pendingDocFile) {
     const file = window._pendingDocFile;
-    // Get company's drive folder ID
     const co = _cos.find(c => c.company_id === payload.company_id);
     const folderId = co?.drive_folder;
-    if (folderId && folderId.length > 10) { // real folder ID (not a name placeholder)
+    if (folderId && folderId.length > 10) {
       const preview = document.getElementById('doc-preview');
       if (preview) { preview.textContent = '⬆️ Uploading to Drive…'; preview.style.color = 'var(--amber)'; }
       try {
+        // Get token — may need user interaction
+        let token;
+        try {
+          token = await getDriveToken();
+        } catch(authErr) {
+          // Need user to grant access — ask them to tap Connect Drive
+          if (preview) {
+            preview.textContent = '⚠️ Drive not connected — tap "Connect Drive" in top bar, then resubmit';
+            preview.style.color = 'var(--red)';
+          }
+          toast('Connect Drive first — tap 📁 Connect Drive in top bar', 'err');
+          addDebug('Drive auth required before upload', 'warn');
+          // Still submit entry, just without document
+          payload.drive_file_url = file.name;
+          window._pendingDocFile = null;
+          // Submit entry without doc and return
+          const r = await api('submitPending', payload);
+          if (r.ok) { toast('Entry submitted (without document) ✓'); resetForm(); showView('home'); }
+          else toast(r.error || 'Error submitting', 'err');
+          return;
+        }
         const vendorId = payload.vendor_id || '';
         const vendor = _vendors.find(v => v.vendor_id === vendorId);
         const filename = buildDriveFilename(_selType.et_key, vendor?.vendor_name || vendorId, payload.date);
-        const ext = file.name.split('.').pop();
+        const ext = file.name.split('.').pop() || 'jpg';
         const result = await uploadToDriveFolder(file, folderId, `${filename}.${ext}`);
         payload.drive_file_url = result.url;
         addDebug(`Drive upload: ${result.name}`, 'ok');
-        if (preview) { preview.textContent = `✅ ${result.name} uploaded to Drive`; preview.style.color = 'var(--green)'; }
-        toast(`📎 Uploaded: ${result.name}`);
+        if (preview) { preview.textContent = `✅ ${result.name} → Drive`; preview.style.color = 'var(--green)'; }
+        toast(`📎 ${result.name} uploaded`);
       } catch(e) {
-        addDebug(`Drive upload failed: ${e.message}`, 'err');
-        toast('Drive upload failed — entry saved without document', 'err');
-        payload.drive_file_url = file.name; // fallback: store filename
+        addDebug(`Drive upload error: ${e.message}`, 'err');
+        toast('Upload failed — entry saved without document', 'err');
+        payload.drive_file_url = file.name;
       }
     } else {
-      // No valid folder ID — just note the filename
       payload.drive_file_url = file.name;
-      addDebug('No Drive folder configured for this company', 'warn');
+      addDebug('No Drive folder ID for this company — filename stored', 'warn');
     }
     window._pendingDocFile = null;
   }
@@ -1527,40 +1553,87 @@ const DRIVE_CLIENT_ID = '449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.goog
 const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
 let _driveToken = null;
 
-async function getDriveToken() {
-  if (_driveToken && _driveToken.expires > Date.now()) return _driveToken.token;
+function _openDriveAuth(prompt='none') {
   return new Promise((resolve, reject) => {
-    // Try silent auth first
-    const silentUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${DRIVE_CLIENT_ID}&redirect_uri=${encodeURIComponent('https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/drive_callback.html')}&response_type=token&scope=${encodeURIComponent(DRIVE_SCOPE)}&prompt=none`;
-    const popup = window.open(silentUrl, 'drive_auth', 'width=500,height=600');
+    const url = `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${DRIVE_CLIENT_ID}` +
+      `&redirect_uri=${encodeURIComponent('https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/drive_callback.html')}` +
+      `&response_type=token` +
+      `&scope=${encodeURIComponent(DRIVE_SCOPE)}` +
+      (prompt ? `&prompt=${prompt}` : '');
+    const popup = window.open(url, 'drive_auth', 'width=500,height=650,left=200,top=100');
+    if (!popup) { reject(new Error('Popup blocked — allow popups for this site')); return; }
     const handler = (e) => {
       if (e.origin !== 'https://arpitsantoki-afk.github.io') return;
       window.removeEventListener('message', handler);
+      clearTimeout(timer);
       if (e.data?.type === 'drive_token') {
         _driveToken = { token: e.data.token, expires: Date.now() + (e.data.expires_in - 60) * 1000 };
-        if (popup && !popup.closed) popup.close();
+        if (!popup.closed) popup.close();
+        updateDriveBtn(true);
         resolve(e.data.token);
-      } else if (e.data?.type === 'drive_error') {
-        // Silent failed — try full consent flow
-        const fullUrl = `https://accounts.google.com/o/oauth2/v2/auth?client_id=${DRIVE_CLIENT_ID}&redirect_uri=${encodeURIComponent('https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/drive_callback.html')}&response_type=token&scope=${encodeURIComponent(DRIVE_SCOPE)}`;
-        const popup2 = window.open(fullUrl, 'drive_auth', 'width=500,height=600');
-        const handler2 = (ev) => {
-          if (ev.origin !== 'https://arpitsantoki-afk.github.io') return;
-          window.removeEventListener('message', handler2);
-          if (ev.data?.type === 'drive_token') {
-            _driveToken = { token: ev.data.token, expires: Date.now() + (ev.data.expires_in - 60) * 1000 };
-            resolve(ev.data.token);
-          } else {
-            reject(new Error(ev.data?.error || 'Drive auth failed'));
-          }
-        };
-        window.addEventListener('message', handler2);
-        setTimeout(() => { window.removeEventListener('message', handler2); reject(new Error('Auth timeout')); }, 120000);
+      } else {
+        reject(new Error(e.data?.error || 'Drive auth failed'));
       }
     };
     window.addEventListener('message', handler);
-    setTimeout(() => { window.removeEventListener('message', handler); reject(new Error('Auth timeout')); }, 30000);
+    const timer = setTimeout(() => {
+      window.removeEventListener('message', handler);
+      reject(new Error('timeout'));
+    }, prompt === 'none' ? 8000 : 120000);
   });
+}
+
+async function getDriveToken() {
+  if (_driveToken && _driveToken.expires > Date.now()) return _driveToken.token;
+  // Try silent first (no prompt — uses existing Google session)
+  try {
+    return await _openDriveAuth('none');
+  } catch(e) {
+    // Silent failed — need user interaction
+    throw new Error('drive_auth_required');
+  }
+}
+
+async function requestDriveAccess() {
+  // Called by user clicking the Drive connect button — shows consent screen
+  try {
+    updateDriveBtn('loading');
+    await _openDriveAuth('select_account');
+    toast('Google Drive connected ✓');
+    addDebug('Drive access granted', 'ok');
+  } catch(e) {
+    toast('Drive access denied: ' + e.message, 'err');
+    addDebug('Drive auth failed: ' + e.message, 'err');
+    updateDriveBtn(false);
+  }
+}
+
+function updateDriveBtn(state) {
+  const btn = document.getElementById('drive-connect-btn');
+  if (!btn) return;
+  if (state === 'loading') {
+    btn.textContent = '⏳ Connecting…';
+    btn.style.color = 'var(--amber)';
+  } else if (state === true) {
+    btn.textContent = '✅ Drive';
+    btn.style.color = 'var(--green)';
+    btn.style.opacity = '0.7';
+  } else {
+    btn.textContent = '📁 Connect Drive';
+    btn.style.color = 'var(--accent)';
+    btn.style.opacity = '1';
+  }
+}
+
+async function tryDriveTokenSilent() {
+  try {
+    await _openDriveAuth('none');
+    addDebug('Drive token refreshed silently', 'ok');
+  } catch(e) {
+    updateDriveBtn(false);
+    addDebug('Drive needs authorization — tap "Connect Drive"', 'warn');
+  }
 }
 
 async function uploadToDriveFolder(file, folderId, filename) {
