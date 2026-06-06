@@ -1039,7 +1039,7 @@ async function submitEntry() {
   if (!co)     { toast('Company required', 'err'); return; }
 
   // Doc required for both entry types
-  if (!docB64 && !docUrl) { toast('Document required — upload file or paste Drive link', 'err'); return; }
+  if (!window._pendingDocFile && !docUrl) { toast('Document required — upload file or paste Drive link', 'err'); return; }
 
   const payload = {
     date, fyid: curFY, entry_type: _selType.et_key,
