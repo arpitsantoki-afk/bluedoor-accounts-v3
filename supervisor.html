@@ -728,14 +728,14 @@ async function loadMasters() {
     api('listCostHeads'),
     api('listEntryTypes'),
     api('listProjects', { fyid: curFY }),
-    api('listCOA')
+    api('listAccounts')
   ]);
   _cos = cos.companies || [];
   _vendors = vendors.vendors || [];
   _chs = chs.cost_heads || [];
   _ets = ets.entry_types || [];
   _projs = projs.projects || [];
-  _coa = coa.accounts || coa.chart_of_accounts || [];
+  _coa = coa.accounts || [] || [];
 
   // Load allowed vendors from user detail (stored in companies field as workaround,
   // or via a convention: vendor IDs whose ledger is visible stored as KV in supervisor profile)
