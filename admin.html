@@ -193,8 +193,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
     <div style="padding:4px 8px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 6px;font-size:13px">
         <span>🌙 Dark Mode</span>
-        <button id="pwa-install-btn" onclick="showInstallPrompt()" style="display:none;align-items:center;gap:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap">⬇️ Install</button>
-      <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
           <input type="checkbox" id="theme-toggle" checked onchange="toggleTheme(this.checked)" style="opacity:0;width:0;height:0">
           <span id="theme-track" style="position:absolute;inset:0;background:var(--accent);border-radius:20px;transition:.2s">
             <span id="theme-thumb" style="position:absolute;left:2px;bottom:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;transform:translateX(16px)"></span>
@@ -2681,7 +2680,7 @@ function showUserForm() {
       <input id="uf-pass" type="text" placeholder="Leave blank to auto-generate">
     </div>
     <div class="field"><label>Companies</label>
-      <div id="uf-cos">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px"><input type="checkbox" class="uf-co-cb" value="${c.company_id}" style="accent-color:var(--accent)"> ${c.company_name}</label>`).join('')}</div>
+      <div id="uf-cos" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px"><input type="checkbox" class="uf-co-cb" value="${c.company_id}" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"> ${c.company_name}</label>`).join('')}</div>
     </div>
     <div class="row mt3">
       <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create & Send Welcome Mail</button>
@@ -2729,7 +2728,7 @@ function showEditUser(uid) {
       <input id="eu-pass" type="text" placeholder="Leave blank to keep current">
     </div>
     <div class="field"><label>Companies</label>
-      <div>${_cos.map(c=>`<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px"><input type="checkbox" class="eu-co-cb" value="${c.company_id}" ${cos.includes(c.company_id)?'checked':''} style="accent-color:var(--accent)"> ${c.company_name}</label>`).join('')}</div>
+      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px"><input type="checkbox" class="eu-co-cb" value="${c.company_id}" ${cos.includes(c.company_id)?'checked':''} style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"> ${c.company_name}</label>`).join('')}</div>
     </div>
     <div class="row mt3">
       <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditUser('${u.user_id}')">Save</button>
@@ -3136,20 +3135,7 @@ if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
-}
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault(); _installPrompt = e;
-  const b = document.getElementById('pwa-install-btn');
-  if (b) b.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  _installPrompt = null;
-  const b = document.getElementById('pwa-install-btn');
-  if (b) b.style.display = 'none';
-});
-function showInstallPrompt() {
-  if (_installPrompt) { _installPrompt.prompt(); _installPrompt.userChoice.then(() => { _installPrompt = null; }); }
+}); }
 }
 </script>
 
