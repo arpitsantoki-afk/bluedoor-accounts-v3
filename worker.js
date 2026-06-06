@@ -837,6 +837,18 @@ async function handleMigrate(request, env) {
   }
 
   // wipe_all: delete all data from all tables
+  if (body.step === 'delete_row') {
+    const { table, pk_col, pk_val } = body;
+    if (!table || !pk_col || pk_val === undefined) return err('table, pk_col, pk_val required');
+    // Protect critical tables
+    const PROTECTED = ['users'];
+    if (PROTECTED.includes(table)) return err(`Table '${table}' is protected — use admin UI to manage`);
+    try {
+      await env.DB.prepare(`DELETE FROM ${table} WHERE ${pk_col} = ?`).bind(pk_val).run();
+      return ok({ deleted: true, table, pk_val });
+    } catch(e) { return err('Delete failed: ' + e.message); }
+  }
+
   if (body.step === 'wipe_all') {
     const tables = ['ledger','entries','pending_entries','opening_balances','vendor_opening_balances','vendors','projects','cost_heads','entry_types','chart_of_accounts','companies']; // users intentionally excluded
     const results = {};
