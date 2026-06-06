@@ -190,7 +190,8 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
     <div style="padding:4px 8px">
       <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 6px;font-size:13px">
         <span>🌙 Dark Mode</span>
-        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+        <button id="pwa-install-btn" onclick="showInstallPrompt()" style="display:none;align-items:center;gap:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap">⬇️ Install</button>
+      <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
           <input type="checkbox" id="theme-toggle" checked onchange="toggleTheme(this.checked)" style="opacity:0;width:0;height:0">
           <span id="theme-track" style="position:absolute;inset:0;background:var(--accent);border-radius:20px;transition:.2s">
             <span id="theme-thumb" style="position:absolute;left:2px;bottom:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;transform:translateX(16px)"></span>
@@ -1233,7 +1234,9 @@ function printLedgerPDF() {
   </div>
   ${accountSections}
   
+
 <script>
+// Service Worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
@@ -1241,8 +1244,7 @@ if ('serviceWorker' in navigator) {
       .catch(e => console.log('SW failed:', e));
   });
 }
-</script>
-<script>
+
 // PWA install prompt
 let _installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
@@ -1284,36 +1286,6 @@ function printLedger() {
   const w=window.open('','_blank');
   const rows=_ledgerRows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.company_id}</td><td>${r.ac_name}</td><td>${r.narration||''}</td><td style="text-align:right">${r.debit>0?'₹'+fmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?'₹'+fmt(r.credit):''}</td></tr>`).join('');
   w.document.write(`<html><head><title>Ledger ${curFY}</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}th{background:#f5f5f5}</style></head><body><h2>BlueDoor Ledger — ${curFY}</h2><table><thead><tr><th>Date</th><th>Co</th><th>Account</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody></table>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);
   w.print();
 }
@@ -2017,36 +1989,6 @@ function exportOBXLS(){
 function printOB(){
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Opening Balances ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Opening & Closing Balances — ${curFY}</h2>${document.getElementById('ob-accounts').innerHTML}${document.getElementById('ob-vendors').innerHTML}
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);
   w.print();
 }
@@ -2241,36 +2183,6 @@ function exportPLXLS(){
 function printPL(){
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>P&L ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}h2,h3{margin:10px 0 5px}</style></head><body><h2>Profit & Loss Statement — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);
   w.print();
 }
@@ -2350,36 +2262,6 @@ function exportBSXLS(){
   XLSX.writeFile(wb,`BalanceSheet_${curFY}.xlsx`);
 }
 function printBS(){const w=window.open('','_blank');w.document.write(`<html><head><title>Balance Sheet ${curFY}</title><style>body{font-family:Arial;font-size:11px}</style></head><body><h2>Balance Sheet — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);w.print();}
 
 function renderVendorRptPicker(el){
@@ -2466,36 +2348,6 @@ async function loadVendorRpt(vid){
 function printVendorRpt(){
   const w=window.open('','_blank');
   w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>');
   w.print();
 }
@@ -2674,36 +2526,6 @@ function printProjectRpt(){
   <tr><td>(j) Vendor Advances Paid</td><td class="cr">₹${fmt(s.totalAdvPaid)}</td></tr>
   <tr><td><strong>(k) Net Cash Flow</strong></td><td class="${s.cashFlow>=0?'dr':'cr'}"><strong>₹${fmt(Math.abs(s.cashFlow))} ${s.cashFlow>=0?'surplus':'deficit'}</strong></td></tr>
   </tbody></table>
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);w.print();
 }
 function exportProjXLS(pid){
@@ -2750,36 +2572,6 @@ function exportTrialXLS(){
   XLSX.writeFile(wb,`TrialBalance_${curFY}.xlsx`);
 }
 function printTrial(){const w=window.open('','_blank');w.document.write(`<html><head><title>Trial Balance ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Trial Balance — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
-<script>
-if ('serviceWorker' in navigator) {
-  window.addEventListener('load', () => {
-    navigator.serviceWorker.register('sw.js')
-      .then(r => console.log('SW registered:', r.scope))
-      .catch(e => console.log('SW failed:', e));
-  });
-}
-</script>
-<script>
-// PWA install prompt
-let _installPrompt = null;
-window.addEventListener('beforeinstallprompt', e => {
-  e.preventDefault();
-  _installPrompt = e;
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'flex';
-});
-window.addEventListener('appinstalled', () => {
-  const btn = document.getElementById('pwa-install-btn');
-  if (btn) btn.style.display = 'none';
-  _installPrompt = null;
-});
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-</script>
 </body></html>`);w.print();}
 
 // ═══════════════════════════════════════════════════════════════
@@ -3352,9 +3144,9 @@ async function runImport(){
   loadMasters();
 }
 function clearImport(){_wb=null;_preview=null;document.getElementById('imp-prev')?.classList.add('hidden');document.getElementById('imp-log')?.classList.add('hidden');document.getElementById('imp-file').value='';}
-</script>
 
-<script>
+
+// ── PWA: Service Worker + Install Prompt ─────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('sw.js')
@@ -3362,9 +3154,6 @@ if ('serviceWorker' in navigator) {
       .catch(e => console.log('SW failed:', e));
   });
 }
-</script>
-<script>
-// PWA install prompt
 let _installPrompt = null;
 window.addEventListener('beforeinstallprompt', e => {
   e.preventDefault();
@@ -3384,5 +3173,6 @@ function showInstallPrompt() {
   }
 }
 </script>
+
 </body>
 </html>
