@@ -2,6 +2,9 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
 <link rel="manifest" href="manifest-admin.json">
 <link rel="apple-touch-icon" href="icons/icon-192x192.png">
@@ -468,6 +471,16 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
 <div id="toast"></div>
 
+<script>
+// Force unregister old broken service worker versions
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(regs => {
+    regs.forEach(r => {
+      r.scriptURL && console.log('Active SW:', r.scriptURL);
+    });
+  });
+}
+</script>
 <script>
 // ═══════════════════════════════════════════════════════════════
 // CONFIG & STATE
