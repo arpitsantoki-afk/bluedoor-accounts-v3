@@ -3057,19 +3057,23 @@ function rawRenderTable(rows){
   if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
   const isRO=RAW_READONLY.has(_rawTbl);
   const pk=RAW_PK[_rawTbl]||'id';
+  // Store rows in a map so onclick can look up by PK safely
+  window._rawRowMap={};
+  rows.forEach(r=>{ window._rawRowMap[String(r[pk]??'')]=r; });
   outEl.innerHTML=`<div class="tw"><table>
     <thead><tr>
       ${_rawCols.map(c=>`<th style="font-size:10px">${c}</th>`).join('')}
       ${isRO?'':`<th style="font-size:10px;width:70px">Actions</th>`}
     </tr></thead>
     <tbody>${rows.map(r=>{
-      const pkVal=r[pk]??'';
+      const pkVal=String(r[pk]??'');
+      const safePk=pkVal.replace(/'/g,"\'");
       return `<tr id="raw-row-${pkVal}">
-        ${_rawCols.map(c=>`<td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px" title="${s(r[c])}">${s(r[c])}</td>`).join('')}
+        ${_rawCols.map(c=>`<td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px" title="${s(r[c]).replace(/"/g,'&quot;')}">${s(r[c])}</td>`).join('')}
         ${isRO?'':`<td>
           <div style="display:flex;gap:3px">
-            <button class="btn btn-xs btn-o" onclick="rawEditRow(${JSON.stringify(JSON.stringify(r))})" style="padding:2px 6px">✏️</button>
-            <button class="btn btn-xs" onclick="rawDeleteRow('${pkVal}')" style="padding:2px 6px;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)">🗑</button>
+            <button class="btn btn-xs btn-o" onclick="rawEditRow('${safePk}')" style="padding:2px 6px">✏️</button>
+            <button class="btn btn-xs" onclick="rawDeleteRow('${safePk}')" style="padding:2px 6px;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)">🗑</button>
           </div>
         </td>`}
       </tr>`;
@@ -3083,8 +3087,9 @@ function rawSearch(q){
   rawRenderTable(_rawRows.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(lq))));
 }
 
-function rawEditRow(rowJson){
-  const row=JSON.parse(rowJson);
+function rawEditRow(pkVal){
+  const row=window._rawRowMap?.[pkVal];
+  if(!row){toast('Row not found — refresh the table','err');return;}
   const pk=RAW_PK[_rawTbl]||'id';
   const fields=Object.keys(row).map(k=>`
     <div class="field">
@@ -3095,13 +3100,14 @@ function rawEditRow(rowJson){
   showEditModal(`Edit Row — ${_rawTbl}`,`
     <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
     <div class="row mt3">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit(${JSON.stringify(JSON.stringify(row))})">Save</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit('')">Save</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
     </div>`);
 }
 
-async function rawSaveEdit(rowJson){
-  const orig=JSON.parse(rowJson);
+async function rawSaveEdit(pkVal){
+  const orig=window._rawRowMap?.[pkVal];
+  if(!orig){toast('Original row not found','err');return;}
   const pk=RAW_PK[_rawTbl]||'id';
   const updated={};
   Object.keys(orig).forEach(k=>{
