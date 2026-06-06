@@ -149,9 +149,9 @@ async function handleGoogleLogin({ id_token }, env) {
     if (!user) return err('No account linked to ' + email + '. Contact admin.', 401);
 
     const token = genToken();
-    const companies = user.companies ? JSON.parse(user.companies) : [];
+    const companies = (() => { try { const v = user.companies; if (!v) return []; if (v.startsWith('[')) return JSON.parse(v); return v.split(',').map(s=>s.trim()).filter(Boolean); } catch(e) { return []; } })();
     const normalizedRole = (user.role === 'Supervisor') ? 'Supervisor' : user.role;
-    const allowed_vendors = user.allowed_vendors ? JSON.parse(user.allowed_vendors) : [];
+    const allowed_vendors = (() => { try { return user.allowed_vendors ? JSON.parse(user.allowed_vendors) : []; } catch(e) { return []; } })();
     const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email, allowed_vendors };
     await env.SESSIONS.put(`sess:${token}`, JSON.stringify(sessData), { expirationTtl: 28800 });
     return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies, email, allowed_vendors } });
@@ -166,9 +166,9 @@ async function handleLogin({ username, password }, env) {
   if (!user) return err('Invalid credentials', 401);
   if (user.password !== password) return err('Invalid credentials', 401);
   const token = genToken();
-  const companies = user.companies ? JSON.parse(user.companies) : [];
+  const companies = (() => { try { const v = user.companies; if (!v) return []; if (v.startsWith('[')) return JSON.parse(v); return v.split(',').map(s=>s.trim()).filter(Boolean); } catch(e) { return []; } })();
   const normalizedRole = (user.role === 'Supervisor') ? 'Supervisor' : user.role;
-  const allowed_vendors = user.allowed_vendors ? JSON.parse(user.allowed_vendors) : [];
+  const allowed_vendors = (() => { try { return user.allowed_vendors ? JSON.parse(user.allowed_vendors) : []; } catch(e) { return []; } })();
   const sessData = { user_id: user.user_id, username: user.username, role: normalizedRole, companies, allowed_vendors };
   await env.SESSIONS.put(`sess:${token}`, JSON.stringify(sessData), { expirationTtl: 28800 });
   return ok({ token, user: { user_id: user.user_id, username: user.username, role: normalizedRole, companies, allowed_vendors } });
