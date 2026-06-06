@@ -3116,13 +3116,6 @@ async function runImport(){
 function clearImport(){_wb=null;_preview=null;document.getElementById('imp-prev')?.classList.add('hidden');document.getElementById('imp-log')?.classList.add('hidden');document.getElementById('imp-file').value='';}
 
 
-function showInstallPrompt() {
-  if (_installPrompt) {
-    _installPrompt.prompt();
-    _installPrompt.userChoice.then(() => { _installPrompt = null; });
-  }
-}
-
 // ── PWA ──────────────────────────────────────────────────────────────────────
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
