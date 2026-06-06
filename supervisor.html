@@ -130,6 +130,17 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
   table{font-size:11px}
   td,th{padding:6px 7px}
 }
+
+/* Debug console */
+#debug-panel{position:fixed;bottom:var(--nav-h);left:0;right:0;background:#0a0c10;border-top:2px solid var(--accent);z-index:300;height:200px;display:none;flex-direction:column}
+#debug-panel.open{display:flex}
+#debug-toolbar{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
+#debug-log{flex:1;overflow-y:auto;padding:6px 10px;font-family:monospace;font-size:11px}
+#debug-log .dl{padding:2px 0;border-bottom:1px solid rgba(35,38,48,.5)}
+#debug-log .dl-err{color:var(--red)}
+#debug-log .dl-ok{color:var(--green)}
+#debug-log .dl-info{color:var(--accent)}
+#debug-log .dl-warn{color:var(--amber)}
 </style>
 </head>
 <body>
@@ -148,6 +159,14 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <button id="pwa-install-btn" onclick="showInstallPrompt()" style="display:none;align-items:center;gap:5px;background:rgba(79,142,247,.12);border:1px solid rgba(79,142,247,.2);color:var(--accent);padding:4px 10px;border-radius:8px;font-size:11px;cursor:pointer;white-space:nowrap">⬇️ Install</button>
+            <!-- Sync button -->
+      <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
+      </button>
+      <!-- Debug button -->
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="toggleDebug()" title="Debug console">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><path d="M12 8v4M12 16h.01"/></svg>
+      </button>
       <!-- Theme toggle -->
       <label style="display:flex;align-items:center;gap:5px;cursor:pointer">
         <span style="font-size:10px;color:var(--muted)">🌙</span>
@@ -166,7 +185,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
   </div>
 
   <!-- Company menu -->
-  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);left:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
     <div id="co-list"></div>
   </div>
 
@@ -296,8 +315,12 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="cbd">
           <div class="g2">
             <div class="field">
-              <label>Month</label>
-              <input type="month" id="pc-month" onchange="renderPetty()">
+              <label>Financial Year</label>
+              <select id="pc-fy" onchange="renderPetty()">
+                <option value="FY2627">FY 2026-27</option>
+                <option value="FY2526">FY 2025-26</option>
+                <option value="FY2425">FY 2024-25</option>
+              </select>
             </div>
             <div class="field">
               <label>Company</label>
@@ -308,7 +331,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
           </div>
           <div class="row">
             <button class="btn btn-o btn-sm" onclick="renderPetty()">🔄 Refresh</button>
-            <button class="btn btn-p btn-sm" onclick="printVoucher()">🖨️ Monthly Voucher</button>
+            <button class="btn btn-p btn-sm" onclick="printVoucher()">🖨️ Voucher</button>
           </div>
         </div>
       </div>
@@ -431,6 +454,16 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-4 3.6-7 8-7s8 3 8 7"/></svg>
       Vendors</button>
   </div>
+
+  <!-- Debug panel -->
+  <div id="debug-panel">
+    <div id="debug-toolbar">
+      <span style="font-size:11px;color:var(--accent);font-weight:600">🐞 Debug Console</span>
+      <button onclick="clearDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">Clear</button>
+      <button onclick="toggleDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">✕</button>
+    </div>
+    <div id="debug-log"></div>
+  </div>
 </div><!-- /app -->
 
 <!-- Confirm modal -->
@@ -469,8 +502,14 @@ async function api(action, params = {}) {
       headers: { 'Content-Type': 'application/json', 'X-Session-Token': S.token || '' },
       body: JSON.stringify({ action, ...params })
     });
-    return await r.json();
-  } catch(e) { return { ok: false, error: e.message }; }
+    const data = await r.json();
+    if (!data.ok) addDebug(`${action}: ${data.error || 'failed'}`, 'err');
+    else addDebug(`${action}: ok`, 'ok');
+    return data;
+  } catch(e) {
+    addDebug(`${action} network: ${e.message}`, 'err');
+    return { ok: false, error: e.message };
+  }
 }
 
 // ═══════════════════════════════════════════════════════════════
@@ -545,6 +584,13 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════════════════════════════
 // AUTH
 // ═══════════════════════════════════════════════════════════════
+async function doLogout() {
+  await api('logout').catch(() => {});
+  localStorage.removeItem('bd_token');
+  localStorage.removeItem('bd_user');
+  window.location.replace('index.html');
+}
+
 function checkSession() {
   const token = localStorage.getItem('bd_token');
   if (!token) { window.location.replace('index.html'); return; }
@@ -829,88 +875,88 @@ async function submitEntry() {
 // PETTY CASH LEDGER
 // ═══════════════════════════════════════════════════════════════
 function initPettyMonth() {
-  const el = document.getElementById('pc-month');
-  if (!el.value) {
-    const now = new Date();
-    el.value = `${now.getFullYear()}-${String(now.getMonth()+1).padStart(2,'0')}`;
-  }
+  const el = document.getElementById('pc-fy');
+  if (el) el.value = curFY;
 }
 
 async function renderPetty() {
-  const monthVal = document.getElementById('pc-month').value; // "2026-05"
+  const fy = document.getElementById('pc-fy')?.value || curFY;
   const co = document.getElementById('pc-co').value;
-  if (!monthVal) return;
 
-  const [year, month] = monthVal.split('-').map(Number);
-  const dateFrom = `${year}-${String(month).padStart(2,'0')}-01`;
-  const lastDay = new Date(year, month, 0).getDate();
-  const dateTo = `${year}-${String(month).padStart(2,'0')}-${String(lastDay).padStart(2,'0')}`;
+  const summaryEl = document.getElementById('petty-summary-body');
+  const tbl = document.getElementById('petty-table');
+  summaryEl.innerHTML = '<div class="empty"><span class="spin"></span> Loading…</div>';
+  tbl.innerHTML = '';
 
-  const me = S.user?.username || '';
-
-  // Get ALL petty cash entries (approved) in range — only mine
-  const [entries, pending, ob] = await Promise.all([
-    api('listEntries', { fyid: curFY, company_id: co, entry_type: 'expense_petty_cash', date_from: dateFrom, date_to: dateTo, limit: 500 }),
-    api('listPending', { fyid: curFY, company_id: co, submitted_by: me }),
-    api('listOpeningBalances', { fyid: curFY, company_id: co })
+  // Fetch full FY petty cash ledger entries + opening balance
+  const [ledgerRes, obRes] = await Promise.all([
+    api('getLedger', { fyid: fy, company_id: co, ac_code: 'PETTY_CASH' }),
+    api('listOpeningBalances', { fyid: fy, company_id: co })
   ]);
 
-  const myEntries = (entries.entries || []).filter(e => e.created_by === me);
-  const myPending = (pending.pending || []).filter(p => p.entry_type === 'expense_petty_cash');
+  addDebug(`Petty ledger: ${JSON.stringify(ledgerRes).substring(0,80)}`);
 
-  // Find petty cash opening balance
-  const pettyCashAc = 'PETTY_CASH';
-  const obRow = (ob.opening_balances || []).find(r => r.ac_key === pettyCashAc && (!co || r.company_id === co));
+  const ledgerRows = (ledgerRes.ledger || []);
+  const obRow = (obRes.opening_balances || []).find(r =>
+    (r.ac_key === 'PETTY_CASH' || r.ac_code === 'PETTY_CASH') && (!co || r.company_id === co)
+  );
+
   const obAmt = obRow ? parseFloat(obRow.amount || 0) : 0;
   const obDrCr = (obRow?.dr_cr || 'DR').toUpperCase();
   const openingBalance = obDrCr === 'DR' ? obAmt : -obAmt;
 
-  const total = myEntries.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
-  const closing = openingBalance - total;
+  // Calculate totals from ledger
+  let totalDr = 0, totalCr = 0;
+  ledgerRows.forEach(r => {
+    totalDr += parseFloat(r.debit || 0);
+    totalCr += parseFloat(r.credit || 0);
+  });
 
-  // Summary
-  const monthLabel = new Date(year, month-1, 1).toLocaleString('en-IN', { month: 'long', year: 'numeric' });
-  document.getElementById('voucher-period').textContent = monthLabel;
+  // For petty cash: debits = replenishment (inflow), credits = expenses (outflow)
+  const netExpenses = totalCr - totalDr;
+  const closingBalance = openingBalance - netExpenses;
 
-  document.getElementById('petty-summary-body').innerHTML = `
+  // Summary cards
+  summaryEl.innerHTML = `
     <div class="g2" style="gap:12px">
       <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(openingBalance)}</div></div>
-      <div class="stat"><div class="sl">Total Expenses</div><div class="sv" style="color:var(--red)">${fmtAmt(total)}</div></div>
-      <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closing>=0?'var(--green)':'var(--red)'}">${fmtAmt(closing)}</div></div>
-      <div class="stat"><div class="sl">Entries (${monthLabel})</div><div class="sv">${myEntries.length}</div></div>
+      <div class="stat"><div class="sl">Total Expenses</div><div class="sv" style="color:var(--red)">${fmtAmt(netExpenses)}</div></div>
+      <div class="stat"><div class="sl">Replenishments</div><div class="sv" style="color:var(--green)">${fmtAmt(totalDr)}</div></div>
+      <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closingBalance>=0?'var(--green)':'var(--red);font-size:16px'}">${fmtAmt(closingBalance)}</div></div>
     </div>`;
 
-  // Table
-  const tbl = document.getElementById('petty-table');
-  if (!myEntries.length) {
-    tbl.innerHTML = '<div class="empty">No petty cash entries for this period</div>';
+  // Full ledger table
+  if (!ledgerRows.length) {
+    tbl.innerHTML = '<div class="empty">No petty cash ledger entries for this FY</div>';
     return;
   }
+
   let running = openingBalance;
   tbl.innerHTML = `<div class="tw"><table>
-    <thead><tr><th>#</th><th>Date</th><th>Cost Head</th><th>Narration</th><th>Amount</th><th>Balance</th></tr></thead>
+    <thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th><th>Balance</th></tr></thead>
     <tbody>
-      <tr style="background:rgba(79,142,247,.05)">
-        <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
+      <tr style="background:rgba(79,142,247,.06)">
+        <td colspan="3" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance</td>
         <td></td>
-        <td class="amt" style="color:var(--accent)">${fmtAmt(running)}</td>
+        <td class="amt" style="color:var(--accent);font-weight:700">${fmtAmt(running)}</td>
       </tr>
-      ${myEntries.map((e, i) => {
-        const ch = _chs.find(c => c.ch_id === e.cost_head_id);
-        running -= parseFloat(e.amount || 0);
+      ${ledgerRows.map(r => {
+        const dr = parseFloat(r.debit || 0);
+        const cr = parseFloat(r.credit || 0);
+        running = running + dr - cr;
         return `<tr>
-          <td style="color:var(--muted)">${i+1}</td>
-          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
-          <td>${ch?.ch_name || '—'}</td>
-          <td style="font-size:11px;color:var(--muted)">${e.narration||'—'}</td>
-          <td class="amt cr">${fmtAmt(e.amount)}</td>
+          <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+          <td style="font-size:11px;color:var(--muted)">${r.narration||r.ac_name||'—'}</td>
+          <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
+          <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
           <td class="amt" style="color:${running>=0?'var(--green)':'var(--red)'}">${fmtAmt(running)}</td>
         </tr>`;
       }).join('')}
-      <tr style="background:rgba(34,197,94,.05)">
-        <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Closing Balance</td>
-        <td class="amt cr">${fmtAmt(total)}</td>
-        <td class="amt" style="color:${closing>=0?'var(--green)':'var(--red)'}; font-weight:700">${fmtAmt(closing)}</td>
+      <tr style="background:rgba(34,197,94,.05);font-weight:700">
+        <td colspan="2" style="font-size:11px;color:var(--muted)">Closing Balance</td>
+        <td class="amt dr">${fmtAmt(totalDr)}</td>
+        <td class="amt cr">${fmtAmt(netExpenses)}</td>
+        <td class="amt" style="color:${closingBalance>=0?'var(--green)':'var(--red)'}; font-weight:700">${fmtAmt(closingBalance)}</td>
       </tr>
     </tbody></table></div>`;
 }
@@ -1045,6 +1091,44 @@ async function loadVendorList() {
 // ═══════════════════════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════════════════════
+
+// ── DEBUG CONSOLE ─────────────────────────────────────────────────────────────
+let _debugOpen = false;
+function toggleDebug() {
+  _debugOpen = !_debugOpen;
+  document.getElementById('debug-panel').classList.toggle('open', _debugOpen);
+}
+function clearDebug() {
+  document.getElementById('debug-log').innerHTML = '';
+}
+function addDebug(msg, type='info') {
+  const el = document.getElementById('debug-log');
+  if (!el) return;
+  const ts = new Date().toLocaleTimeString('en-IN', {hour12:false});
+  const cls = type === 'err' ? 'dl-err' : type === 'ok' ? 'dl-ok' : type === 'warn' ? 'dl-warn' : 'dl-info';
+  const d = document.createElement('div');
+  d.className = `dl ${cls}`;
+  d.textContent = `[${ts}] ${type === 'err' ? '✗' : type === 'ok' ? '✓' : '·'} ${msg}`;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+}
+
+// ── SYNC ──────────────────────────────────────────────────────────────────────
+async function doSync() {
+  const btn = document.getElementById('sync-btn');
+  if (btn) btn.style.opacity = '0.5';
+  addDebug('Syncing data…');
+  await loadMasters();
+  const v = _curView;
+  if (v === 'home') renderHome();
+  else if (v === 'petty') renderPetty();
+  else if (v === 'vendor') renderVendorLedger();
+  else if (v === 'vendors') loadVendorList();
+  toast('Synced ✓');
+  addDebug('Sync complete', 'ok');
+  if (btn) btn.style.opacity = '1';
+}
+
 window.addEventListener('DOMContentLoaded', () => {
   checkSession();
   const theme = localStorage.getItem('bd_theme') || 'dark';
