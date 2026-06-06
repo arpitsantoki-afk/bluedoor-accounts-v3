@@ -2330,8 +2330,7 @@ async function loadVendorRpt(vid){
 }
 function printVendorRpt(){
   const w=window.open('','_blank');
-  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'
-</body></html>');
+  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
   w.print();
 }
 function exportVendorXLS(vid){
