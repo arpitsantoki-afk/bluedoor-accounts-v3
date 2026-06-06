@@ -111,6 +111,7 @@ async function route(action, params, req, env, ctx) {
     case 'getVendorReport': return handleGetVendorReport(params, sess, env);
     case 'getDashboard': return handleGetDashboard(params, sess, env);
     case 'driveProxy': return handleDriveProxy(params, sess, env);
+    case 'sendOnboarding': return handleSendOnboarding(params, sess, env);
     case 'gasProxy': return handleGasProxy(params, sess, env);
     default: return err(`Unknown action: ${action}`, 400);
   }
@@ -185,22 +186,31 @@ async function handleListUsers(params, sess, env) {
   const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies, google_email, allowed_vendors FROM users ORDER BY username').all();
   return ok({ users: rows.results });
 }
-async function handleAddUser({ username, password, role, companies = [] }, sess, env) {
+async function handleAddUser({ username, password, role, companies = [], google_email = '' }, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
-  if (!username || !password || !role) return err('username, password, role required');
+  if (!username || !role) return err('username and role required');
+  // Auto-generate password if not provided
+  if (!password) {
+    const arr = new Uint8Array(8);
+    crypto.getRandomValues(arr);
+    password = [...arr].map(b => b.toString(16).padStart(2,'0')).join('').substring(0,12);
+  }
   const uid = `U${Date.now()}`;
-  await env.DB.prepare('INSERT INTO users (user_id, username, password, role, active, companies) VALUES (?,?,?,?,1,?)').bind(uid, username, password, role, JSON.stringify(companies)).run();
-  return ok({ user_id: uid });
+  await env.DB.prepare('INSERT INTO users (user_id, username, password, role, active, companies, google_email) VALUES (?,?,?,?,1,?,?)').bind(uid, username, password, role, JSON.stringify(companies), google_email).run();
+  return ok({ user_id: uid, password });
 }
-async function handleUpdateUser({ user_id, role, active, companies, google_email, allowed_vendors }, sess, env) {
+async function handleUpdateUser(params, sess, env) {
+  const { user_id, role, active, companies, google_email, allowed_vendors, username, password } = params;
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
   const fields = [], vals = [];
+  if (username !== undefined) { fields.push('username = ?'); vals.push(username); }
+  if (password !== undefined) { fields.push('password = ?'); vals.push(password); }
   if (role !== undefined) { fields.push('role = ?'); vals.push(role); }
   if (active !== undefined) { fields.push('active = ?'); vals.push(active ? 1 : 0); }
   if (companies !== undefined) { fields.push('companies = ?'); vals.push(JSON.stringify(companies)); }
   if (google_email !== undefined) { fields.push('google_email = ?'); vals.push(google_email); }
-  if (params.allowed_vendors !== undefined) { fields.push('allowed_vendors = ?'); vals.push(JSON.stringify(params.allowed_vendors)); }
+  if (allowed_vendors !== undefined) { fields.push('allowed_vendors = ?'); vals.push(JSON.stringify(allowed_vendors)); }
   if (!fields.length) return err('Nothing to update');
   vals.push(user_id);
   await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`).bind(...vals).run();
