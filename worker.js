@@ -208,7 +208,7 @@ async function handleUpdateUser(params, sess, env) {
   if (password !== undefined) { fields.push('password = ?'); vals.push(password); }
   if (role !== undefined) { fields.push('role = ?'); vals.push(role); }
   if (active !== undefined) { fields.push('active = ?'); vals.push(active ? 1 : 0); }
-  if (companies !== undefined) { fields.push('companies = ?'); vals.push(JSON.stringify(companies)); }
+  if (companies !== undefined && companies !== null) { fields.push('companies = ?'); vals.push(JSON.stringify(Array.isArray(companies) ? companies : [])); }
   if (google_email !== undefined) { fields.push('google_email = ?'); vals.push(google_email); }
   if (allowed_vendors !== undefined) { fields.push('allowed_vendors = ?'); vals.push(JSON.stringify(allowed_vendors)); }
   if (!fields.length) return err('Nothing to update');
