@@ -539,81 +539,33 @@ document.addEventListener('click', e => {
 // ═══════════════════════════════════════════════════════════════
 function checkSession() {
   const token = localStorage.getItem('bd_token');
-  const userRaw = localStorage.getItem('bd_user');
-  if (!token || !userRaw) { showLogin(); return; }
+  if (!token) { window.location.replace('index.html'); return; }
   fetch(API, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-Session-Token': token },
-    body: JSON.stringify({ action: 'getMe' })
-  }).then(r => r.json()).then(data => {
-    if (!data.ok || !data.user) { localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user'); showLogin(); return; }
-    // Supervisor check
-    const role = data.user.role;
-    if (role !== 'Supervisor' && role !== 'Admin') {
-      showLogin('Access denied — Supervisor only');
-      return;
+    method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':token},
+    body: JSON.stringify({action:'getMe'})
+  }).then(r=>r.json()).then(data => {
+    if (!data.ok || !data.user) {
+      localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
+      window.location.replace('index.html'); return;
     }
-    S.token = token; S.user = data.user;
+    const user = data.user;
+    // Role guard — only Supervisor (or Admin visiting) allowed here
+    if (user.role !== 'Supervisor' && user.role !== 'Admin') {
+      window.location.replace('index.html'); return;
+    }
+    S.token=token; S.user=user;
     initApp();
-  }).catch(() => {
+  }).catch(()=>{
+    const userRaw = localStorage.getItem('bd_user');
     try {
       const user = JSON.parse(userRaw);
-      S.token = token; S.user = user;
+      if (!user) { window.location.replace('index.html'); return; }
+      S.token=token; S.user=user;
       initApp();
-    } catch(e) { showLogin(); }
+    } catch(e) { window.location.replace('index.html'); }
   });
 }
 
-function showLogin(errMsg='') {
-  document.getElementById('auth-check').innerHTML = `
-    <div style="background:var(--card);border:1px solid var(--border);border-radius:16px;padding:28px 24px;width:calc(100% - 32px);max-width:340px;text-align:center">
-      <img src="assets/logo-white.png" class="bd-logo-dark" style="height:40px;margin-bottom:12px">
-      <img src="assets/logo-black.png" class="bd-logo-light" style="height:40px;margin-bottom:12px;display:none">
-      <div style="font-size:14px;font-weight:600;margin-bottom:2px">Supervisor Portal</div>
-      <div style="font-size:12px;color:var(--muted);margin-bottom:20px">Blue Door Architects</div>
-      ${errMsg ? `<div style="font-size:12px;color:var(--red);margin-bottom:10px;padding:6px;background:rgba(239,68,68,.1);border-radius:6px">${errMsg}</div>` : ''}
-      <div id="il-err" style="display:none;font-size:12px;color:var(--red);margin-bottom:10px;padding:6px;background:rgba(239,68,68,.1);border-radius:6px"></div>
-      <div style="margin-bottom:10px;text-align:left">
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Username</div>
-        <input id="il-u" placeholder="Username" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none">
-      </div>
-      <div style="margin-bottom:16px;text-align:left">
-        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Password</div>
-        <input id="il-p" type="password" placeholder="••••••••" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:10px 12px;border-radius:8px;font-size:14px;outline:none" onkeydown="if(event.key==='Enter')doLogin()">
-      </div>
-      <button onclick="doLogin()" style="width:100%;padding:11px;background:var(--accent);color:#fff;border:none;border-radius:8px;font-size:14px;font-weight:600;cursor:pointer">Sign In</button>
-    </div>`;
-}
-
-async function doLogin() {
-  const u = document.getElementById('il-u')?.value.trim();
-  const p = document.getElementById('il-p')?.value;
-  const errEl = document.getElementById('il-err');
-  if (!u || !p) { errEl.textContent = 'Enter credentials'; errEl.style.display = 'block'; return; }
-  const data = await fetch(API, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ action: 'login', username: u, password: p })
-  }).then(r => r.json());
-  if (!data.ok) { errEl.textContent = data.error || 'Login failed'; errEl.style.display = 'block'; return; }
-  const role = data.user?.role;
-  if (role !== 'Supervisor' && role !== 'Admin') {
-    errEl.textContent = 'Access denied — Supervisor only'; errEl.style.display = 'block'; return;
-  }
-  localStorage.setItem('bd_token', data.token);
-  localStorage.setItem('bd_user', JSON.stringify(data.user));
-  S.token = data.token; S.user = data.user;
-  initApp();
-}
-
-async function doLogout() {
-  await api('logout').catch(() => {});
-  localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
-  location.reload();
-}
-
-// ═══════════════════════════════════════════════════════════════
-// INIT APP
-// ═══════════════════════════════════════════════════════════════
 async function initApp() {
   document.getElementById('auth-check').style.display = 'none';
   document.getElementById('app').style.display = 'flex';
