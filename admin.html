@@ -3097,17 +3097,20 @@ function rawEditRow(pkVal){
       <input id="redit-${k}" value="${s(row[k]).replace(/"/g,'&quot;')}"
         ${k===pk?'style="opacity:.6" readonly':''}>
     </div>`).join('');
+  window._rawEditPk = pkVal;
   showEditModal(`Edit Row — ${_rawTbl}`,`
     <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
     <div class="row mt3">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit('')">Save</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit(window._rawEditPk)">Save</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
     </div>`);
 }
 
 async function rawSaveEdit(pkVal){
-  const orig=window._rawRowMap?.[pkVal];
-  if(!orig){toast('Original row not found','err');return;}
+  const key = pkVal || window._rawEditPk;
+  const orig=window._rawRowMap?.[key];
+  if(!orig){toast('Original row not found — please refresh','err');return;}
+  pkVal = key;
   const pk=RAW_PK[_rawTbl]||'id';
   const updated={};
   Object.keys(orig).forEach(k=>{
