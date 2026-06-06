@@ -2989,25 +2989,46 @@ async function deleteET(key){
 // Raw Data viewer
 const RAW_TABLES=['companies','users','chart_of_accounts','entry_types','cost_heads','vendors','projects','entries','pending_entries','opening_balances','vendor_opening_balances','ledger'];
 let _rawTbl='entries', _rawRows=[], _rawCols=[];
+
+// ── RAW DATA CRUD ─────────────────────────────────────────────────────────────
+// Which tables are editable vs read-only
+const RAW_READONLY = new Set(['ledger']); // ledger is auto-generated, never edit directly
+const RAW_PK = {
+  companies: 'company_id', users: 'user_id', chart_of_accounts: 'ac_key',
+  entry_types: 'et_key', cost_heads: 'ch_id', vendors: 'vendor_id',
+  projects: 'project_id', entries: 'entry_id', pending_entries: 'entry_id',
+  opening_balances: 'id', vendor_opening_balances: 'id', ledger: 'id'
+};
+
 function renderRawData(){
   const el=document.getElementById('more-out');
+  const isRO = RAW_READONLY.has(_rawTbl);
   el.innerHTML=`
     <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="raw-btns">
-      ${RAW_TABLES.map(t=>`<button class="btn btn-o btn-xs ${t===_rawTbl?'btn-p':''}" onclick="loadRawTable('${t}')">${t}</button>`).join('')}
+      ${RAW_TABLES.map(t=>`<button class="btn btn-xs ${t===_rawTbl?'btn-p':'btn-o'}" onclick="loadRawTable('${t}')">${t}</button>`).join('')}
     </div>
-    <div id="raw-info" style="font-size:11px;color:var(--muted);margin-bottom:6px"></div>
-    <div class="row" style="gap:6px;margin-bottom:8px">
+    <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <span id="raw-info" style="font-size:11px;color:var(--muted);flex:1"></span>
+      ${isRO ? '' : `<button class="btn btn-s btn-xs" onclick="rawAddRow()">+ Add Row</button>`}
       <button class="btn btn-o btn-xs" onclick="downloadRawCSV()">⬇ CSV</button>
       <button class="btn btn-o btn-xs" onclick="downloadRawXLS()">⬇ XLS</button>
+    </div>
+    <div id="raw-search" style="margin-bottom:8px">
+      <input placeholder="🔍 Search…" oninput="rawSearch(this.value)"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;outline:none">
     </div>
     <div id="raw-out"></div>`;
   loadRawTable(_rawTbl);
 }
+
 async function loadRawTable(t){
   _rawTbl=t;
-  document.querySelectorAll('#raw-btns .btn').forEach(b=>{b.classList.toggle('btn-p',b.textContent===t);b.classList.toggle('btn-o',b.textContent!==t);});
+  document.querySelectorAll('#raw-btns .btn').forEach(b=>{
+    const active=b.textContent.trim()===t;
+    b.className='btn btn-xs '+(active?'btn-p':'btn-o');
+  });
   const infoEl=document.getElementById('raw-info'),outEl=document.getElementById('raw-out');
-  outEl.innerHTML='<span class="spin"></span>';
+  if(outEl) outEl.innerHTML='<span class="spin"></span>';
   try {
     let rows=[];
     if(t==='entries') rows=(await api('listEntries',{fyid:curFY,limit:500})).entries||[];
@@ -3023,17 +3044,133 @@ async function loadRawTable(t){
     else if(t==='opening_balances') rows=(await api('listOpeningBalances',{fyid:curFY})).opening_balances||[];
     else if(t==='vendor_opening_balances') rows=(await api('listVendorOpeningBalances',{fyid:curFY})).vendor_opening_balances||[];
 
-    const cnt=(await mig({step:'counts'})).counts?.[t]??rows.length;
-    infoEl.textContent=`${t} — ${cnt} total${rows.length<cnt?' (showing '+rows.length+')':''}`;
-
-    if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
-    _rawCols=Object.keys(rows[0]); _rawRows=rows;
-    outEl.innerHTML=`<div class="tw"><table>
-      <thead><tr>${_rawCols.map(c=>`<th>${c}</th>`).join('')}</tr></thead>
-      <tbody>${rows.map(r=>`<tr>${_rawCols.map(c=>`<td style="max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px">${s(r[c])}</td>`).join('')}</tr>`).join('')}</tbody>
-    </table></div>`;
-  }catch(e){outEl.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
+    _rawCols=rows.length?Object.keys(rows[0]):[];
+    _rawRows=rows;
+    if(infoEl) infoEl.textContent=`${t} — ${rows.length} rows${RAW_READONLY.has(t)?' (read-only)':''}`;
+    rawRenderTable(rows);
+  }catch(e){if(outEl)outEl.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
 }
+
+function rawRenderTable(rows){
+  const outEl=document.getElementById('raw-out');
+  if(!outEl) return;
+  if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
+  const isRO=RAW_READONLY.has(_rawTbl);
+  const pk=RAW_PK[_rawTbl]||'id';
+  outEl.innerHTML=`<div class="tw"><table>
+    <thead><tr>
+      ${_rawCols.map(c=>`<th style="font-size:10px">${c}</th>`).join('')}
+      ${isRO?'':`<th style="font-size:10px;width:70px">Actions</th>`}
+    </tr></thead>
+    <tbody>${rows.map(r=>{
+      const pkVal=r[pk]??'';
+      return `<tr id="raw-row-${pkVal}">
+        ${_rawCols.map(c=>`<td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px" title="${s(r[c])}">${s(r[c])}</td>`).join('')}
+        ${isRO?'':`<td>
+          <div style="display:flex;gap:3px">
+            <button class="btn btn-xs btn-o" onclick="rawEditRow(${JSON.stringify(JSON.stringify(r))})" style="padding:2px 6px">✏️</button>
+            <button class="btn btn-xs" onclick="rawDeleteRow('${pkVal}')" style="padding:2px 6px;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)">🗑</button>
+          </div>
+        </td>`}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function rawSearch(q){
+  if(!q){rawRenderTable(_rawRows);return;}
+  const lq=q.toLowerCase();
+  rawRenderTable(_rawRows.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(lq))));
+}
+
+function rawEditRow(rowJson){
+  const row=JSON.parse(rowJson);
+  const pk=RAW_PK[_rawTbl]||'id';
+  const fields=Object.keys(row).map(k=>`
+    <div class="field">
+      <label>${k}${k===pk?' <span style="color:var(--amber);font-size:9px">PRIMARY KEY</span>':''}</label>
+      <input id="redit-${k}" value="${s(row[k]).replace(/"/g,'&quot;')}"
+        ${k===pk?'style="opacity:.6" readonly':''}>
+    </div>`).join('');
+  showEditModal(`Edit Row — ${_rawTbl}`,`
+    <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit(${JSON.stringify(JSON.stringify(row))})">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function rawSaveEdit(rowJson){
+  const orig=JSON.parse(rowJson);
+  const pk=RAW_PK[_rawTbl]||'id';
+  const updated={};
+  Object.keys(orig).forEach(k=>{
+    const el=document.getElementById('redit-'+k);
+    updated[k]=el?el.value:orig[k];
+  });
+  // Use migrate insert (INSERT OR REPLACE) to update the row
+  const r=await mig({step:'insert',table:_rawTbl,rows:[updated]});
+  if(r.ok && r.inserted>=1){
+    toast('Row updated ✓');
+    closeEditModal();
+    await loadRawTable(_rawTbl);
+  } else {
+    toast(r.errors?.[0]||r.error||'Update failed','err');
+  }
+}
+
+function rawAddRow(){
+  if(!_rawCols.length){toast('Load a table first','err');return;}
+  const pk=RAW_PK[_rawTbl]||'id';
+  const fields=_rawCols.map(k=>`
+    <div class="field">
+      <label>${k}${k===pk?' <span style="color:var(--accent);font-size:9px">PRIMARY KEY — required</span>':''}</label>
+      <input id="radd-${k}" placeholder="${k===pk?'Unique ID':''}">
+    </div>`).join('');
+  showEditModal(`Add Row — ${_rawTbl}`,`
+    <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
+    <div class="row mt3">
+      <button class="btn btn-s" style="flex:1;justify-content:center" onclick="rawSaveAdd()">Add Row</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function rawSaveAdd(){
+  const pk=RAW_PK[_rawTbl]||'id';
+  const newRow={};
+  _rawCols.forEach(k=>{
+    const el=document.getElementById('radd-'+k);
+    if(el&&el.value!=='') newRow[k]=el.value;
+  });
+  if(!newRow[pk]){toast('Primary key required','err');return;}
+  const r=await mig({step:'insert',table:_rawTbl,rows:[newRow]});
+  if(r.ok && r.inserted>=1){
+    toast('Row added ✓');
+    closeEditModal();
+    await loadRawTable(_rawTbl);
+  } else {
+    toast(r.errors?.[0]||r.error||'Add failed','err');
+  }
+}
+
+async function rawDeleteRow(pkVal){
+  confirm2(
+    `Delete Row`,
+    `Delete row "${pkVal}" from ${_rawTbl}? This cannot be undone.`,
+    async()=>{
+      const pk=RAW_PK[_rawTbl]||'id';
+      const r=await mig({step:'delete_row',table:_rawTbl,pk_col:pk,pk_val:pkVal});
+      if(r.ok){
+        toast('Row deleted ✓');
+        await loadRawTable(_rawTbl);
+      } else {
+        toast(r.error||'Delete failed','err');
+      }
+    }
+  );
+}
+
+
 function downloadRawCSV(){
   if(!_rawRows.length)return;
   const csv=[_rawCols.join(','),..._rawRows.map(r=>_rawCols.map(c=>`"${s(r[c]).replace(/"/g,'""')}"`).join(','))].join('\n');
