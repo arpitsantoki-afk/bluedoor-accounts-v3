@@ -2640,7 +2640,7 @@ async function saveVendorAccess(userId) {
   else toast(r.error || 'Error', 'err');
 }
 
-function renderUsers(){
+async function renderUsers(){
   const el=document.getElementById('more-out');
   const res=await api('listUsers');
   const rows=res.users||[];
