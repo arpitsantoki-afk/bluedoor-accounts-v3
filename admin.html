@@ -2710,7 +2710,18 @@ async function addUser() {
 
 function showEditUser(uid) {
   const u = window._usersMap[uid] || {};
-  const cos = (() => { try { return JSON.parse(u.companies||'[]'); } catch(e) { return (u.companies||'').split(',').map(s=>s.trim()).filter(Boolean); } })();
+  if (!u.user_id) { toast('User data not loaded — please refresh', 'err'); return; }
+  const cos = (() => {
+    try {
+      const v = u.companies;
+      if (!v) return [];
+      if (typeof v === 'string') {
+        if (v.startsWith('[')) return JSON.parse(v);
+        return v.replace(/^"|"$/g,'').split(',').map(s=>s.trim()).filter(Boolean);
+      }
+      return Array.isArray(v) ? v : [];
+    } catch(e) { return []; }
+  })();
   showEditModal(`Edit User — ${u.username}`, `
     <div class="g2">
       <div class="field"><label>Username</label><input id="eu-name" value="${u.username}"></div>
@@ -2738,18 +2749,26 @@ function showEditUser(uid) {
 }
 
 async function saveEditUser(uid) {
-  const name = document.getElementById('eu-name').value.trim();
-  const role = document.getElementById('eu-role').value;
-  const email = document.getElementById('eu-email').value.trim();
-  const pass = document.getElementById('eu-pass').value.trim();
-  const companies = [...document.querySelectorAll('.eu-co-cb:checked')].map(el=>el.value);
+  const name     = document.getElementById('eu-name').value.trim();
+  const role     = document.getElementById('eu-role').value;
+  const email    = document.getElementById('eu-email').value.trim();
+  const pass     = document.getElementById('eu-pass').value.trim();
+  const cbs      = [...document.querySelectorAll('.eu-co-cb')];
+  const companies = cbs.filter(el => el.checked).map(el => el.value);
+
   if (!name) { toast('Username required', 'err'); return; }
-  const payload = { user_id: uid, role, companies, google_email: email };
+
+  // Guard: if no checkboxes rendered at all, don't wipe companies
+  if (cbs.length === 0) {
+    toast('Companies not loaded — please close and reopen the edit modal', 'err');
+    return;
+  }
+
+  const payload = { user_id: uid, username: name, role, companies, google_email: email };
   if (pass) payload.password = pass;
-  // Update username via separate field if changed
+
   const r = await api('updateUser', payload);
   if (!r.ok) { toast(r.error, 'err'); return; }
-  // Update username separately if needed (updateUser handles it)
   toast('User updated ✓');
   closeEditModal();
   renderUsers();
