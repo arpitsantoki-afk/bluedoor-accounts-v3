@@ -112,10 +112,13 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 #auth-check{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted)}
 /* Voucher print */
 @media print{
-  #nav,#topbar,#toast,.no-print{display:none!important}
-  body{background:#fff;color:#000}
+  #nav,#topbar,#toast,.no-print,#debug-panel,.card:not(#voucher-header){display:none!important}
+  body{background:#fff;color:#000;margin:0;padding:0}
   .view{display:block!important;padding:0}
   #v-petty{display:block!important}
+  #voucher-header{display:block!important;margin:0;padding:0}
+  #petty-summary,#petty-table{display:none!important}
+  @page{margin:15mm;size:A4}
 }
 /* Status pill colours */
 .s-pending{background:rgba(245,158,11,.12);color:var(--amber);border:1px solid rgba(245,158,11,.2)}
@@ -323,25 +326,25 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
             <!-- Document upload — browse or camera -->
             <div class="field">
-              <label id="doc-label">Document <span id="doc-req" style="color:var(--red);font-size:10px">* Required</span></label>
-              <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
-                <label style="flex:1;min-width:120px;display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px;color:var(--muted)">
-                  📎 Browse
-                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf"
+              <label>Document <span id="doc-req" style="color:var(--red);font-size:10px">* Required</span></label>
+              <div style="display:flex;gap:8px;flex-wrap:wrap">
+                <label style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:12px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s" id="doc-browse-label">
+                  📎 Browse File
+                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png"
                     style="display:none" onchange="onDocFileChange(this)">
                 </label>
-                <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px;cursor:pointer;font-size:13px;color:var(--muted)">
-                  📷 Camera
+                <label style="display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:12px;cursor:pointer;font-size:13px;color:var(--muted);min-width:120px" id="doc-camera-label">
+                  📷 Take Photo
                   <input type="file" id="ae-doc-camera" accept="image/*" capture="environment"
                     style="display:none" onchange="onDocFileChange(this)">
                 </label>
               </div>
-              <div id="doc-preview" style="margin-top:6px;font-size:12px;color:var(--green);display:none"></div>
+              <div id="doc-preview" style="margin-top:8px;font-size:12px;display:none;padding:8px 10px;border-radius:6px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green)"></div>
               <input type="hidden" id="ae-doc-b64">
               <input type="hidden" id="ae-doc-name">
-              <div class="field" style="margin-top:8px;margin-bottom:0">
-                <label style="text-transform:none;font-size:11px;color:var(--muted)">Or paste Drive link</label>
-                <input type="url" id="ae-doc-url" placeholder="https://drive.google.com/…" style="font-size:12px">
+              <div style="margin-top:8px">
+                <input type="url" id="ae-doc-url" placeholder="Or paste Drive / Cloud link (optional)" 
+                  style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:12px;outline:none">
               </div>
             </div>
 
@@ -383,10 +386,46 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
       <!-- Print-only header -->
       <div id="voucher-header" style="display:none">
-        <div style="text-align:center;margin-bottom:16px">
-          <div style="font-size:18px;font-weight:700">PETTY CASH VOUCHER</div>
-          <div style="font-size:13px;color:#555" id="voucher-period"></div>
-          <div style="font-size:12px;color:#777">Blue Door Architects</div>
+        <div style="font-family:Arial,sans-serif;max-width:700px;margin:0 auto;padding:20px;border:2px solid #000">
+          <div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:12px">
+            <div>
+              <div style="font-size:22px;font-weight:900;letter-spacing:1px">BLUE DOOR</div>
+              <div style="font-size:9px;letter-spacing:2px;color:#444">ARCHITECTS</div>
+              <div style="font-size:8px;color:#666;margin-top:4px">Altezza office, Palm Road, Nr. Sargansan Cross Road,<br>Gandhinagar, Gujarat 382421</div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:20px;font-weight:800;border:2px solid #000;padding:4px 14px;letter-spacing:2px">VOUCHER</div>
+              <div style="font-size:11px;margin-top:6px">Date: <span id="voucher-date-print"></span></div>
+            </div>
+          </div>
+          <div style="border-top:1px solid #000;padding-top:10px;margin-bottom:12px">
+            <div style="display:flex;gap:16px;margin-bottom:6px">
+              <div style="font-size:11px"><strong>Debit Account Head:</strong> Petty Cash</div>
+              <div style="font-size:11px"><strong>Period:</strong> <span id="voucher-period"></span></div>
+            </div>
+          </div>
+          <table style="width:100%;border-collapse:collapse;margin-bottom:12px">
+            <thead>
+              <tr style="border-bottom:2px solid #000">
+                <th style="text-align:left;padding:5px;font-size:11px;width:40%">Particulars</th>
+                <th style="text-align:left;padding:5px;font-size:11px;width:25%">Cost Head</th>
+                <th style="text-align:right;padding:5px;font-size:11px;width:15%">Rs.</th>
+              </tr>
+            </thead>
+            <tbody id="voucher-rows-print"></tbody>
+            <tfoot>
+              <tr style="border-top:2px solid #000;font-weight:700">
+                <td colspan="2" style="padding:6px 5px;font-size:12px">Total</td>
+                <td style="padding:6px 5px;text-align:right;font-size:12px" id="voucher-total-print"></td>
+              </tr>
+            </tfoot>
+          </table>
+          <div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:12px;border-top:1px solid #000">
+            <div style="text-align:center;font-size:10px">Prepared by<br><br>_________________</div>
+            <div style="text-align:center;font-size:10px">Checked by<br><br>_________________</div>
+            <div style="text-align:center;font-size:10px">Authorised by<br><br>_________________</div>
+            <div style="text-align:center;font-size:10px">Receiver's Signature<br><br>_________________</div>
+          </div>
         </div>
       </div>
 
@@ -532,7 +571,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 const API = 'https://bluedoor-accounts.info-unikraft.workers.dev/api';
 let S = { token: null, user: null };
 let curFY = 'FY2627', curCo = '';
-let _cos = [], _vendors = [], _chs = [], _ets = [], _projs = [];
+let _cos = [], _vendors = [], _chs = [], _ets = [], _projs = [], _coa = [];
 let _selType = null;
 let _curView = 'home';
 let _allowedVendors = []; // vendors whose ledger admin has enabled for supervisor
@@ -676,18 +715,20 @@ async function initApp() {
 }
 
 async function loadMasters() {
-  const [cos, vendors, chs, ets, projs] = await Promise.all([
+  const [cos, vendors, chs, ets, projs, coa] = await Promise.all([
     api('listCompanies'),
     api('listVendors'),
     api('listCostHeads'),
     api('listEntryTypes'),
-    api('listProjects', { fyid: curFY })
+    api('listProjects', { fyid: curFY }),
+    api('listCOA')
   ]);
   _cos = cos.companies || [];
   _vendors = vendors.vendors || [];
   _chs = chs.cost_heads || [];
   _ets = ets.entry_types || [];
   _projs = projs.projects || [];
+  _coa = coa.accounts || coa.chart_of_accounts || [];
 
   // Load allowed vendors from user detail (stored in companies field as workaround,
   // or via a convention: vendor IDs whose ledger is visible stored as KV in supervisor profile)
@@ -884,6 +925,15 @@ function selectEntryType(key) {
     document.getElementById('ae-date').value = new Date().toISOString().slice(0,10);
   }
 
+  // Auto-fill company from topbar selection
+  const coSel = document.getElementById('ae-co');
+  if (curCo) {
+    coSel.value = curCo;
+    coSel.closest('.field').querySelector('label').textContent = 'Company (auto-filled from topbar)';
+  } else {
+    coSel.value = '';
+    coSel.closest('.field').querySelector('label').textContent = 'Company *';
+  }
   document.getElementById('entry-form').classList.remove('hidden');
   document.getElementById('entry-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
@@ -905,7 +955,7 @@ function onVbCostHeadChange() {
   }
 }
 
-// Document file handler — convert to base64 for upload
+// Document file handler — read as base64, store locally
 function onDocFileChange(input) {
   const file = input.files[0];
   if (!file) return;
@@ -913,16 +963,36 @@ function onDocFileChange(input) {
   const b64el   = document.getElementById('ae-doc-b64');
   const nameEl  = document.getElementById('ae-doc-name');
   preview.style.display = 'block';
-  preview.textContent = '⏳ Reading file…';
+  preview.textContent = '⏳ Reading…';
+  // Clear the other input
+  if (input.id === 'ae-doc-file') {
+    const cam = document.getElementById('ae-doc-camera');
+    if (cam) cam.value = '';
+  } else {
+    const fil = document.getElementById('ae-doc-file');
+    if (fil) fil.value = '';
+  }
   const reader = new FileReader();
+  reader.onerror = () => {
+    preview.textContent = '✗ Failed to read file';
+    preview.style.background = 'rgba(239,68,68,.08)';
+    preview.style.border = '1px solid rgba(239,68,68,.2)';
+    preview.style.color = 'var(--red)';
+  };
   reader.onload = e => {
-    b64el.value  = e.target.result; // data:...;base64,...
+    b64el.value  = e.target.result;
     nameEl.value = file.name;
-    preview.textContent = `✓ ${file.name} (${(file.size/1024).toFixed(1)} KB)`;
+    preview.style.display = 'block';
+    preview.style.background = 'rgba(34,197,94,.08)';
+    preview.style.border = '1px solid rgba(34,197,94,.2)';
     preview.style.color = 'var(--green)';
-    // Clear other input
-    if (input.id === 'ae-doc-file') document.getElementById('ae-doc-camera').value = '';
-    else document.getElementById('ae-doc-file').value = '';
+    const sizeKB = (file.size / 1024).toFixed(1);
+    const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1) + ' MB' : sizeKB + ' KB';
+    preview.textContent = `✓ ${file.name} (${sizeStr}) — attached`;
+    addDebug(`Doc attached: ${file.name} ${sizeStr}`, 'ok');
+    // Highlight the label
+    const lbl = document.getElementById(input.id === 'ae-doc-file' ? 'doc-browse-label' : 'doc-camera-label');
+    if (lbl) lbl.style.borderColor = 'var(--green)';
   };
   reader.readAsDataURL(file);
 }
@@ -1027,19 +1097,23 @@ async function renderPetty() {
 
   addDebug(`renderPetty fy=${fy} co=${co}`);
 
-  // Fetch petty cash entries (approved, in entries table) + opening balance
-  const [entriesRes, pendingRes, obRes] = await Promise.all([
-    api('listEntries', { fyid: fy, company_id: co, entry_type: 'expense_petty_cash', limit: 500 }),
-    api('listPending',  { fyid: fy, company_id: co, status: 'Pending' }),
+  // Fetch full ledger for PETTY_CASH account (includes expenses + transfers)
+  // Also fetch pending entries for supervisor's own pending items
+  const pettyCoa = _coa ? _coa.find(a => a.ac_key === 'PETTY_CASH') : null;
+  const pettyAcCode = pettyCoa?.ac_code || '1003';
+
+  const [ledgerRes, pendingRes, obRes] = await Promise.all([
+    api('getLedger', { fyid: fy, company_id: co, ac_code: pettyAcCode }),
+    api('listPending', { fyid: fy, company_id: co, status: 'Pending' }),
     api('listOpeningBalances', { fyid: fy, company_id: co })
   ]);
 
-  const entries  = (entriesRes.entries || []).sort((a,b) => a.date.localeCompare(b.date));
-  const pending  = (pendingRes.pending || []).filter(p => p.entry_type === 'expense_petty_cash');
+  const ledgerRows = (ledgerRes.ledger || []).sort((a,b) => a.date.localeCompare(b.date));
+  const pending = (pendingRes.pending || []).filter(p => p.entry_type === 'expense_petty_cash');
 
-  addDebug(`Petty entries: ${entries.length}, pending: ${pending.length}`, 'ok');
+  addDebug(`Petty ledger rows: ${ledgerRows.length}, pending: ${pending.length}`, 'ok');
 
-  // Opening balance — look for PETTY_CASH ac_key
+  // Opening balance
   const obRow = (obRes.opening_balances || []).find(r =>
     (r.ac_key === 'PETTY_CASH' || r.ac_key === 'petty_cash') && (!co || r.company_id === co)
   );
@@ -1047,49 +1121,51 @@ async function renderPetty() {
   const obDrCr = (obRow?.dr_cr || 'DR').toUpperCase();
   const openingBalance = obDrCr === 'DR' ? obAmt : -obAmt;
 
-  const totalSpent = entries.reduce((s, e) => s + parseFloat(e.amount || 0), 0);
+  // Calculate from ledger: DR = cash in (transfers), CR = cash out (expenses)
+  const totalDebit  = ledgerRows.reduce((s,r) => s + parseFloat(r.debit||0), 0);
+  const totalCredit = ledgerRows.reduce((s,r) => s + parseFloat(r.credit||0), 0);
   const pendingAmt  = pending.reduce((s, p) => s + parseFloat(p.amount || 0), 0);
-  const closingBalance = openingBalance - totalSpent;
+  const closingBalance = openingBalance + totalDebit - totalCredit;
 
   // Summary
   summaryEl.innerHTML = `
     <div class="g2" style="gap:12px">
       <div class="stat"><div class="sl">Opening Balance</div><div class="sv" style="color:var(--accent)">${fmtAmt(openingBalance)}</div></div>
-      <div class="stat"><div class="sl">Total Spent (${fy})</div><div class="sv" style="color:var(--red)">${fmtAmt(totalSpent)}</div></div>
-      <div class="stat"><div class="sl">Pending Approval</div><div class="sv" style="color:var(--amber)">${fmtAmt(pendingAmt)}</div><div class="ss">${pending.length} entries</div></div>
+      <div class="stat"><div class="sl">Cash In (Transfers)</div><div class="sv" style="color:var(--green)">${fmtAmt(totalDebit)}</div></div>
+      <div class="stat"><div class="sl">Cash Out (Expenses)</div><div class="sv" style="color:var(--red)">${fmtAmt(totalCredit)}</div></div>
       <div class="stat"><div class="sl">Closing Balance</div><div class="sv" style="color:${closingBalance>=0?'var(--green)':'var(--red)'}">${fmtAmt(closingBalance)}</div></div>
     </div>`;
 
   // Ledger table with running balance
-  if (!entries.length) {
-    tbl.innerHTML = '<div class="empty">No approved petty cash entries for this FY</div>';
+  if (!ledgerRows.length) {
+    tbl.innerHTML = '<div class="empty">No petty cash ledger entries for this FY</div>';
     return;
   }
 
   let running = openingBalance;
   tbl.innerHTML = `<div class="tw"><table>
-    <thead><tr><th>Date</th><th>Cost Head</th><th>Project</th><th>Narration</th><th>Amount</th><th>Balance</th></tr></thead>
+    <thead><tr><th>Date</th><th>Narration</th><th>Debit (In)</th><th>Credit (Out)</th><th>Balance</th></tr></thead>
     <tbody>
       <tr style="background:rgba(79,142,247,.06)">
-        <td colspan="5" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance — ${fy}</td>
+        <td colspan="4" style="font-weight:600;font-size:11px;color:var(--muted)">Opening Balance — ${fy}</td>
         <td class="amt" style="color:var(--accent);font-weight:700">${fmtAmt(running)}</td>
       </tr>
-      ${entries.map(e => {
-        const ch = _chs.find(c => c.ch_id === e.cost_head_id);
-        const proj = _projs.find(p => p.project_id === e.project_id);
-        running -= parseFloat(e.amount || 0);
+      ${ledgerRows.map(r => {
+        const dr = parseFloat(r.debit||0);
+        const cr = parseFloat(r.credit||0);
+        running = running + dr - cr;
         return `<tr>
-          <td style="white-space:nowrap">${fmtDate(e.date)}</td>
-          <td style="font-size:11px">${ch?.ch_name || '—'}</td>
-          <td style="font-size:11px;color:var(--muted)">${proj?.project_name || '—'}</td>
-          <td style="font-size:11px;color:var(--muted)">${e.narration||'—'}</td>
-          <td class="amt cr">${fmtAmt(e.amount)}</td>
+          <td style="white-space:nowrap">${fmtDate(r.date)}</td>
+          <td style="font-size:11px;color:var(--muted)">${r.narration||r.ac_name||'—'}</td>
+          <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
+          <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
           <td class="amt" style="color:${running>=0?'var(--green)':'var(--red)'};font-weight:600">${fmtAmt(running)}</td>
         </tr>`;
       }).join('')}
       <tr style="background:rgba(34,197,94,.05)">
-        <td colspan="4" style="font-weight:700;font-size:11px;color:var(--muted)">Closing Balance</td>
-        <td class="amt cr" style="font-weight:700">${fmtAmt(totalSpent)}</td>
+        <td colspan="2" style="font-weight:700;font-size:11px;color:var(--muted)">Closing Balance</td>
+        <td class="amt dr" style="font-weight:700">${fmtAmt(totalDebit)}</td>
+        <td class="amt cr" style="font-weight:700">${fmtAmt(totalCredit)}</td>
         <td class="amt" style="color:${closingBalance>=0?'var(--green)':'var(--red)'};font-weight:700">${fmtAmt(closingBalance)}</td>
       </tr>
     </tbody></table></div>
@@ -1110,9 +1186,40 @@ async function renderPetty() {
 
 
 function printVoucher() {
+  const fy = document.getElementById('pc-fy')?.value || curFY;
+  const co = document.getElementById('pc-co').value;
+  // Populate voucher fields from current ledger data
+  const periodEl = document.getElementById('voucher-period');
+  if (periodEl) periodEl.textContent = fy + (co ? ' — ' + (_cos.find(c=>c.company_id===co)?.company_name||co) : '');
+  const dateEl = document.getElementById('voucher-date-print');
+  if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+  // Build rows from current table
+  const rows = document.querySelectorAll('#petty-table tbody tr:not(:first-child):not(:last-child)');
+  const tbody = document.getElementById('voucher-rows-print');
+  let total = 0;
+  if (tbody) {
+    tbody.innerHTML = '';
+    rows.forEach(row => {
+      const cells = row.querySelectorAll('td');
+      if (cells.length < 4) return;
+      const date = cells[0]?.textContent || '';
+      const narration = cells[1]?.textContent || '';
+      const cr = parseFloat((cells[3]?.textContent||'0').replace(/[₹,]/g,'')) || 0;
+      if (!cr) return;
+      total += cr;
+      const tr = document.createElement('tr');
+      tr.style.borderBottom = '1px solid #ddd';
+      tr.innerHTML = `<td style="padding:4px 5px;font-size:11px">${date} — ${narration}</td><td style="padding:4px 5px;font-size:11px">—</td><td style="padding:4px 5px;text-align:right;font-size:11px">${cr.toLocaleString('en-IN')}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+  const totalEl = document.getElementById('voucher-total-print');
+  if (totalEl) totalEl.textContent = '₹' + total.toLocaleString('en-IN',{minimumFractionDigits:2});
+
   document.getElementById('voucher-header').style.display = 'block';
   window.print();
-  setTimeout(() => { document.getElementById('voucher-header').style.display = 'none'; }, 1000);
+  setTimeout(() => { document.getElementById('voucher-header').style.display = 'none'; }, 1500);
 }
 
 // ═══════════════════════════════════════════════════════════════
