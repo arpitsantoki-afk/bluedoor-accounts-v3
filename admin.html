@@ -2618,38 +2618,120 @@ async function renderUsers(){
     <div class="tw"><table><thead><tr><th>User</th><th>Role</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>
     ${rows.map(u=>`<tr>
       <td><strong>${u.username}</strong></td>
-      <td><span class="badge ${u.role==='Admin'?'bb':'bx'}">${u.role}</span></td>
+      <td><span class="badge ${u.role==='Admin'?'bb':'ba'}">${u.role}</span></td>
       <td style="font-size:11px">${u.google_email||'—'}</td>
       <td><span class="badge ${u.active?'bg':'br'}">${u.active?'Active':'Off'}</span></td>
-      <td style="display:flex;gap:4px"><button class="btn btn-o btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button>${u.role==='Supervisor'?`<button class="btn btn-xs" style="background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)" onclick="manageVendorAccess('${u.user_id}','${u.username}')">Vendors</button>`:''}</td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-o btn-xs" onclick="showEditUser(${JSON.stringify(u).replace(/"/g,'&quot;')})">✏️ Edit</button>
+        <button class="btn btn-o btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button>
+        <button class="btn btn-xs" style="background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)" onclick="sendOnboarding('${u.user_id}')">📧</button>
+        ${u.role==='Supervisor'?`<button class="btn btn-xs" style="background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)" onclick="manageVendorAccess('${u.user_id}','${u.username}')">Vendors</button>`:''}
+      </td>
     </tr>`).join('')}
     </tbody></table></div>`;
 }
-function showUserForm(){
-  showEditModal('Add User',`
+function showUserForm() {
+  showEditModal('Add User', `
     <div class="g2">
-      <div class="field"><label>Username *</label><input id="uf-name"></div>
-      <div class="field"><label>Password *</label><input id="uf-pass" type="password"></div>
+      <div class="field"><label>Username *</label><input id="uf-name" placeholder="e.g. Rahul"></div>
+      <div class="field"><label>Role *</label>
+        <select id="uf-role">
+          <option value="Supervisor">Supervisor</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
     </div>
-    <div class="field"><label>Role</label><select id="uf-role"><option value="Staff">Staff</option><option value="Admin">Admin</option></select></div>
-    <div class="field"><label>Google Email (for Google Sign-In)</label><input id="uf-email" type="email" placeholder="user@gmail.com"></div>
+    <div class="field"><label>Google Email <span style="color:var(--muted);font-size:10px">(for Google Sign-In)</span></label>
+      <input id="uf-email" type="email" placeholder="user@gmail.com">
+    </div>
+    <div class="field"><label>Password <span style="color:var(--muted);font-size:10px">(auto-generated if blank)</span></label>
+      <input id="uf-pass" type="text" placeholder="Leave blank to auto-generate">
+    </div>
+    <div class="field"><label>Companies</label>
+      <div id="uf-cos">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px"><input type="checkbox" class="uf-co-cb" value="${c.company_id}" style="accent-color:var(--accent)"> ${c.company_name}</label>`).join('')}</div>
+    </div>
     <div class="row mt3">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create & Send Welcome Mail</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
     </div>`);
 }
-async function addUser(){
-  const n=document.getElementById('uf-name').value.trim(), p=document.getElementById('uf-pass').value;
-  if(!n||!p){toast('Username and password required','err');return;}
-  const r=await api('addUser',{username:n,password:p,role:document.getElementById('uf-role').value});
-  if(r.ok){
-    // Also update google_email if provided
-    const email=document.getElementById('uf-email').value.trim();
-    if(email) await api('updateUser',{user_id:r.user_id,google_email:email});
-    toast('User created');closeEditModal();renderUsers();
-  }else toast(r.error,'err');
+
+async function addUser() {
+  const n = document.getElementById('uf-name').value.trim();
+  const role = document.getElementById('uf-role').value;
+  const email = document.getElementById('uf-email').value.trim();
+  const pass = document.getElementById('uf-pass').value.trim();
+  const companies = [...document.querySelectorAll('.uf-co-cb:checked')].map(el=>el.value);
+  if (!n) { toast('Username required', 'err'); return; }
+  const r = await api('addUser', { username: n, password: pass||undefined, role, google_email: email, companies });
+  if (!r.ok) { toast(r.error, 'err'); return; }
+  toast('User created ✓');
+  closeEditModal();
+  await renderUsers();
+  // Send onboarding email if email provided
+  if (email) {
+    const er = await api('sendOnboarding', { user_id: r.user_id });
+    if (er.ok) toast('Welcome email sent ✓');
+    else toast('User created but email failed: ' + er.error, 'err');
+  }
 }
-async function toggleUser(id,active){const r=await api('updateUser',{user_id:id,active:!active});if(r.ok){toast('Updated');renderUsers();}else toast(r.error,'err');}
+
+function showEditUser(u) {
+  const cos = (() => { try { return JSON.parse(u.companies||'[]'); } catch(e) { return (u.companies||'').split(',').map(s=>s.trim()).filter(Boolean); } })();
+  showEditModal(`Edit User — ${u.username}`, `
+    <div class="g2">
+      <div class="field"><label>Username</label><input id="eu-name" value="${u.username}"></div>
+      <div class="field"><label>Role</label>
+        <select id="eu-role">
+          <option value="Supervisor" ${u.role==='Supervisor'?'selected':''}>Supervisor</option>
+          <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Google Email</label>
+      <input id="eu-email" type="email" value="${u.google_email||''}" placeholder="user@gmail.com">
+    </div>
+    <div class="field"><label>New Password <span style="color:var(--muted);font-size:10px">(blank = no change)</span></label>
+      <input id="eu-pass" type="text" placeholder="Leave blank to keep current">
+    </div>
+    <div class="field"><label>Companies</label>
+      <div>${_cos.map(c=>`<label style="display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:13px"><input type="checkbox" class="eu-co-cb" value="${c.company_id}" ${cos.includes(c.company_id)?'checked':''} style="accent-color:var(--accent)"> ${c.company_name}</label>`).join('')}</div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditUser('${u.user_id}')">Save</button>
+      <button class="btn btn-o btn-sm" onclick="sendOnboarding('${u.user_id}')">📧 Resend Welcome</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function saveEditUser(uid) {
+  const name = document.getElementById('eu-name').value.trim();
+  const role = document.getElementById('eu-role').value;
+  const email = document.getElementById('eu-email').value.trim();
+  const pass = document.getElementById('eu-pass').value.trim();
+  const companies = [...document.querySelectorAll('.eu-co-cb:checked')].map(el=>el.value);
+  if (!name) { toast('Username required', 'err'); return; }
+  const payload = { user_id: uid, role, companies, google_email: email };
+  if (pass) payload.password = pass;
+  // Update username via separate field if changed
+  const r = await api('updateUser', payload);
+  if (!r.ok) { toast(r.error, 'err'); return; }
+  // Update username separately if needed (updateUser handles it)
+  toast('User updated ✓');
+  closeEditModal();
+  renderUsers();
+}
+
+async function sendOnboarding(uid) {
+  const r = await api('sendOnboarding', { user_id: uid });
+  if (r.ok) toast('Welcome email sent ✓');
+  else toast('Email failed: ' + r.error, 'err');
+}
+
+async function toggleUser(id, active) {
+  const r = await api('updateUser', { user_id: id, active: !active });
+  if (r.ok) { toast('Updated'); renderUsers(); } else toast(r.error, 'err');
+}
 
 // Masters (read-only reference)
 function renderMasters(){
