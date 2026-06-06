@@ -13,4 +13,4 @@ binding = "SESSIONS"
 id = "b91d11a00154490ebd4c4f8945b1a76c"
 
 [vars]
-GAS_URL = "https://script.google.com/macros/s/AKfycbwDHnYmCO9Z2Z-fsaSQUn5fTkN5GpBYXxqCKSILQZOkVsg_Yf5z5by6dpxKTEeLmLi9Fw/exec"
+APP_URL = "https://arpitsantoki-afk.github.io/bluedoor-accounts-v3"
