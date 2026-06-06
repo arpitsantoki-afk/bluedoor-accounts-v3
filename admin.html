@@ -598,10 +598,11 @@ function confirm2(title, msg, onOk) {
   document.getElementById('confirm-modal').classList.remove('hidden');
 }
 function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); }
-function showEditModal(title, bodyHTML) {
+function showEditModal(title, bodyHTML, afterRender) {
   document.getElementById('edit-modal-title').textContent = title;
   document.getElementById('edit-modal-body').innerHTML = bodyHTML;
   document.getElementById('edit-modal').classList.remove('hidden');
+  if (afterRender) setTimeout(afterRender, 0);
 }
 function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
 
@@ -2673,14 +2674,30 @@ function showUserForm() {
         </select>
       </div>
     </div>
-    <div class="field"><label>Google Email <span style="color:var(--muted);font-size:10px">(for Google Sign-In)</span></label>
+    <div class="field"><label>Google Email <span style="color:var(--muted, () => {
+    const list = document.getElementById('uf-cos');
+    if (!list) return;
+    list.innerHTML = '';
+    _cos.forEach(c => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'uf-co-cb';
+      cb.value = c.company_id;
+      cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + c.company_name));
+      list.appendChild(label);
+    });
+  })font-size:10px">(for Google Sign-In)</span></label>
       <input id="uf-email" type="email" placeholder="user@gmail.com">
     </div>
     <div class="field"><label>Password <span style="color:var(--muted);font-size:10px">(auto-generated if blank)</span></label>
       <input id="uf-pass" type="text" placeholder="Leave blank to auto-generate">
     </div>
     <div class="field"><label>Companies</label>
-      <div id="uf-cos" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px"><input type="checkbox" class="uf-co-cb" value="${c.company_id}" style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"> ${c.company_name}</label>`).join('')}</div>
+      <div id="uf-cos" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto"><em style="color:var(--muted);font-size:12px">Loading…</em></div>
     </div>
     <div class="row mt3">
       <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create & Send Welcome Mail</button>
@@ -2739,13 +2756,31 @@ function showEditUser(uid) {
       <input id="eu-pass" type="text" placeholder="Leave blank to keep current">
     </div>
     <div class="field"><label>Companies</label>
-      <div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto">${_cos.map(c=>`<label style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px"><input type="checkbox" class="eu-co-cb" value="${c.company_id}" ${cos.includes(c.company_id)?'checked':''} style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0"> ${c.company_name}</label>`).join('')}</div>
+      <div id="eu-co-list" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto"><em style="color:var(--muted);font-size:12px">Loading…</em></div>
     </div>
     <div class="row mt3">
       <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditUser('${u.user_id}')">Save</button>
       <button class="btn btn-o btn-sm" onclick="sendOnboarding('${u.user_id}')">📧 Resend Welcome</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
-    </div>`);
+    </div>`, () => {
+    // Render checkboxes via JS after modal DOM is ready
+    const list = document.getElementById('eu-co-list');
+    if (!list) return;
+    list.innerHTML = '';
+    _cos.forEach(c => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 0;border-bottom:1px solid rgba(35,38,48,.3);cursor:pointer;font-size:13px';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'eu-co-cb';
+      cb.value = c.company_id;
+      cb.checked = cos.includes(c.company_id);
+      cb.style.cssText = 'width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + c.company_name));
+      list.appendChild(label);
+    });
+  });
 }
 
 async function saveEditUser(uid) {
