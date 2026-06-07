@@ -955,97 +955,100 @@ async function renderHome() {
 }
 async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
 
-async function showEditEntry(entryId) {
-  // Find entry in recent entries list
+async async function showEditEntry(entryId) {
   const res = await api('listEntries', {fyid:curFY, limit:1000});
   const entry = (res.entries||[]).find(e=>e.entry_id===entryId);
   if (!entry) { toast('Entry not found','err'); return; }
   const et = _ets.find(t=>t.et_key===entry.entry_type);
+  const hasDoc = entry.drive_file_url && entry.drive_file_url.startsWith('http');
 
-  showEditModal('Edit Journal Entry', `
+  showEditModal('Edit Entry', `
     <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
       <div style="font-weight:600">${et?.label||entry.entry_type}</div>
+      <div style="color:var(--muted);margin-top:2px">${fmtDate(entry.date)} · ${fmtAmt(entry.amount)}</div>
       <div style="color:var(--muted);margin-top:2px">
         <span class="badge bb" style="font-size:10px">DR: ${et?.dr||'—'}</span>&nbsp;
         <span class="badge br" style="font-size:10px">CR: ${et?.cr||'—'}</span>
       </div>
-      <div style="color:var(--amber);font-size:11px;margin-top:4px">⚠ This will delete and recreate the ledger entries</div>
     </div>
-    <div class="g2">
-      <div class="field"><label>Date *</label><input type="date" id="ee-date" value="${entry.date}"></div>
-      <div class="field"><label>Amount ₹ *</label><input type="number" id="ee-amt" value="${entry.amount}" step="0.01" inputmode="decimal"></div>
+    <div class="field"><label>Narration</label>
+      <textarea id="ee-narr" rows="2">${entry.narration||''}</textarea>
     </div>
-    <div class="field"><label>Narration</label><input id="ee-narr" value="${entry.narration||''}"></div>
-    <div class="field"><label>Project</label>
-      <select id="ee-proj" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
-        <option value="">— No Project —</option>
-        ${_projs.map(p=>`<option value="${p.project_id}" ${p.project_id===entry.project_id?'selected':''}>${p.project_name}</option>`).join('')}
-      </select>
+    <div class="field"><label>Document / Bill</label>
+      ${hasDoc ? `
+        <div id="ee-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>
+          <button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑 Remove</button>
+        </div>` : `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>`}
+      <div id="ee-doc-new" style="${hasDoc?'display:none':''}">
+        <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">
+          📎 Attach new document
+          <input type="file" id="ee-doc-file" accept="image/*,application/pdf" style="display:none" onchange="eeDocSelected(this)">
+        </label>
+        <div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+      </div>
     </div>
-    ${et?.category==='vendor'||et?.needs_ch?`
-    <div class="g2">
-      ${et?.category==='vendor'?`<div class="field"><label>Vendor</label>
-        <select id="ee-vendor" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
-          <option value="">— None —</option>
-          ${_vendors.map(v=>`<option value="${v.vendor_id}" ${v.vendor_id===entry.vendor_id?'selected':''}>${v.vendor_name}</option>`).join('')}
-        </select></div>`:'<div></div>'}
-      ${et?.needs_ch?`<div class="field"><label>Cost Head</label>
-        <select id="ee-ch" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;-webkit-appearance:none">
-          <option value="">— None —</option>
-          ${_chs.map(c=>`<option value="${c.ch_id}" ${c.ch_id===entry.cost_head_id?'selected':''}>${c.ch_name}</option>`).join('')}
-        </select></div>`:'<div></div>'}
-    </div>`:''}
-    <div class="row mt3" style="gap:8px">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry('${entryId}','${entry.entry_type}','${entry.company_id}','${entry.fyid||curFY}')">Save Changes</button>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry('${entry.entry_id}','${entry.drive_file_url||''}')">Save</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
-    </div>`);
+    </div>`, () => { window._eeDeleteDoc = false; });
 }
 
-async function saveEditEntry(entryId, entryType, companyId, fyid) {
-  const date = document.getElementById('ee-date')?.value;
-  const amt = parseFloat(document.getElementById('ee-amt')?.value);
-  const narr = document.getElementById('ee-narr')?.value.trim()||'';
-  const proj = document.getElementById('ee-proj')?.value||'';
-  const vendor = document.getElementById('ee-vendor')?.value||'';
-  const ch = document.getElementById('ee-ch')?.value||'';
-  if (!date||!amt) { toast('Date and amount required','err'); return; }
-  // Delete old entry + ledger rows
-  const del = await api('deleteEntry',{entry_id:entryId});
-  if (!del.ok) { toast('Delete failed: '+del.error,'err'); return; }
-  // Recreate with updated data
-  const add = await api('addEntry',{date,fyid,company_id:companyId,entry_type:entryType,project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr});
-  if (add.ok) {
-    toast(`✓ Updated | DR: ${add.dr_account} | CR: ${add.cr_account}`);
-    dbg(`Edit: deleted ${entryId}, new ${add.entry_id}`, 'ok');
+function eeDeleteDoc() {
+  window._eeDeleteDoc = true;
+  const cur = document.getElementById('ee-current-doc');
+  const newDiv = document.getElementById('ee-doc-new');
+  if (cur) cur.style.display = 'none';
+  if (newDiv) newDiv.style.display = 'block';
+}
+
+function eeDocSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const s = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  const st = document.getElementById('ee-doc-status');
+  if (st) { st.textContent = `📎 ${file.name} (${s}) — will upload on save`; st.style.color = 'var(--accent)'; }
+  window._eeNewFile = file;
+}
+
+async function saveEditEntry(entryId, oldUrl) {
+  const narration = document.getElementById('ee-narr')?.value || '';
+  const deleteFile = window._eeDeleteDoc || false;
+  let newUrl = deleteFile ? '' : oldUrl;
+
+  // Upload new file if selected
+  const newFile = window._eeNewFile;
+  if (newFile) {
+    const st = document.getElementById('ee-doc-status');
+    if (st) { st.textContent = '⬆️ Uploading…'; st.style.color = 'var(--amber)'; }
+    // Get company from entry — need to fetch it
+    const entryRes = await api('listEntries', {fyid:curFY, limit:1000});
+    const entry = (entryRes.entries||[]).find(e=>e.entry_id===entryId);
+    const vendor = (_vendors||[]).find(v=>v.vendor_id===entry?.vendor_id);
+    const uploaded = await uploadFileToDrive(newFile, entry?.company_id||'', entry?.entry_type||'', vendor?.vendor_name||'', entry?.date||'');
+    if (uploaded) { newUrl = uploaded; toast('📎 Document uploaded'); }
+  }
+
+  const r = await api('updateEntry', {
+    entry_id: entryId,
+    narration,
+    drive_file_url: newUrl,
+    delete_file: deleteFile && !newFile // only delete if not replacing
+  });
+
+  if (r.ok) {
+    toast('Entry updated ✓');
     closeEditModal();
-    renderLedger();
+    window._eeDeleteDoc = false;
+    window._eeNewFile = null;
+    renderHome();
+    if (_curView === 'ledger') renderLedger?.();
   } else {
-    toast('Save failed: '+add.error,'err');
+    toast(r.error||'Update failed', 'err');
   }
 }
 
-async function deleteEntry(id, label, amount) {
-  confirm2(
-    'Delete Journal Entry',
-    `Delete "${label}" (${fmtAmt(amount)})? This will delete the entry AND both ledger rows (DR + CR).`,
-    async () => {
-      const r = await api('deleteEntry', { entry_id: id });
-      if (r.ok) {
-        toast(`Deleted: ${r.deleted_ledger_rows} ledger rows removed`);
-        renderHome();
-        if (_curView === 'ledger') renderLedger();
-      } else {
-        toast(r.error, 'err');
-      }
-    }
-  );
-}
 
-// ═══════════════════════════════════════════════════════════════
-// LEDGER
-// ═══════════════════════════════════════════════════════════════
-
-// Smart date input helpers
 function smartDateInput(inp, hiddenId) {
   let v = inp.value.replace(/[^0-9]/g, '');
   if (v.length >= 3) v = v.slice(0,2) + '-' + v.slice(2);
