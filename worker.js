@@ -94,6 +94,9 @@ async function route(action, params, req, env, ctx) {
     case 'addEntry': return handleAddEntry(params, sess, env);
     case 'updateEntry': return handleUpdateEntry(params, sess, env);
     case 'deleteEntry': return handleDeleteEntry(params, sess, env);
+    case 'updateEntry': return handleUpdateEntry(params, sess, env);
+    case 'updatePending': return handleUpdatePending(params, sess, env);
+    case 'deletePending': return handleDeletePending(params, sess, env);
     case 'listPending': return handleListPending(params, sess, env);
     case 'submitPending': return handleSubmitPending(params, sess, env);
     case 'approvePending': return handleApprovePending(params, sess, env);
@@ -112,6 +115,7 @@ async function route(action, params, req, env, ctx) {
     case 'getDashboard': return handleGetDashboard(params, sess, env);
     case 'driveProxy': return handleDriveProxy(params, sess, env);
     case 'sendOnboarding': return handleSendOnboarding(params, sess, env);
+    case 'deleteFile': return handleDeleteFileProxy(params, sess, env);
     case 'uploadFile': return handleUploadFile(params, sess, env);
     case 'gasProxy': return handleGasProxy(params, sess, env);
     default: return err(`Unknown action: ${action}`, 400);
@@ -464,24 +468,89 @@ async function handleUpdateEntry(params, sess, env) {
   if (lf.length) { lv.push(entry_id); await env.DB.prepare(`UPDATE ledger SET ${lf.join(', ')} WHERE entry_id = ?`).bind(...lv).run(); }
   return ok();
 }
+
+// ── UPDATE ENTRY ─────────────────────────────────────────────────────────────
+async function handleUpdateEntry({ entry_id, narration, drive_file_url, delete_file }, sess, env) {
+  if (!entry_id) return err('entry_id required');
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
+  const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
+  if (!existing) return err('Entry not found', 404);
+  // Delete old Drive file if requested
+  if (delete_file && existing.drive_file_url) {
+    await deleteFileFromDrive(existing.drive_file_url, env);
+  }
+  const newUrl = delete_file ? (drive_file_url || '') : (drive_file_url !== undefined ? drive_file_url : existing.drive_file_url);
+  const newNarr = narration !== undefined ? narration : existing.narration;
+  await env.DB.prepare('UPDATE entries SET narration = ?, drive_file_url = ? WHERE entry_id = ?')
+    .bind(newNarr, newUrl, entry_id).run();
+  // Update ledger narration too
+  await env.DB.prepare('UPDATE ledger SET narration = ? WHERE entry_id = ?')
+    .bind(newNarr, entry_id).run();
+  return ok({ updated: entry_id, drive_file_url: newUrl });
+}
+
+// ── UPDATE PENDING ────────────────────────────────────────────────────────────
+async function handleUpdatePending({ entry_id, date, amount, narration, cost_head_id, project_id, vendor_id, drive_file_url, delete_file }, sess, env) {
+  if (!entry_id) return err('entry_id required');
+  const existing = await env.DB.prepare('SELECT * FROM pending_entries WHERE entry_id = ?').bind(entry_id).first();
+  if (!existing) return err('Pending entry not found', 404);
+  // Only submitter or admin can edit
+  if (sess.role !== 'Admin' && existing.submitted_by !== sess.username) return err('Forbidden', 403);
+  // Can only edit Pending status entries (not yet approved/rejected)
+  if (existing.status !== 'Pending' && sess.role !== 'Admin') return err('Cannot edit — entry already ' + existing.status, 400);
+  // Delete old file if requested
+  if (delete_file && existing.drive_file_url) {
+    await deleteFileFromDrive(existing.drive_file_url, env);
+  }
+  const newUrl = delete_file ? (drive_file_url || '') : (drive_file_url !== undefined ? drive_file_url : existing.drive_file_url);
+  const fields = [], vals = [];
+  if (date !== undefined) { fields.push('date = ?'); vals.push(date); }
+  if (amount !== undefined) { fields.push('amount = ?'); vals.push(amount); }
+  if (narration !== undefined) { fields.push('narration = ?'); vals.push(narration); }
+  if (cost_head_id !== undefined) { fields.push('cost_head_id = ?'); vals.push(cost_head_id); }
+  if (project_id !== undefined) { fields.push('project_id = ?'); vals.push(project_id); }
+  if (vendor_id !== undefined) { fields.push('vendor_id = ?'); vals.push(vendor_id); }
+  fields.push('drive_file_url = ?'); vals.push(newUrl);
+  fields.push('status = ?'); vals.push('Pending'); // reset to pending on edit
+  vals.push(entry_id);
+  await env.DB.prepare(`UPDATE pending_entries SET ${fields.join(', ')} WHERE entry_id = ?`).bind(...vals).run();
+  return ok({ updated: entry_id });
+}
+
+// Delete a file from Google Drive via GAS
+async function deleteFileFromDrive(fileUrl, env) {
+  if (!fileUrl || !fileUrl.includes('drive.google.com')) return;
+  const gasUrl = env.GAS_URL;
+  if (!gasUrl) return;
+  try {
+    // Extract fileId from URL: /file/d/{fileId}/view
+    const m = fileUrl.match(/\/file\/d\/([^\/]+)/);
+    if (!m) return;
+    const fileId = m[1];
+    await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'deleteFile', fileId }),
+      redirect: 'follow'
+    });
+  } catch(e) { /* best-effort delete */ }
+}
+
 async function handleDeleteEntry({ entry_id }, sess, env) {
   if (!entry_id) return err('entry_id required');
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
-  // Verify entry exists first
-  const existing = await env.DB.prepare('SELECT entry_id, entry_type, amount, date FROM entries WHERE entry_id = ?').bind(entry_id).first();
+  const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
   if (!existing) return err('Entry not found', 404);
-  // Count ledger rows that will be deleted
   const ledgerCount = await env.DB.prepare('SELECT COUNT(*) as cnt FROM ledger WHERE entry_id = ?').bind(entry_id).first();
-  // Delete atomically: entry + both ledger rows (DR and CR)
   await env.DB.batch([
     env.DB.prepare('DELETE FROM entries WHERE entry_id = ?').bind(entry_id),
     env.DB.prepare('DELETE FROM ledger WHERE entry_id = ?').bind(entry_id)
   ]);
-  return ok({
-    deleted_entry: entry_id,
-    deleted_ledger_rows: ledgerCount?.cnt || 0,
-    entry: existing
-  });
+  // Delete associated Drive file (best-effort)
+  if (existing.drive_file_url) {
+    await deleteFileFromDrive(existing.drive_file_url, env);
+  }
+  return ok({ deleted_entry: entry_id, deleted_ledger_rows: ledgerCount?.cnt || 0, entry: existing });
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ PENDING ENTRIES ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
@@ -649,6 +718,14 @@ async function handleGetDashboard({ fyid, company_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DRIVE / GAS PROXY ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 
+
+
+// ── DELETE FILE PROXY ─────────────────────────────────────────────────────────
+async function handleDeleteFileProxy({ file_url }, sess, env) {
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
+  await deleteFileFromDrive(file_url, env);
+  return ok({ deleted: true });
+}
 
 // ── FILE UPLOAD VIA GAS → GOOGLE DRIVE ───────────────────────────────────────
 async function handleUploadFile({ folderId, filename, base64Data, mimeType }, sess, env) {
