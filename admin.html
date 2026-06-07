@@ -2434,17 +2434,7 @@ async function loadVendorRpt(vid){
 }
 function printVendorRpt(){
   const w=window.open('','_blank');
-  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'<!-- Document Viewer Modal -->
-<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
-    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
-    <div style="display:flex;gap:8px;align-items:center">
-      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
-      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
-    </div>
-  </div>
-  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
-</div>
+  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
 </body></html>');
   w.print();
 }
