@@ -1569,6 +1569,7 @@ async function saveEntry() {
   let docUrl = document.getElementById('ae-doc-url')?.value?.trim() || '';
   const docFileInput = document.getElementById('ae-doc-file');
   const docFile = docFileInput?.files?.[0];
+  dbg(`saveEntry: docFile=${docFile?.name||'none'} docUrl=${docUrl||'empty'}`);
   if (docFile && (!docUrl || docUrl === docFile.name)) {
     // File selected but not yet uploaded (or only filename stored)
     const statusEl = document.getElementById('ae-doc-status');
