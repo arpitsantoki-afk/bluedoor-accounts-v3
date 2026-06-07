@@ -885,6 +885,7 @@ function epDocSelected(input) {
 }
 
 function closeEpModal() {
+  if(window._epOnClose){const fn=window._epOnClose;window._epOnClose=null;fn();}
   document.getElementById('ep-modal').classList.add('hidden');
   window._epDeleteDoc = false;
   window._epNewFile = null;
@@ -1209,6 +1210,42 @@ async function submitEntry() {
   }
 
   // File is uploaded to Drive on submit — see Drive upload block below
+
+  // Confirmation popup before submitting
+  const vendorName = (_vendors||[]).find(v=>v.vendor_id===(payload.vendor_id||payload.vendor_id))?.vendor_name||'';
+  const projName   = (_projs||[]).find(p=>p.project_id===payload.project_id)?.project_name||'';
+  const chName     = (_chs||[]).find(c=>c.ch_id===payload.cost_head_id)?.ch_name||'';
+  const coName     = (_cos||[]).find(c=>c.company_id===payload.company_id)?.company_name||payload.company_id||'';
+  const confirmed  = await new Promise(resolve => {
+    // Show confirm modal
+    const el = document.getElementById('ep-modal-body');
+    const modal = document.getElementById('ep-modal');
+    if (el && modal) {
+      el.innerHTML = `
+        <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+          <div style="font-size:15px;font-weight:700;margin-bottom:8px">${_selType.label}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">${fmtDate(date)}</div></div>
+            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">${fmtAmt(amount)}</div></div>
+            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>${coName}</div></div>
+            ${vendorName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>${vendorName}</div></div>`:''}
+            ${projName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>${projName}</div></div>`:''}
+            ${chName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>${chName}</div></div>`:''}
+          </div>
+          ${narration?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${narration}</div>`:''}
+          ${window._pendingDocFile?`<div style="margin-top:8px;font-size:12px">📎 ${window._pendingDocFile.name}</div>`:''}
+        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Entry will be sent for admin approval.</div>
+        <div style="display:flex;gap:8px">
+          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="window._supConfirmed=true;closeEpModal()">Submit for Approval</button>
+          <button class="btn btn-o" onclick="window._supConfirmed=false;closeEpModal()">Cancel</button>
+        </div>`;
+      modal.classList.remove('hidden');
+      const origClose = closeEpModal;
+      window._epOnClose = () => { resolve(!!window._supConfirmed); window._supConfirmed=false; };
+    } else { resolve(true); }
+  });
+  if (!confirmed) return;
 
   addDebug(`submitEntry: ${_selType.et_key} ₹${amount}`);
 
