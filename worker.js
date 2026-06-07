@@ -383,7 +383,7 @@ async function handleListEntries({ fyid, company_id, project_id, vendor_id, entr
   return ok({ entries: (await env.DB.prepare(q).bind(...vals).all()).results });
 }
 async function handleAddEntry(params, sess, env) {
-  const { date, fyid, project_id = '', cost_head_id = '', vendor_id = '', entry_type, amount, narration = '', company_id = '' } = params;
+  const { date, fyid, project_id = '', cost_head_id = '', vendor_id = '', entry_type, amount, narration = '', company_id = '', drive_file_url = '' } = params;
   if (!date || !fyid || !entry_type || !amount) return err('date, fyid, entry_type, amount required');
 
   // Get entry type definition
@@ -411,8 +411,8 @@ async function handleAddEntry(params, sess, env) {
 
   // Insert main entry record
   await env.DB.prepare(
-    'INSERT INTO entries (entry_id, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, created_by, created_at, company_id) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)'
-  ).bind(eid, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, sess.username, now, company_id).run();
+    'INSERT INTO entries (entry_id, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, created_by, created_at, company_id, drive_file_url) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)'
+  ).bind(eid, date, fyid, project_id, cost_head_id, vendor_id, entry_type, amount, narration, sess.username, now, company_id, drive_file_url).run();
 
   // Insert DEBIT ledger entry
   if (drAc) {
@@ -901,6 +901,8 @@ async function handleMigrate(request, env) {
     const migrations = [
       "ALTER TABLE entry_types ADD COLUMN hint TEXT DEFAULT ''",
       "ALTER TABLE users ADD COLUMN allowed_vendors TEXT DEFAULT '[]'",
+      "ALTER TABLE entries ADD COLUMN drive_file_url TEXT DEFAULT ''",
+      "ALTER TABLE pending_entries ADD COLUMN drive_file_url TEXT DEFAULT ''",
       // NOTE: deliberately NOT resetting roles here — user roles are managed via admin UI only
     ];
     for (const sql of migrations) {
