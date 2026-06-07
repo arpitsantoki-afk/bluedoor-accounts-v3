@@ -36,10 +36,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .top-pills{display:flex;gap:5px}
 .pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
 .pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
-#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
 .view{display:none;padding:12px}
 .view.active{display:block}
-#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
 .nb .ni{width:20px;height:20px;display:block;margin:0 auto}
 .nb.active{color:var(--accent)}
@@ -1645,26 +1645,29 @@ async function handleDocUpload(input) {
   if (!file) return;
   const statusEl = document.getElementById('ae-doc-status');
   const urlEl    = document.getElementById('ae-doc-url');
-  const coId     = document.getElementById('ae-co')?.value || '';
-  const date     = document.getElementById('ae-date')?.value || new Date().toISOString().slice(0,10);
-  const etKey    = _curEtKey || '';
-  const vendor   = (_vendors||[]).find(v => v.vendor_id === document.getElementById('ae-vendor-val')?.value);
-  const vendorName = vendor?.vendor_name || '';
 
-  statusEl.textContent = '⬆️ Uploading to Drive…';
-  statusEl.style.color = 'var(--amber)';
+  // Show filename immediately so user sees something right away
+  const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  urlEl.value = file.name;
+  statusEl.textContent = `📎 ${file.name} (${sizeStr}) — uploading…`;
+  statusEl.style.color = 'var(--muted)';
+
+  const coId       = document.getElementById('ae-co')?.value || '';
+  const date       = document.getElementById('ae-date')?.value || new Date().toISOString().slice(0,10);
+  const etKey      = _curEtKey || '';
+  const vendor     = (_vendors||[]).find(v => v.vendor_id === document.getElementById('ae-vendor-val')?.value);
+  const vendorName = vendor?.vendor_name || '';
 
   const url = await uploadFileToDrive(file, coId, etKey, vendorName, date);
   if (url) {
     urlEl.value = url;
-    statusEl.innerHTML = `✅ <a href="${url}" target="_blank" style="color:var(--green)">Uploaded</a>`;
+    statusEl.innerHTML = `✅ <a href="${url}" target="_blank" style="color:var(--green)">View in Drive</a>`;
     statusEl.style.color = 'var(--green)';
-    toast('📎 Document uploaded to Drive');
+    toast('📎 Uploaded to Drive');
   } else {
-    urlEl.value = file.name;
-    statusEl.textContent = '⚠️ No Drive folder — filename saved';
-    statusEl.style.color = 'var(--amber)';
-    dbg('Drive folder not configured for this company', 'warn');
+    // Keep filename as fallback — already set above
+    statusEl.textContent = `📎 ${file.name} (${sizeStr}) — saved locally`;
+    statusEl.style.color = 'var(--muted)';
   }
 }
 
