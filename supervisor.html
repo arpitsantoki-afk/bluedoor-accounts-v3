@@ -548,6 +548,17 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
     </div>
     <div id="debug-log"></div>
   </div>
+
+  <!-- Edit Pending Modal -->
+  <div id="ep-modal" class="modal-bg hidden" style="z-index:250">
+    <div class="modal" style="border-radius:16px;max-width:480px;width:calc(100% - 32px);max-height:85dvh;overflow-y:auto">
+      <div class="rsb" style="margin-bottom:14px">
+        <h3>Edit Pending Entry</h3>
+        <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeEpModal()">✕</button>
+      </div>
+      <div id="ep-modal-body"></div>
+    </div>
+  </div>
 </div><!-- /app -->
 
 <!-- Confirm modal -->
@@ -791,6 +802,137 @@ function setCo(id) {
 // ═══════════════════════════════════════════════════════════════
 // HOME
 // ═══════════════════════════════════════════════════════════════
+
+// ── EDIT PENDING ENTRY ────────────────────────────────────────────────────────
+async function editPending(entryId) {
+  const res = await api('listPending', { fyid: curFY });
+  const p = (res.pending||[]).find(e => e.entry_id === entryId);
+  if (!p) { toast('Entry not found', 'err'); return; }
+  if (p.submitted_by !== S.user.username) { toast('Can only edit your own entries', 'err'); return; }
+  if (p.status !== 'Pending') { toast('Cannot edit — entry is ' + p.status, 'err'); return; }
+
+  const et = _ets.find(t => t.et_key === p.entry_type);
+  const ch = _chs.find(c => c.ch_id === p.cost_head_id);
+  const vendor = _vendors.find(v => v.vendor_id === p.vendor_id);
+  const proj = _projs.find(pr => pr.project_id === p.project_id);
+  const hasDoc = p.drive_file_url && p.drive_file_url.startsWith('http');
+  window._epDeleteDoc = false;
+  window._epNewFile = null;
+
+  // Build modal HTML
+  const modalHtml = `
+    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
+      <div style="font-weight:600">${et?.label||p.entry_type}</div>
+      <div style="color:var(--muted)">${fmtDate(p.date)} · ${fmtAmt(p.amount)}</div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Date *</label>
+        <input type="date" id="ep-date" value="${p.date}">
+      </div>
+      <div class="field"><label>Amount (₹) *</label>
+        <input type="number" id="ep-amt" value="${p.amount}" step="0.01" min="0">
+      </div>
+    </div>
+    ${p.entry_type === 'expense_petty_cash' ? `
+    <div class="field"><label>Cost Head</label>
+      <select id="ep-ch">
+        ${_chs.map(c=>`<option value="${c.ch_id}" ${c.ch_id===p.cost_head_id?'selected':''}>${c.ch_name}</option>`).join('')}
+      </select>
+    </div>` : ''}
+    <div class="field"><label>Narration</label>
+      <textarea id="ep-narr" rows="2">${p.narration||''}</textarea>
+    </div>
+    <div class="field"><label>Document</label>
+      ${hasDoc ? `
+        <div id="ep-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
+          <a href="${p.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px">📎 View document</a>
+          <button class="btn btn-xs" onclick="epDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)">🗑 Remove</button>
+        </div>` : ''}
+      <div id="ep-doc-new" style="${hasDoc?'display:none':''}">
+        <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">
+          📎 Attach document
+          <input type="file" id="ep-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="epDocSelected(this)">
+        </label>
+        <div id="ep-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+      </div>
+    </div>
+    <div class="row mt3" style="flex-wrap:wrap;gap:8px">
+      <button class="btn btn-p" style="flex:1;justify-content:center;min-width:100px" onclick="saveEditPending('${p.entry_id}','${p.drive_file_url||''}','${p.entry_type}','${p.company_id||''}')">Resubmit</button>
+      <button class="btn btn-d btn-sm" onclick="deletePendingEntry('${p.entry_id}')">Delete</button>
+      <button class="btn btn-o" onclick="closeEpModal()">Cancel</button>
+    </div>`;
+
+  // Show modal
+  document.getElementById('ep-modal-body').innerHTML = modalHtml;
+  document.getElementById('ep-modal').classList.remove('hidden');
+}
+
+function epDeleteDoc() {
+  window._epDeleteDoc = true;
+  const cur = document.getElementById('ep-current-doc');
+  const nw = document.getElementById('ep-doc-new');
+  if (cur) cur.style.display = 'none';
+  if (nw) nw.style.display = 'block';
+}
+
+function epDocSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  window._epNewFile = file;
+  const s = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  const st = document.getElementById('ep-doc-status');
+  if (st) { st.textContent = `📎 ${file.name} (${s})`; st.style.color = 'var(--accent)'; }
+}
+
+function closeEpModal() {
+  document.getElementById('ep-modal').classList.add('hidden');
+  window._epDeleteDoc = false;
+  window._epNewFile = null;
+}
+
+async function saveEditPending(entryId, oldUrl, entryType, companyId) {
+  const date   = document.getElementById('ep-date')?.value;
+  const amount = parseFloat(document.getElementById('ep-amt')?.value);
+  const narr   = document.getElementById('ep-narr')?.value || '';
+  const ch     = document.getElementById('ep-ch')?.value;
+  if (!date || !amount) { toast('Date and amount required', 'err'); return; }
+
+  let newUrl = window._epDeleteDoc ? '' : oldUrl;
+
+  // Upload new file if selected
+  if (window._epNewFile) {
+    const st = document.getElementById('ep-doc-status');
+    if (st) { st.textContent = '⬆️ Uploading…'; st.style.color = 'var(--amber)'; }
+    const co = _cos.find(c => c.company_id === companyId);
+    const vendor = _vendors.find(v => v.vendor_id === document.getElementById('ep-vendor-val')?.value);
+    const uploaded = await uploadFileToDrive(window._epNewFile, companyId, entryType, vendor?.vendor_name||'', date);
+    if (uploaded) { newUrl = uploaded; }
+  }
+
+  const payload = {
+    entry_id: entryId, date, amount, narration: narr,
+    drive_file_url: newUrl,
+    delete_file: window._epDeleteDoc && !window._epNewFile
+  };
+  if (ch) payload.cost_head_id = ch;
+
+  const r = await api('updatePending', payload);
+  if (r.ok) {
+    toast('Entry resubmitted ✓');
+    closeEpModal();
+    renderHome();
+  } else {
+    toast(r.error || 'Update failed', 'err');
+  }
+}
+
+async function deletePendingEntry(entryId) {
+  if (!confirm('Delete this pending entry?')) return;
+  const r = await api('deletePending', { entry_id: entryId });
+  if (r.ok) { toast('Entry deleted'); closeEpModal(); renderHome(); }
+  else toast(r.error || 'Delete failed', 'err');
+}
+
 async function renderHome() {
   const me = S.user?.username || '';
   const [pending, entries] = await Promise.all([
@@ -809,16 +951,21 @@ async function renderHome() {
   const pendEl = document.getElementById('home-pending');
   if (ps.length) {
     pendEl.innerHTML = `<div class="tw"><table>
-      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th></tr></thead>
+      <thead><tr><th>Date</th><th>Type</th><th>Amount</th><th>Status</th><th></th></tr></thead>
       <tbody>${ps.map(p => {
         const et = _ets.find(t => t.et_key === p.entry_type);
         const statusCls = p.status === 'Pending' ? 's-pending' : p.status === 'Approved' ? 's-approved' : 's-rejected';
+        const canEdit = p.status === 'Pending';
         return `<tr>
           <td>${fmtDate(p.date)}</td>
           <td><code style="font-size:10px">${et?.label || p.entry_type}</code></td>
           <td class="amt dr">${fmtAmt(p.amount)}</td>
-          <td><span class="badge ${statusCls}">${p.status}</span>
-          ${p.reject_reason ? `<div class="comment-box">💬 ${p.reject_reason}</div>` : ''}
+          <td>
+            <span class="badge ${statusCls}">${p.status}</span>
+            ${p.reject_reason ? `<div class="comment-box">💬 ${p.reject_reason}</div>` : ''}
+          </td>
+          <td>
+            ${canEdit ? `<button class="btn btn-xs btn-o" onclick="editPending('${p.entry_id}')">✏️ Edit</button>` : ''}
           </td>
         </tr>`;
       }).join('')}</tbody></table></div>`;
@@ -1577,6 +1724,41 @@ function onDocFileChange(input) {
     if (lbl) lbl.style.borderColor = 'var(--accent)';
   }
   addDebug(`File selected: ${file.name}`, 'info');
+}
+
+
+// ── Google Drive Upload via Worker → GAS ─────────────────────────────────────
+function buildDriveFilename(entryType, vendorName, date) {
+  const d = (date || new Date().toISOString().slice(0,10)).replace(/-/g,'_');
+  const v = (vendorName || 'General').replace(/[^a-zA-Z0-9]/g,'_').substring(0,30);
+  const et = (entryType || 'entry').replace(/[^a-zA-Z0-9]/g,'_');
+  return `${d}_${v}_${et}`;
+}
+
+async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
+  const co = (_cos||[]).find(c => c.company_id === companyId);
+  const folderId = co?.drive_folder;
+  if (!folderId || folderId.length <= 10) {
+    addDebug(`No Drive folder for company ${companyId}`, 'warn');
+    return null;
+  }
+  const b64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload  = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = () => reject(new Error('FileReader failed'));
+    reader.readAsDataURL(file);
+  });
+  const baseName = buildDriveFilename(entryType, vendorName, date);
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+  const filename = `${baseName}.${ext}`;
+  addDebug(`Uploading ${filename}`);
+  const r = await api('uploadFile', {
+    folderId, filename, base64Data: b64,
+    mimeType: file.type || 'application/octet-stream'
+  });
+  if (r.ok) { addDebug(`Uploaded: ${r.fileName}`, 'ok'); return r.url; }
+  addDebug(`Upload failed: ${r.error}`, 'err');
+  return null;
 }
 
 
