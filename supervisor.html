@@ -31,10 +31,10 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .top-pills{display:flex;gap:5px}
 .pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
 .pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
-#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
 .view{display:none;padding:12px}
 .view.active{display:block}
-#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0}
+#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
 .nb .ni{width:20px;height:20px;display:block;margin:0 auto}
 .nb.active{color:var(--accent)}
