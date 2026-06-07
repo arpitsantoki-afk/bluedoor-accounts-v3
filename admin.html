@@ -1565,12 +1565,29 @@ async function saveEntry() {
   if(rules.vendor==='required'&&!vendor){toast('Vendor is required for this entry type','err');return;}
   if(rules.cost_head==='required'&&!ch){toast('Cost Head is required for this entry type','err');return;}
 
+  // Upload document first if file was selected
+  let docUrl = document.getElementById('ae-doc-url')?.value?.trim() || '';
+  const docFileInput = document.getElementById('ae-doc-file');
+  const docFile = docFileInput?.files?.[0];
+  if (docFile && (!docUrl || docUrl === docFile.name)) {
+    // File selected but not yet uploaded (or only filename stored)
+    const statusEl = document.getElementById('ae-doc-status');
+    if (statusEl) { statusEl.textContent = '⬆️ Uploading document…'; statusEl.style.color = 'var(--amber)'; }
+    const vendorObj = (_vendors||[]).find(v => v.vendor_id === vendor);
+    const uploadedUrl = await uploadFileToDrive(docFile, co, _selType.et_key, vendorObj?.vendor_name || '', date);
+    if (uploadedUrl) {
+      docUrl = uploadedUrl;
+      if (statusEl) { statusEl.innerHTML = `✅ <a href="${uploadedUrl}" target="_blank" style="color:var(--green)">View in Drive</a>`; }
+      toast('📎 Document uploaded');
+    }
+  }
+
   const res=await api('addEntry',{
     date,fyid:curFY,company_id:co,entry_type:_selType.et_key,
-    project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr
+    project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr,
+    drive_file_url: docUrl || undefined
   });
   if(res.ok){
-    // Show DR/CR confirmation
     const drInfo=res.dr_account||'—';
     const crInfo=res.cr_account||'—';
     toast(`✓ Entry saved | DR: ${drInfo} | CR: ${crInfo}`);
