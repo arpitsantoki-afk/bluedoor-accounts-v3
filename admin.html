@@ -1635,6 +1635,41 @@ async function getOrCreateDriveFolder(token, folderName) {
   return folder.id;
 }
 
+// ── Google Drive Upload via Worker → GAS ────────────────────────────────────
+function buildDriveFilename(entryType, vendorName, date) {
+  const d = (date || new Date().toISOString().slice(0,10)).replace(/-/g,'_');
+  const v = (vendorName || 'General').replace(/[^a-zA-Z0-9]/g,'_').substring(0,30);
+  const et = (entryType || 'entry').replace(/[^a-zA-Z0-9]/g,'_');
+  return `${d}_${v}_${et}`;
+}
+
+async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
+  const co = (_cos||[]).find(c => c.company_id === companyId);
+  const folderId = co?.drive_folder;
+  if (!folderId || folderId.length <= 10) {
+    addDebug(`No Drive folder ID for company ${companyId}`, 'warn');
+    return null;
+  }
+  const b64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const baseName = buildDriveFilename(entryType, vendorName, date);
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+  const filename = `${baseName}.${ext}`;
+  addDebug(`Uploading ${filename} to ${folderId}`);
+  const r = await api('uploadFile', {
+    folderId, filename, base64Data: b64,
+    mimeType: file.type || 'application/octet-stream'
+  });
+  if (r.ok) { addDebug(`Uploaded: ${r.fileName}`, 'ok'); return r.url; }
+  addDebug(`Upload failed: ${r.error}`, 'err');
+  return null;
+}
+
+
 async function uploadToDrive(file, companyId) {
   return uploadFileToDrive(file, companyId, _curEntryType, _curVendorName, document.getElementById('ae-date')?.value);
 }
