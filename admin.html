@@ -604,7 +604,7 @@ function showEditModal(title, bodyHTML, afterRender) {
   document.getElementById('edit-modal').classList.remove('hidden');
   if (afterRender) setTimeout(afterRender, 50);
 }
-function closeEditModal() { document.getElementById('edit-modal').classList.add('hidden'); }
+function closeEditModal() { if(window._tmpCloseModal){const fn=window._tmpCloseModal;window._tmpCloseModal=null;fn();} document.getElementById('edit-modal').classList.add('hidden'); }
 
 // ═══════════════════════════════════════════════════════════════
 // SEARCH-SELECT (combo dropdown)
@@ -955,7 +955,7 @@ async function renderHome() {
 }
 async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
 
-async async function showEditEntry(entryId) {
+async function showEditEntry(entryId) {
   const res = await api('listEntries', {fyid:curFY, limit:1000});
   const entry = (res.entries||[]).find(e=>e.entry_id===entryId);
   if (!entry) { toast('Entry not found','err'); return; }
@@ -1104,6 +1104,10 @@ async function renderLedger() {
   const ac=ssGet('lf-ac-wrap'); if(ac) params.ac_code=ac;
   const from=document.getElementById('lf-from').value; if(from) params.date_from=from;
   const to=document.getElementById('lf-to').value; if(to) params.date_to=to;
+  // Fetch entries to get drive_file_url mapping
+  const entryRes=await api('listEntries',{fyid:curFY,company_id:curCo||'',limit:1000});
+  window._entryDocMap={};
+  (entryRes.entries||[]).forEach(e=>{ if(e.drive_file_url) window._entryDocMap[e.entry_id]=e.drive_file_url; });
   const res=await api('getLedger',params);
   let rows=res.ledger||[];
 
@@ -1145,6 +1149,7 @@ async function renderLedger() {
       <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
       <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
       <td style="white-space:nowrap;min-width:58px">${isFirst?`
+        ${(window._entryDocMap?.[r.entry_id]||'').startsWith('http')?`<button class="btn btn-o btn-xs" onclick="viewDoc('${window._entryDocMap[r.entry_id]}')"  title="View Document" style="color:var(--accent)">📎</button>`:''}
         <button class="btn btn-o btn-xs" onclick="showEditEntry('${r.entry_id}')" title="Edit">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
@@ -1250,6 +1255,18 @@ function printLedgerPDF() {
   ${accountSections}
   
 
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);
   w.document.close();
   w.print();
@@ -1271,6 +1288,18 @@ function printLedger() {
   const w=window.open('','_blank');
   const rows=_ledgerRows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.company_id}</td><td>${r.ac_name}</td><td>${r.narration||''}</td><td style="text-align:right">${r.debit>0?'₹'+fmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?'₹'+fmt(r.credit):''}</td></tr>`).join('');
   w.document.write(`<html><head><title>Ledger ${curFY}</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}th{background:#f5f5f5}</style></head><body><h2>BlueDoor Ledger — ${curFY}</h2><table><thead><tr><th>Date</th><th>Co</th><th>Account</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody></table>
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);
   w.print();
 }
@@ -1585,6 +1614,43 @@ async function saveEntry() {
       toast('📎 Document uploaded');
     }
   }
+
+  // Confirmation popup before saving
+  const vendorName = (_vendors||[]).find(v=>v.vendor_id===vendor)?.vendor_name||'';
+  const projName   = (_projs||[]).find(p=>p.project_id===proj)?.project_name||'';
+  const chName     = (_chs||[]).find(c=>c.ch_id===ch)?.ch_name||'';
+  const coName     = (_cos||[]).find(c=>c.company_id===co)?.company_name||co;
+  const et         = _ets.find(t=>t.et_key===_selType.et_key);
+  const confirmed  = await new Promise(resolve => {
+    showEditModal('Confirm Entry', `
+      <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="font-size:15px;font-weight:700;margin-bottom:8px">${_selType.label}</div>
+        <div class="g2" style="gap:8px">
+          <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">${fmtDate(date)}</div></div>
+          <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">${fmtAmt(amt)}</div></div>
+          <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>${coName}</div></div>
+          ${vendorName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>${vendorName}</div></div>`:''}
+          ${projName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>${projName}</div></div>`:''}
+          ${chName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>${chName}</div></div>`:''}
+        </div>
+        ${narr?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${narr}</div>`:''}
+        ${docUrl?`<div style="margin-top:8px;font-size:12px">📎 Document attached</div>`:''}
+        <div style="margin-top:10px;font-size:11px">
+          <span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span>
+        </div>
+      </div>
+      <div class="row" style="gap:8px">
+        <button class="btn btn-p" style="flex:1;justify-content:center" id="confirm-save-btn" onclick="window._entrySaveConfirmed=true;closeEditModal()">Save Entry</button>
+        <button class="btn btn-o" onclick="window._entrySaveConfirmed=false;closeEditModal()">Cancel</button>
+      </div>`);
+    // Wait for modal close
+    const orig = closeEditModal;
+    window._tmpCloseModal = () => {
+      resolve(!!window._entrySaveConfirmed);
+      window._entrySaveConfirmed = false;
+    };
+  });
+  if (!confirmed) return;
 
   const res=await api('addEntry',{
     date,fyid:curFY,company_id:co,entry_type:_selType.et_key,
@@ -1973,6 +2039,18 @@ function exportOBXLS(){
 function printOB(){
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>Opening Balances ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Opening & Closing Balances — ${curFY}</h2>${document.getElementById('ob-accounts').innerHTML}${document.getElementById('ob-vendors').innerHTML}
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);
   w.print();
 }
@@ -2167,6 +2245,18 @@ function exportPLXLS(){
 function printPL(){
   const w=window.open('','_blank');
   w.document.write(`<html><head><title>P&L ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}h2,h3{margin:10px 0 5px}</style></head><body><h2>Profit & Loss Statement — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);
   w.print();
 }
@@ -2246,6 +2336,18 @@ function exportBSXLS(){
   XLSX.writeFile(wb,`BalanceSheet_${curFY}.xlsx`);
 }
 function printBS(){const w=window.open('','_blank');w.document.write(`<html><head><title>Balance Sheet ${curFY}</title><style>body{font-family:Arial;font-size:11px}</style></head><body><h2>Balance Sheet — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);w.print();}
 
 function renderVendorRptPicker(el){
@@ -2331,7 +2433,19 @@ async function loadVendorRpt(vid){
 }
 function printVendorRpt(){
   const w=window.open('','_blank');
-  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
+  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
+</body></html>');
   w.print();
 }
 function exportVendorXLS(vid){
@@ -2509,6 +2623,18 @@ function printProjectRpt(){
   <tr><td>(j) Vendor Advances Paid</td><td class="cr">₹${fmt(s.totalAdvPaid)}</td></tr>
   <tr><td><strong>(k) Net Cash Flow</strong></td><td class="${s.cashFlow>=0?'dr':'cr'}"><strong>₹${fmt(Math.abs(s.cashFlow))} ${s.cashFlow>=0?'surplus':'deficit'}</strong></td></tr>
   </tbody></table>
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);w.print();
 }
 function exportProjXLS(pid){
@@ -2555,6 +2681,18 @@ function exportTrialXLS(){
   XLSX.writeFile(wb,`TrialBalance_${curFY}.xlsx`);
 }
 function printTrial(){const w=window.open('','_blank');w.document.write(`<html><head><title>Trial Balance ${curFY}</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Trial Balance — ${curFY}</h2>${document.getElementById('rpt-out').innerHTML}
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body></html>`);w.print();}
 
 // ═══════════════════════════════════════════════════════════════
@@ -2570,16 +2708,187 @@ async function renderMore(tab){
   if(tab==='pending') await renderPending();
   else if(tab==='users') await renderUsers();
   else if(tab==='masters') renderMasters();
+  else if(tab==='docs') renderDocs();
   else if(tab==='rawdata') renderRawData();
   else if(tab==='import') renderImport();
 }
 
 // Pending
+
+// ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
+function confirmApproveById(entryId) {
+  const p = window._pendingMap?.[entryId];
+  if (!p) { approvePending(entryId); return; }
+  const et = _ets.find(t => t.et_key === p.entry_type);
+  const vendor = _vendors.find(v => v.vendor_id === p.vendor_id);
+  const proj = _projs.find(pr => pr.project_id === p.project_id);
+  const ch = _chs.find(c => c.ch_id === p.cost_head_id);
+  const co = _cos.find(c => c.company_id === p.company_id);
+  const hasDoc = p.drive_file_url && p.drive_file_url.startsWith('http');
+
+  showEditModal('Confirm Approval', `
+    <div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+      <div style="font-size:15px;font-weight:700;margin-bottom:8px">${et?.label||p.entry_type}</div>
+      <div class="g2" style="gap:8px;margin-bottom:0">
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-size:13px;font-weight:600">${fmtDate(p.date)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-size:13px;font-weight:600;color:var(--green)">${fmtAmt(p.amount)}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div style="font-size:13px">${co?.company_name||p.company_id||'—'}</div></div>
+        <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Submitted by</div><div style="font-size:13px">${p.submitted_by||'—'}</div></div>
+        ${vendor?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div style="font-size:13px">${vendor.vendor_name}</div></div>`:''}
+        ${proj?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div style="font-size:13px">${proj.project_name}</div></div>`:''}
+        ${ch?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div style="font-size:13px">${ch.ch_name}</div></div>`:''}
+      </div>
+      ${p.narration?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${p.narration}</div>`:''}
+      ${hasDoc?`<div style="margin-top:10px"><a href="${p.drive_file_url}" target="_blank" style="color:var(--accent);font-size:12px">📎 View attached document</a></div>`:''}
+    </div>
+    <div style="font-size:12px;color:var(--muted);margin-bottom:14px">
+      <span class="badge bb" style="font-size:11px">DR: ${et?.dr||'—'}</span> → <span class="badge bb" style="font-size:11px">CR: ${et?.cr||'—'}</span>
+    </div>
+    <div class="row" style="gap:8px">
+      <button class="btn btn-s" style="flex:1;justify-content:center" onclick="approvePending('${entryId}');closeEditModal()">✓ Approve</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+
+// ── DOCUMENTS TAB ─────────────────────────────────────────────────────────────
+async function renderDocs() {
+  const el = document.getElementById('more-out');
+  el.innerHTML = '<div class="empty"><span class="spin"></span> Loading documents…</div>';
+
+  // Fetch entries with drive_file_url
+  const [entriesRes, vendorsRes] = await Promise.all([
+    api('listEntries', { fyid: curFY, company_id: curCo || '', limit: 2000 }),
+    api('listVendors')
+  ]);
+  const allEntries = (entriesRes.entries || []).filter(e => e.drive_file_url && e.drive_file_url.startsWith('http'));
+  const vendorMap = {};
+  (vendorsRes.vendors || []).forEach(v => vendorMap[v.vendor_id] = v.vendor_name);
+
+  if (!allEntries.length) {
+    el.innerHTML = '<div class="empty">No documents found for this FY</div>';
+    return;
+  }
+
+  // Group by month
+  const byMonth = {};
+  allEntries.forEach(e => {
+    const mon = e.date ? e.date.substring(0, 7) : 'Unknown'; // yyyy-mm
+    if (!byMonth[mon]) byMonth[mon] = [];
+    byMonth[mon].push(e);
+  });
+  const months = Object.keys(byMonth).sort().reverse();
+
+  window._docEntries = allEntries;
+  window._docSelected = new Set();
+
+  el.innerHTML = `
+    <div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-o btn-sm" onclick="docsSelectAll()">☑ All</button>
+      <button class="btn btn-o btn-sm" onclick="docsSelectNone()">☐ None</button>
+      <button class="btn btn-p btn-sm" onclick="docsExportZip()" id="docs-export-btn" style="display:none">⬇ Export ZIP (<span id="docs-sel-count">0</span>)</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">${allEntries.length} documents</span>
+    </div>
+    <div id="docs-list">
+      ${months.map(mon => {
+        const rows = byMonth[mon];
+        const label = new Date(mon + '-01').toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+        return `<div class="sh">${label} (${rows.length})</div>
+        <div class="card" style="margin-bottom:12px">
+          ${rows.map(e => {
+            const et = _ets.find(t => t.et_key === e.entry_type);
+            const vendor = e.vendor_id ? (vendorMap[e.vendor_id] || e.vendor_id) : '—';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+              <input type="checkbox" class="doc-cb" data-id="${e.entry_id}" data-url="${e.drive_file_url}"
+                onchange="docsToggle(this)"
+                style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600">${fmtDate(e.date)} · ${fmtAmt(e.amount)}</div>
+                <div style="font-size:11px;color:var(--muted)">${et?.label||e.entry_type} · ${vendor}</div>
+                ${e.narration?`<div style="font-size:11px;color:var(--muted)">${e.narration}</div>`:''}
+              </div>
+              <button onclick="viewDoc('${e.drive_file_url}')" class="btn btn-o btn-xs" style="flex-shrink:0">👁</button>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function docsToggle(cb) {
+  if (cb.checked) window._docSelected.add(cb.dataset.id);
+  else window._docSelected.delete(cb.dataset.id);
+  const count = window._docSelected.size;
+  const exportBtn = document.getElementById('docs-export-btn');
+  const countEl  = document.getElementById('docs-sel-count');
+  if (exportBtn) exportBtn.style.display = count > 0 ? 'flex' : 'none';
+  if (countEl)  countEl.textContent = count;
+}
+
+function docsSelectAll() {
+  document.querySelectorAll('.doc-cb').forEach(cb => { cb.checked = true; docsToggle(cb); });
+}
+function docsSelectNone() {
+  document.querySelectorAll('.doc-cb').forEach(cb => { cb.checked = false; docsToggle(cb); });
+}
+
+async function docsExportZip() {
+  const selected = [...window._docSelected];
+  if (!selected.length) { toast('Select documents first', 'err'); return; }
+  toast(`Preparing ZIP of ${selected.length} documents…`);
+  // Export: open each Drive URL in new tab (browser ZIP API not available without JSZip)
+  // Use JSZip via CDN
+  const btn = document.getElementById('docs-export-btn');
+  if (btn) { btn.textContent = '⏳ Preparing…'; btn.disabled = true; }
+  try {
+    // Load JSZip dynamically
+    await new Promise((resolve, reject) => {
+      if (window.JSZip) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    const zip = new JSZip();
+    const entries = (window._docEntries||[]).filter(e => selected.includes(e.entry_id));
+    let fetched = 0;
+    for (const e of entries) {
+      try {
+        // Convert Drive view URL to direct download
+        const m = e.drive_file_url.match(/\/file\/d\/([^\/]+)/);
+        if (!m) continue;
+        const fileId = m[1];
+        const dlUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        const resp = await fetch(dlUrl, { mode: 'cors' });
+        if (!resp.ok) throw new Error('fetch failed');
+        const blob = await resp.blob();
+        const ext  = blob.type.includes('pdf') ? 'pdf' : blob.type.includes('png') ? 'png' : 'jpg';
+        const fname = `${e.date}_${(e.entry_id||'doc')}.${ext}`;
+        zip.file(fname, blob);
+        fetched++;
+      } catch(err) { dbg(`Skip ${e.entry_id}: ${err.message}`, 'warn'); }
+    }
+    if (!fetched) { toast('Could not download files — try opening them individually', 'err'); return; }
+    const content_zip = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content_zip);
+    a.download = `BlueDoor_Docs_${curFY}_${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    toast(`✓ ZIP downloaded (${fetched} files)`);
+  } catch(e) {
+    toast('ZIP export failed: ' + e.message, 'err');
+    dbg('ZIP error: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = `⬇ Export ZIP`; btn.disabled = false; }
+  }
+}
+
 async function renderPending(){
   const el=document.getElementById('more-out');
   el.innerHTML='<div class="empty"><span class="spin"></span></div>';
   const res=await api('listPending',{fyid:curFY,company_id:curCo});
   const rows=res.pending||[];
+  window._pendingMap={}; rows.forEach(p=>window._pendingMap[p.entry_id]=p);
   // Note: bank imports go to pending — don't show all entries as pending, only actual pending_entries
   if(!rows.length){el.innerHTML='<div class="empty">No pending entries</div>';return;}
   el.innerHTML=rows.map(p=>{
@@ -2599,7 +2908,7 @@ async function renderPending(){
         <span class="badge ${badgeCls}">${p.status}</span>
       </div>
       ${isPending?`<div class="row mt2" style="gap:6px">
-        <button class="btn btn-s btn-sm" onclick="approvePending('${p.entry_id}')">✓ Approve</button>
+        <button class="btn btn-s btn-sm" onclick="confirmApproveById('${p.entry_id}')">✓ Approve</button>
         <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
         <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
       </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
@@ -3347,5 +3656,17 @@ if ('serviceWorker' in navigator) {
 }
 </script>
 
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body>
 </html>
