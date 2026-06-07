@@ -1647,7 +1647,7 @@ async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
   const co = (_cos||[]).find(c => c.company_id === companyId);
   const folderId = co?.drive_folder;
   if (!folderId || folderId.length <= 10) {
-    addDebug(`No Drive folder ID for company ${companyId}`, 'warn');
+    dbg(`No Drive folder ID for company ${companyId}`, 'warn');
     return null;
   }
   const b64 = await new Promise((resolve, reject) => {
@@ -1659,13 +1659,13 @@ async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
   const baseName = buildDriveFilename(entryType, vendorName, date);
   const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
   const filename = `${baseName}.${ext}`;
-  addDebug(`Uploading ${filename} to ${folderId}`);
+  dbg(`Uploading ${filename} to ${folderId}`);
   const r = await api('uploadFile', {
     folderId, filename, base64Data: b64,
     mimeType: file.type || 'application/octet-stream'
   });
-  if (r.ok) { addDebug(`Uploaded: ${r.fileName}`, 'ok'); return r.url; }
-  addDebug(`Upload failed: ${r.error}`, 'err');
+  if (r.ok) { dbg(`Uploaded: ${r.fileName}`, 'ok'); return r.url; }
+  dbg(`Upload failed: ${r.error}`, 'err');
   return null;
 }
 
