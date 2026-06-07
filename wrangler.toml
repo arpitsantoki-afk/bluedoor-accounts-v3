@@ -14,3 +14,4 @@ id = "b91d11a00154490ebd4c4f8945b1a76c"
 
 [vars]
 APP_URL = "https://arpitsantoki-afk.github.io/bluedoor-accounts-v3"
+GAS_URL = "https://script.google.com/macros/s/AKfycbz8MqHg3lMYYoCBTN_bKOrI8npQQ2p78bAvWioVF9YKKpYD_9f-qDwUsHLsUr_N9hJW/exec"
