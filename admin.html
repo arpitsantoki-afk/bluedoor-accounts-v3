@@ -22,6 +22,7 @@
   --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
   --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
 }
+html,body{background:var(--bg);height:100%;margin:0;padding:0}
 body.light-theme #bd-logo{filter:invert(0)!important;opacity:.85}
 body.light-theme{
   --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;--accent:#2563eb;
@@ -107,7 +108,11 @@ tr:last-child td{border-bottom:none}
 /* Modal */
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .modal-bg.center{align-items:center}
-.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;display:flex;flex-direction:column}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:0;width:100%;max-width:480px;max-height:90dvh;display:flex;flex-direction:column;overflow:hidden}
+.modal-header{padding:20px 20px 0;flex-shrink:0}
+.modal-body{padding:14px 20px;flex:1;overflow-y:auto;min-height:0}
+.modal-footer{padding:12px 20px 20px;flex-shrink:0;border-top:1px solid var(--border)}
+.modal-sticky-btns{display:flex;gap:8px;padding:12px 0 0;flex-shrink:0;position:sticky;bottom:0;background:var(--card);border-top:1px solid var(--border);margin-top:8px}
 .modal.center{border-radius:16px;margin:16px}
 .modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
 /* Debug console */
@@ -1642,7 +1647,7 @@ async function saveEntry() {
           </div>
         </div>
       </div>
-      <div class="row" style="gap:8px;flex-shrink:0;padding-top:4px;border-top:1px solid var(--border)">
+      <div class="modal-sticky-btns">
         <button class="btn btn-p" style="flex:1;justify-content:center" id="confirm-save-btn" onclick="window._entrySaveConfirmed=true;closeEditModal()">Save Entry</button>
         <button class="btn btn-o" onclick="window._entrySaveConfirmed=false;closeEditModal()">Cancel</button>
       </div>`);
@@ -2739,7 +2744,7 @@ function confirmApproveById(entryId) {
       <span class="badge bb" style="font-size:11px">DR: ${et?.dr||'—'}</span> → <span class="badge bb" style="font-size:11px">CR: ${et?.cr||'—'}</span>
     </div>
     </div>
-    <div class="row" style="gap:8px;flex-shrink:0;padding-top:12px;border-top:1px solid var(--border)">
+    <div class="modal-sticky-btns">
       <button class="btn btn-s" style="flex:1;justify-content:center" onclick="approvePending('${entryId}');closeEditModal()">✓ Approve</button>
       <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
     </div>`);
