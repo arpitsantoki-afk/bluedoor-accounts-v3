@@ -112,6 +112,7 @@ async function route(action, params, req, env, ctx) {
     case 'getDashboard': return handleGetDashboard(params, sess, env);
     case 'driveProxy': return handleDriveProxy(params, sess, env);
     case 'sendOnboarding': return handleSendOnboarding(params, sess, env);
+    case 'uploadFile': return handleUploadFile(params, sess, env);
     case 'gasProxy': return handleGasProxy(params, sess, env);
     default: return err(`Unknown action: ${action}`, 400);
   }
@@ -647,6 +648,39 @@ async function handleGetDashboard({ fyid, company_id }, sess, env) {
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ DRIVE / GAS PROXY ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+
+
+// ── FILE UPLOAD VIA GAS → GOOGLE DRIVE ───────────────────────────────────────
+async function handleUploadFile({ folderId, filename, base64Data, mimeType }, sess, env) {
+  if (!folderId)   return err('folderId required');
+  if (!filename)   return err('filename required');
+  if (!base64Data) return err('base64Data required');
+
+  const gasUrl = env.GAS_URL;
+  if (!gasUrl) return err('GAS_URL not configured');
+
+  try {
+    const resp = await fetch(gasUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        action: 'uploadToDrive',
+        folderId,
+        filename,
+        base64Data,
+        mimeType: mimeType || 'application/octet-stream'
+      }),
+      redirect: 'follow'
+    });
+    const text = await resp.text();
+    let result;
+    try { result = JSON.parse(text); } catch { result = { raw: text.substring(0, 200) }; }
+    if (!result.ok) return err('GAS upload failed: ' + (result.error || JSON.stringify(result)));
+    return ok({ url: result.url, fileId: result.fileId, fileName: result.fileName });
+  } catch(e) {
+    return err('Upload failed: ' + e.message);
+  }
+}
 
 // ── ONBOARDING EMAIL via Resend ──────────────────────────────────────────────
 async function handleSendOnboarding({ user_id }, sess, env) {
