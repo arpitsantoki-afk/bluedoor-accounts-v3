@@ -5,7 +5,7 @@
 <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
 <meta http-equiv="Pragma" content="no-cache">
 <meta http-equiv="Expires" content="0">
-<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
 <link rel="manifest" href="manifest-admin.json">
 <link rel="apple-touch-icon" href="icons/icon-192x192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -39,7 +39,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 #scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
 .view{display:none;padding:12px}
 .view.active{display:block}
-#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100}
+#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;position:fixed;bottom:0;left:0;right:0;z-index:999;padding-bottom:env(safe-area-inset-bottom,0)}
 .nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
 .nb .ni{width:20px;height:20px;display:block;margin:0 auto}
 .nb.active{color:var(--accent)}
@@ -155,7 +155,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
 <div id="auth-check"><span class="spin"></span>&nbsp; Loading...</div>
 
-<div id="app" style="display:none;flex-direction:column;height:100dvh">
+<div id="app" style="display:none;flex-direction:column;height:100dvh;position:relative">
   <!-- Topbar -->
   <div id="topbar">
     <h1 style="display:flex;align-items:center;padding:0"><img src="assets/logo-white.png" alt="Blue Door Architects" class="bd-logo bd-logo-dark" style="height:36px;width:auto;display:block"><img src="assets/logo-black.png" alt="Blue Door Architects" class="bd-logo bd-logo-light" style="height:36px;width:auto;display:none"></h1>
