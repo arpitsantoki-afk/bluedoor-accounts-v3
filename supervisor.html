@@ -32,7 +32,7 @@ body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSy
 .top-pills{display:flex;gap:5px}
 .pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
 .pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
-#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 16px);min-height:0}
 .view{display:none;padding:12px}
 .view.active{display:block}
 #nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;position:fixed;bottom:0;left:0;right:0;z-index:999;padding-bottom:env(safe-area-inset-bottom,0)}
@@ -92,7 +92,7 @@ tr:last-child td{border-bottom:none}
 .type-opt .toh{font-size:11px;color:var(--muted);margin-top:3px}
 .modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
 .modal-bg.center{align-items:center}
-.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto;display:flex;flex-direction:column}
 .modal.center{border-radius:16px;margin:16px}
 .modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
 .empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px}
@@ -151,7 +151,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
 <div id="auth-check"><span class="spin"></span>&nbsp; Loading...</div>
 
-<div id="app" style="display:none;flex-direction:column;height:100dvh">
+<div id="app" style="display:none;flex-direction:column;height:100dvh;overflow:hidden">
   <!-- Topbar -->
   <div id="topbar">
     <h1 style="display:flex;align-items:center;padding:0">
@@ -1223,7 +1223,7 @@ async function submitEntry() {
     const modal = document.getElementById('ep-modal');
     if (el && modal) {
       el.innerHTML = `
-        <div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
+        <div style="overflow-y:auto;max-height:50dvh;margin-bottom:12px"><div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
           <div style="font-size:15px;font-weight:700;margin-bottom:8px">${_selType.label}</div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
             <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">${fmtDate(date)}</div></div>
@@ -1237,7 +1237,7 @@ async function submitEntry() {
           ${window._pendingDocFile?`<div style="margin-top:8px;font-size:12px">📎 ${window._pendingDocFile.name}</div>`:''}
         </div>
         <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Entry will be sent for admin approval.</div>
-        <div style="display:flex;gap:8px">
+        <div style="display:flex;gap:8px;flex-shrink:0;padding-top:10px;border-top:1px solid var(--border)">
           <button class="btn btn-p" style="flex:1;justify-content:center" onclick="window._supConfirmed=true;closeEpModal()">Submit for Approval</button>
           <button class="btn btn-o" onclick="window._supConfirmed=false;closeEpModal()">Cancel</button>
         </div>`;
