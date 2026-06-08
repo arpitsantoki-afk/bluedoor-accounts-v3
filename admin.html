@@ -2,612 +2,481 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<link rel="icon" href="icons/icon-96x96.png" type="image/png">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, interactive-widget=resizes-content">
-<meta name="theme-color" content="#4f8ef7">
-<meta name="mobile-web-app-capable" content="yes">
+<link rel="manifest" href="manifest-admin.json">
+<link rel="apple-touch-icon" href="icons/icon-192x192.png">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BD Admin">
-<link rel="manifest" href="manifest-admin.json">
-<link rel="apple-touch-icon" href="icons/icon-192x192.png">
+<meta name="theme-color" content="#4f8ef7">
+<meta name="mobile-web-app-capable" content="yes">
 <title>BlueDoor Admin</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
-/* ── RESET & ROOT ───────────────────────────────────────────── */
-*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
-html,body{height:100%;background:var(--bg)}
-body{
-  font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
-  font-size:14px;color:var(--text);
-  display:flex;flex-direction:column;overflow:hidden;height:100dvh;
-}
-
-/* ── DESIGN TOKENS ──────────────────────────────────────────── */
 :root{
-  --bg:#0d0f14;--card:#161920;--border:#232630;
-  --accent:#4f8ef7;--green:#22c55e;--red:#ef4444;
-  --amber:#f59e0b;--purple:#a78bfa;
-  --text:#e2e8f0;--muted:#64748b;
-  --nav-h:56px;--top-h:52px;
+  --bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;
+  --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
+  --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
 }
+html,body{background:var(--bg)}
+body.light-theme{background:#f8fafc}
+body.light-theme #bd-logo{filter:invert(0)!important;opacity:.85}
 body.light-theme{
-  --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;
-  --accent:#2563eb;--green:#16a34a;--red:#dc2626;
-  --amber:#d97706;--purple:#7c3aed;
+  --bg:#f8fafc;--card:#ffffff;--border:#e2e8f0;--accent:#2563eb;
+  --green:#16a34a;--red:#dc2626;--amber:#d97706;--purple:#7c3aed;
   --text:#1e293b;--muted:#64748b;
-}
-body.light-theme .bd-logo-dark{display:none!important}
-body.light-theme .bd-logo-light{display:block!important}
 
-/* ── LAYOUT ─────────────────────────────────────────────────── */
-#topbar{
-  height:var(--top-h);flex-shrink:0;
-  background:var(--card);border-bottom:1px solid var(--border);
-  display:flex;align-items:center;gap:8px;padding:0 12px;
-  position:relative;z-index:50;
-}
-#topbar h1{display:flex;align-items:center}
-#scroll{
-  flex:1;overflow-y:auto;overflow-x:hidden;
-  -webkit-overflow-scrolling:touch;
-  padding-bottom:calc(var(--nav-h) + 16px);
-  min-height:0; /* critical for flex overflow */
-}
+  .bd-logo-dark{display:none!important}
+  .bd-logo-light{display:block!important}}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px;height:100dvh;display:flex;flex-direction:column;overflow:hidden}
+#topbar{height:var(--top-h);background:var(--card);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 14px;flex-shrink:0;gap:8px}
+#topbar h1{font-size:14px;font-weight:700;color:var(--accent);white-space:nowrap}
+.top-pills{display:flex;gap:5px}
+.pill{font-size:11px;padding:3px 9px;border-radius:16px;background:rgba(79,142,247,.12);color:var(--accent);cursor:pointer;border:1px solid rgba(79,142,247,.2);white-space:nowrap}
+.pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
+#scroll{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:calc(var(--nav-h) + 8px)}
 .view{display:none;padding:12px}
 .view.active{display:block}
-#nav{
-  height:var(--nav-h);flex-shrink:0;
-  background:var(--card);border-top:1px solid var(--border);
-  display:flex;
-  /* fixed bottom so file picker / keyboard can't push it up */
-  position:fixed;bottom:0;left:0;right:0;z-index:99;
-}
-
-/* ── NAV BUTTONS ────────────────────────────────────────────── */
-.nb{
-  flex:1;display:flex;flex-direction:column;
-  align-items:center;justify-content:center;gap:2px;
-  background:none;border:none;color:var(--muted);
-  font-size:10px;font-weight:500;cursor:pointer;padding:0;
-  transition:color .15s;
-}
-.nb svg{width:20px;height:20px;display:block}
+#nav{height:var(--nav-h);background:var(--card);border-top:1px solid var(--border);display:flex;position:fixed;bottom:0;left:0;right:0;z-index:999;padding-bottom:env(safe-area-inset-bottom,0)}
+.nb{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;cursor:pointer;background:none;border:none;color:var(--muted);font-size:10px;font-weight:500;transition:color .15s;padding:0}
+.nb .ni{width:20px;height:20px;display:block;margin:0 auto}
 .nb.active{color:var(--accent)}
-
-/* ── CARDS & SECTIONS ───────────────────────────────────────── */
-.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px;overflow:hidden}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;margin-bottom:12px}
 .chd{padding:11px 14px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;gap:8px}
 .chd h3{font-size:13px;font-weight:600}
 .cbd{padding:13px 14px}
-
-/* ── BUTTONS ────────────────────────────────────────────────── */
-.btn{
-  display:inline-flex;align-items:center;gap:5px;
-  padding:7px 13px;border-radius:8px;border:none;
-  cursor:pointer;font-size:13px;font-weight:500;
-  transition:opacity .15s;line-height:1;white-space:nowrap;
-}
-.btn:active{opacity:.8}
-.btn-p{background:var(--accent);color:#fff}
-.btn-s{background:var(--green);color:#fff}
-.btn-d{background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.3)}
-.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
-.btn-sm{padding:5px 10px;font-size:12px}
-.btn-xs{padding:3px 8px;font-size:11px}
-
-/* ── FORMS ──────────────────────────────────────────────────── */
-.field{margin-bottom:11px}
-.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
-.field input,.field select,.field textarea{
-  width:100%;background:var(--bg);border:1px solid var(--border);
-  color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;
-  outline:none;transition:border .15s;-webkit-appearance:none;
-}
-.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
-.field select option{background:var(--bg)}
-.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-
-/* ── MODAL ──────────────────────────────────────────────────── */
-/* 
-  KEY DESIGN: modal-bg is full-screen overlay with flex layout.
-  .modal sits at bottom, auto height, scrolls internally.
-  Buttons are ALWAYS at the bottom using position:sticky.
-*/
-.modal-bg{
-  position:fixed;inset:0;background:rgba(0,0,0,.6);
-  z-index:200;display:flex;align-items:flex-end;justify-content:center;
-}
-.modal-bg.hidden{display:none!important}
-.modal-bg.center{align-items:center}
-.modal{
-  background:var(--card);
-  border-radius:16px 16px 0 0;
-  padding:20px;
-  width:100%;max-width:480px;
-  max-height:85dvh;
-  overflow-y:auto;
-  /* NO flex here — plain block, browser gives correct height */
-}
-.modal-bg.center .modal{border-radius:16px;margin:16px;max-height:80dvh}
-/* Title row inside modal */
-.modal-title-row{
-  display:flex;align-items:center;justify-content:space-between;
-  margin-bottom:16px;
-}
-.modal-title-row h3{font-size:15px;font-weight:700}
-.modal-close{background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;line-height:1;padding:0}
-/* Sticky action buttons — always visible at bottom of modal */
-.modal-actions{
-  position:sticky;bottom:-20px;
-  background:var(--card);
-  border-top:1px solid var(--border);
-  margin:16px -20px -20px;
-  padding:12px 20px;
-  display:flex;gap:8px;
-}
-
-/* ── TABLES ─────────────────────────────────────────────────── */
+.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
+.stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
+.stat .sv{font-size:20px;font-weight:700}
+.stat .ss{font-size:11px;color:var(--muted);margin-top:2px}
 .tw{overflow-x:auto;-webkit-overflow-scrolling:touch}
-table{width:100%;border-collapse:collapse;font-size:12px;min-width:360px}
+table{width:100%;border-collapse:collapse;font-size:12px;min-width:400px}
 th{text-align:left;padding:7px 9px;color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);white-space:nowrap}
-td{padding:8px 9px;border-bottom:1px solid rgba(35,38,48,.6);vertical-align:middle}
+td{padding:8px 9px;border-bottom:1px solid rgba(35,38,48,.7);vertical-align:top}
 tr:last-child td{border-bottom:none}
-
-/* ── BADGES & MISC ──────────────────────────────────────────── */
 .badge{display:inline-block;font-size:10px;padding:2px 7px;border-radius:8px;font-weight:500}
 .bg{background:rgba(34,197,94,.12);color:var(--green)}
 .br{background:rgba(239,68,68,.12);color:var(--red)}
 .ba{background:rgba(245,158,11,.12);color:var(--amber)}
 .bb{background:rgba(79,142,247,.12);color:var(--accent)}
 .bx{background:rgba(100,116,139,.12);color:var(--muted)}
-.amt{font-weight:600;font-family:monospace;font-size:12px}
-.dr{color:var(--green)}.cr{color:var(--red)}
-.empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px}
-.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
-@keyframes spin{to{transform:rotate(360deg)}}
-code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radius:4px;color:var(--accent)}
-.sh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px}
-.row{display:flex;align-items:center;gap:8px}
-.rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.mt2{margin-top:8px}.mt3{margin-top:12px}
-.pill{font-size:11px;padding:3px 9px;border-radius:16px;cursor:pointer;border:1px solid rgba(79,142,247,.2);background:rgba(79,142,247,.12);color:var(--accent);white-space:nowrap}
-.pill.co{background:rgba(167,139,250,.12);color:var(--purple);border-color:rgba(167,139,250,.2)}
-.stats{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
-.stat{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:12px}
-.stat .sl{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px}
-.stat .sv{font-size:20px;font-weight:700}
+.btn{display:inline-flex;align-items:center;gap:5px;padding:7px 13px;border-radius:8px;border:none;cursor:pointer;font-size:13px;font-weight:500;transition:all .15s;line-height:1}
+.btn-p{background:var(--accent);color:#fff}
+.btn-p:active{background:#3b7de8}
+.btn-s{background:var(--green);color:#fff}
+.btn-d{background:transparent;border:1px solid rgba(239,68,68,.4);color:var(--red)}
+.btn-o{background:transparent;border:1px solid var(--border);color:var(--text)}
+.btn-sm{padding:5px 10px;font-size:12px}
+.btn-xs{padding:3px 8px;font-size:11px}
+.field{margin-bottom:11px}
+.field label{display:block;font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px}
+.field input,.field select,.field textarea{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;transition:border .15s;-webkit-appearance:none}
+.field input:focus,.field select:focus,.field textarea:focus{border-color:var(--accent)}
+.field select option{background:var(--bg)}
+.g2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.g3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+/* SearchSelect (combo dropdown) */
+.ss-wrap{position:relative}
+.ss-input{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none;cursor:pointer}
+.ss-input:focus{border-color:var(--accent)}
+.ss-drop{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:220px;overflow-y:auto;margin-top:2px;display:none}
+.ss-drop.open{display:block}
+.ss-opt{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(35,38,48,.5)}
+.ss-opt:last-child{border-bottom:none}
+.ss-opt:hover,.ss-opt.hi{background:rgba(79,142,247,.1);color:var(--accent)}
+.ss-empty{padding:10px 11px;color:var(--muted);font-size:12px}
+/* Tabs */
 .ctabs{display:flex;gap:5px;overflow-x:auto;padding-bottom:3px;margin-bottom:13px;scrollbar-width:none}
 .ctabs::-webkit-scrollbar{display:none}
 .ctab{flex-shrink:0;padding:6px 13px;border-radius:18px;font-size:12px;font-weight:500;cursor:pointer;border:1px solid var(--border);color:var(--muted);background:var(--card);white-space:nowrap;transition:all .15s}
 .ctab.active{background:var(--accent);color:#fff;border-color:var(--accent)}
-.hidden{display:none!important}
-
-/* ── SEARCH-SELECT ──────────────────────────────────────────── */
-.ss-wrap{position:relative}
-.ss-inp{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none}
-.ss-inp:focus{border-color:var(--accent)}
-.ss-drop{position:absolute;top:100%;left:0;right:0;background:var(--card);border:1px solid var(--border);border-radius:8px;z-index:100;max-height:200px;overflow-y:auto;margin-top:2px;display:none}
-.ss-drop.open{display:block}
-.ss-opt{padding:8px 11px;cursor:pointer;font-size:13px;border-bottom:1px solid rgba(35,38,48,.4)}
-.ss-opt:last-child{border-bottom:none}
-.ss-opt:hover{background:rgba(79,142,247,.1);color:var(--accent)}
-
-/* ── TYPE GRID (Add Entry) ──────────────────────────────────── */
-.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.type-item{padding:12px;background:var(--bg);border:1px solid var(--border);border-radius:10px;cursor:pointer;transition:all .15s}
-.type-item:active,.type-item.sel{border-color:var(--accent);background:rgba(79,142,247,.06)}
-.type-item .ti-l{font-size:13px;font-weight:600}
-.type-item .ti-s{font-size:10px;color:var(--muted);margin-top:2px}
-
-/* ── DEBUG CONSOLE ──────────────────────────────────────────── */
+/* Entry type grid */
+.type-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.type-opt{padding:10px 12px;background:var(--bg);border:1px solid var(--border);border-radius:9px;cursor:pointer;transition:all .15s}
+.type-opt:active,.type-opt.sel{border-color:var(--accent);background:rgba(79,142,247,.08)}
+.type-opt .tol{font-size:12px;font-weight:600}
+.type-opt .toh{font-size:10px;color:var(--muted);margin-top:2px}
+/* Filters */
+.frow{display:flex;gap:7px;margin-bottom:8px;flex-wrap:wrap}
+.flt{flex:1;min-width:120px}
+.flt input,.flt select{width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;-webkit-appearance:none}
+/* Modal */
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;display:flex;align-items:flex-end;justify-content:center}
+.modal-bg.center{align-items:center}
+.modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
+.modal-actions{position:sticky;bottom:-20px;background:var(--card);border-top:1px solid var(--border);margin:16px -20px -20px;padding:12px 20px;display:flex;gap:8px}
+.modal.center{border-radius:16px;margin:16px}
+.modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
+/* Debug console */
 #debug-panel{position:fixed;bottom:var(--nav-h);left:0;right:0;background:#0a0c10;border-top:2px solid var(--accent);z-index:150;height:200px;display:none;flex-direction:column}
 #debug-panel.open{display:flex}
-#debug-toolbar{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);flex-shrink:0}
 #debug-log{flex:1;overflow-y:auto;padding:6px 10px;font-family:monospace;font-size:11px}
 #debug-log .dl{padding:2px 0;border-bottom:1px solid rgba(35,38,48,.5)}
 #debug-log .dl-err{color:var(--red)}
 #debug-log .dl-ok{color:var(--green)}
 #debug-log .dl-info{color:var(--accent)}
 #debug-log .dl-warn{color:var(--amber)}
-
-/* ── TOAST ──────────────────────────────────────────────────── */
+#debug-toolbar{display:flex;align-items:center;gap:8px;padding:5px 10px;border-bottom:1px solid var(--border);background:#0d0f14}
+/* Misc */
+.empty{text-align:center;padding:28px 14px;color:var(--muted);font-size:13px}
+.spin{display:inline-block;width:14px;height:14px;border:2px solid var(--border);border-top-color:var(--accent);border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+@keyframes spin{to{transform:rotate(360deg)}}
+.amt{font-weight:600;font-family:monospace;font-size:12px}
+.dr{color:var(--green)}.cr{color:var(--red)}
+code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radius:4px;color:var(--accent)}
+.sh{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:14px 0 7px;padding:0 2px}
+.row{display:flex;align-items:center;gap:8px}
+.rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.mt2{margin-top:8px}.mt3{margin-top:12px}
+.hidden{display:none!important}
 #toast{position:fixed;bottom:calc(var(--nav-h)+10px);left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;text-align:center}
-.ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;display:inline-block}
-.ti-ok{border-left:3px solid var(--green)}
-.ti-err{border-left:3px solid var(--red)}
-.ti-warn{border-left:3px solid var(--amber)}
+.ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;margin-top:5px;display:inline-block}
+.ti-ok{border-left:3px solid var(--green)}.ti-err{border-left:3px solid var(--red)}
 @keyframes tup{from{transform:translateY(6px);opacity:0}to{transform:translateY(0);opacity:1}}
+#auth-check{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:100;font-size:14px;color:var(--muted)}
 
-/* ── DOC VIEWER ─────────────────────────────────────────────── */
-#doc-viewer{position:fixed;inset:0;background:rgba(0,0,0,.9);z-index:500;display:flex;flex-direction:column}
-#doc-viewer.hidden{display:none!important}
-#doc-viewer-bar{display:flex;align-items:center;justify-content:space-between;padding:10px 16px;background:var(--card);border-bottom:1px solid var(--border);flex-shrink:0}
-#doc-viewer iframe{flex:1;border:none;background:#fff}
-
-/* ── FILE ATTACH ─────────────────────────────────────────────── */
-.file-attach-area{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:6px}
-.file-attach-btn{
-  flex:1;min-width:100px;display:flex;align-items:center;justify-content:center;gap:6px;
-  background:var(--bg);border:2px dashed var(--border);
-  border-radius:8px;padding:10px;cursor:pointer;
-  font-size:13px;color:var(--muted);transition:border-color .15s;
-}
-.file-attach-btn:hover{border-color:var(--accent)}
-.file-status{font-size:12px;padding:6px 10px;border-radius:6px;margin-top:4px;display:none}
-.file-status.ok{background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green);display:block}
-.file-status.uploading{background:rgba(245,158,11,.08);border:1px solid rgba(245,158,11,.2);color:var(--amber);display:block}
-
-/* ── LEDGER FILTERS ─────────────────────────────────────────── */
-.lf-bar{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
-@media(min-width:600px){.lf-bar{grid-template-columns:repeat(4,1fr)}}
-
-/* ── CONFIRM DETAIL BOX ─────────────────────────────────────── */
-.confirm-box{background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:4px}
-.confirm-box h4{font-size:15px;font-weight:700;margin-bottom:10px}
-.confirm-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
-.confirm-field .cf-label{font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px}
-.confirm-field .cf-val{font-size:13px;font-weight:500}
-.confirm-approve{background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2)}
-
-/* ── TOPBAR UTILS ────────────────────────────────────────────── */
-.top-right{display:flex;align-items:center;gap:8px;margin-left:auto}
-.icon-btn{background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center;transition:color .15s}
-.icon-btn:hover{color:var(--text)}
-.theme-toggle{display:flex;align-items:center;gap:4px;cursor:pointer}
-.toggle-track{width:32px;height:18px;background:var(--accent);border-radius:20px;position:relative;transition:background .2s;flex-shrink:0}
-.toggle-thumb{position:absolute;top:2px;width:14px;height:14px;background:#fff;border-radius:50%;transition:transform .2s;transform:translateX(16px)}
-body.light-theme .toggle-track{background:var(--muted)}
-body.light-theme .toggle-thumb{transform:translateX(0)}
-
-/* ── PRINT ───────────────────────────────────────────────────── */
-@media print{
-  #nav,#topbar,#toast,#debug-panel,.no-print{display:none!important}
-  body{overflow:visible;height:auto}
-  #scroll{overflow:visible;padding:0}
-  .view{display:block!important;padding:0}
-  @page{margin:15mm}
+/* ── Mobile ── */
+@media(max-width:600px){
+  .view{padding:10px}
+  .g3{grid-template-columns:1fr 1fr}
+  .tw{overflow-x:auto;max-width:calc(100vw - 24px);-webkit-overflow-scrolling:touch}
+  #v-reports .g2{grid-template-columns:1fr!important}
+  .top-pills{gap:4px}
+  .pill{max-width:68px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:10px}
+  .nb{font-size:9px}
+  table{font-size:11px}
+  td,th{padding:6px 7px}
 }
 </style>
 </head>
 <body>
 
-<!-- Auth loading overlay — hidden once session confirmed -->
-<div id="auth-check" style="position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999">
-  <span class="spin" style="width:24px;height:24px;border-width:3px"></span>
-</div>
+<div id="auth-check"><span class="spin"></span>&nbsp; Loading...</div>
 
-<!-- App wrapper — hidden until auth confirmed -->
-<div id="app" style="display:none;flex-direction:column;height:100dvh;overflow:hidden">
-
-<!-- ═══════════════════ TOPBAR ═══════════════════════════════ -->
-<div id="topbar">
-  <h1>
-    <img src="assets/logo-white.png" alt="Blue Door" class="bd-logo-dark" style="height:34px;width:auto;display:block">
-    <img src="assets/logo-black.png" alt="Blue Door" class="bd-logo-light" style="height:34px;width:auto;display:none">
-  </h1>
-
-  <div style="display:flex;gap:5px;margin-left:8px">
-    <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
-    <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
-  </div>
-
-  <div class="top-right">
-    <!-- Sync -->
-    <button class="icon-btn" onclick="doSync()" title="Sync">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0118.8-4.3M22 12.5a10 10 0 01-18.8 4.3"/></svg>
-    </button>
-    <!-- Debug -->
-    <button class="icon-btn" onclick="toggleDebug()" title="Debug">
-      <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 8v4M12 16h.01"/></svg>
-    </button>
-    <!-- Theme toggle -->
-    <label class="theme-toggle" title="Toggle theme" onclick="toggleTheme(document.body.classList.contains('light-theme'))">
-      <div class="toggle-track"><div class="toggle-thumb"></div></div>
-    </label>
-    <!-- User -->
-    <button class="icon-btn" id="user-btn" onclick="toggleMenu('user-menu')" style="flex-direction:column;align-items:flex-end;gap:1px">
-      <span style="font-size:12px;font-weight:600;color:var(--text)" id="um-name">—</span>
-      <span style="font-size:10px;color:var(--accent)" id="um-role">Admin</span>
-    </button>
-  </div>
-</div>
-
-<!-- Company dropdown -->
-<div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);left:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-  <div id="co-list"></div>
-</div>
-
-<!-- FY dropdown -->
-<div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);left:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:140px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-  <div id="fy-list"></div>
-</div>
-
-<!-- User menu -->
-<div id="user-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:160px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
-  <div style="padding:10px 14px;border-bottom:1px solid var(--border)">
-    <div style="font-size:12px;font-weight:600" id="um-name2">—</div>
-    <div style="font-size:10px;color:var(--muted)">Administrator</div>
-  </div>
-  <div style="padding:4px 0">
-    <div style="padding:8px 14px;font-size:13px;cursor:pointer;color:var(--red)" onclick="doLogout()">🚪 Sign Out</div>
-  </div>
-</div>
-
-<!-- ═══════════════════ SCROLL AREA ═══════════════════════════ -->
-<div id="scroll">
-
-  <!-- HOME -->
-  <div id="v-home" class="view active">
-    <div class="stats" id="dash-stats">
-      <div class="stat"><div class="sl">Entries (FY)</div><div class="sv" id="d-entries">—</div></div>
-      <div class="stat"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)" id="d-pending">—</div></div>
-      <div class="stat"><div class="sl">Total DR</div><div class="sv" style="color:var(--green)" id="d-dr">—</div></div>
-      <div class="stat"><div class="sl">Total CR</div><div class="sv" style="color:var(--red)" id="d-cr">—</div></div>
+<div id="app" style="display:none;flex-direction:column;height:100dvh;position:relative">
+  <!-- Topbar -->
+  <div id="topbar">
+    <h1 style="display:flex;align-items:center;padding:0"><img src="assets/logo-white.png" alt="Blue Door Architects" class="bd-logo bd-logo-dark" style="height:36px;width:auto;display:block"><img src="assets/logo-black.png" alt="Blue Door Architects" class="bd-logo bd-logo-light" style="height:36px;width:auto;display:none"></h1>
+    <div class="top-pills">
+      <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
+      <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
-    <div class="card">
-      <div class="chd"><h3>Recent Entries</h3></div>
-      <div id="dash-recent" class="cbd"><div class="empty"><span class="spin"></span></div></div>
+    <div class="row" style="gap:4px">
+      <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/></svg>
+      </button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="toggleDebug()" title="Debug console">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22c5.523 0 10-4.477 10-10S17.523 2 12 2 2 6.477 2 12s4.477 10 10 10z"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+      </button>
+      <button style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" id="user-btn" onclick="toggleMenu('user-menu')">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 00-4-4H8a4 4 0 00-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
+      </button>
     </div>
   </div>
 
-  <!-- LEDGER -->
-  <div id="v-ledger" class="view">
-    <!-- Filters -->
-    <div class="card">
-      <div class="cbd">
-        <div class="lf-bar">
-          <div class="field" style="margin:0">
-            <label>Account</label>
-            <div class="ss-wrap">
-              <input class="ss-inp" id="lf-ac-inp" placeholder="All accounts" autocomplete="off" oninput="ssFilter('lf-ac')" onfocus="ssOpen('lf-ac')" onblur="setTimeout(()=>ssClose('lf-ac'),150)">
-              <div class="ss-drop" id="lf-ac-drop"></div>
-              <input type="hidden" id="lf-ac-val">
-            </div>
-          </div>
-          <div class="field" style="margin:0">
-            <label>Vendor</label>
-            <div class="ss-wrap">
-              <input class="ss-inp" id="lf-v-inp" placeholder="All vendors" autocomplete="off" oninput="ssFilter('lf-v')" onfocus="ssOpen('lf-v')" onblur="setTimeout(()=>ssClose('lf-v'),150)">
-              <div class="ss-drop" id="lf-v-drop"></div>
-              <input type="hidden" id="lf-v-val">
-            </div>
-          </div>
-          <div class="field" style="margin:0">
-            <label>From</label>
-            <input type="date" id="lf-from" onchange="renderLedger()">
-          </div>
-          <div class="field" style="margin:0">
-            <label>To</label>
-            <input type="date" id="lf-to" onchange="renderLedger()">
-          </div>
-        </div>
-        <div class="row" style="gap:6px;flex-wrap:wrap">
-          <button class="btn btn-o btn-sm" onclick="renderLedger()">🔍 Filter</button>
-          <button class="btn btn-o btn-sm" onclick="resetLedgerFilters()">✕ Reset</button>
-          <button class="btn btn-o btn-sm" onclick="downloadLedgerXLS()">⬇ XLS</button>
-          <button class="btn btn-o btn-sm" onclick="downloadLedgerPDF()">⬇ PDF</button>
-          <span id="ledger-summary" style="font-size:11px;color:var(--muted);margin-left:auto"></span>
-        </div>
+  <!-- Dropdowns -->
+  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:130px;padding:5px 0">
+    <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Financial Year</div>
+    <div id="fy-list"></div>
+  </div>
+  <div id="co-menu" class="hidden" style="position:fixed;top:var(--top-h);left:auto;right:auto;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:160px;padding:5px 0;transform:none" id="co-menu">
+    <div style="padding:5px 13px;font-size:10px;color:var(--muted);border-bottom:1px solid var(--border);margin-bottom:3px">Company</div>
+    <div id="co-list"></div>
+  </div>
+  <div id="user-menu" class="hidden" style="position:fixed;top:var(--top-h);right:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:50;min-width:180px;padding:8px 0">
+    <div style="padding:7px 14px;border-bottom:1px solid var(--border);margin-bottom:4px">
+      <div style="font-weight:600;font-size:13px" id="um-name">—</div>
+      <div style="font-size:11px;color:var(--muted)" id="um-role">—</div>
+    </div>
+    <div style="padding:4px 8px">
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 6px;font-size:13px">
+        <span>🌙 Dark Mode</span>
+        <label style="position:relative;display:inline-block;width:36px;height:20px;cursor:pointer">
+          <input type="checkbox" id="theme-toggle" checked onchange="toggleTheme(this.checked)" style="opacity:0;width:0;height:0">
+          <span id="theme-track" style="position:absolute;inset:0;background:var(--accent);border-radius:20px;transition:.2s">
+            <span id="theme-thumb" style="position:absolute;left:2px;bottom:2px;width:16px;height:16px;background:#fff;border-radius:50%;transition:.2s;transform:translateX(16px)"></span>
+          </span>
+        </label>
       </div>
     </div>
-    <div class="card">
+    <div style="padding:0 8px 6px">
+      <button class="btn btn-d btn-sm" style="width:100%;justify-content:center" onclick="doLogout()">Sign Out</button>
+    </div>
+  </div>
+
+  <!-- Debug Panel -->
+  <div id="debug-panel">
+    <div id="debug-toolbar">
+      <span style="font-size:11px;color:var(--accent);font-weight:600">🐞 Debug Console</span>
+      <button class="btn-xs btn-o" onclick="clearDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer">Clear</button>
+      <button class="btn-xs btn-o" onclick="toggleDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer">✕</button>
+    </div>
+    <div id="debug-log"></div>
+  </div>
+
+  <!-- Scroll area -->
+  <div id="scroll">
+
+    <!-- HOME -->
+    <div id="v-home" class="view active">
+      <div class="stats">
+        <div class="stat"><div class="sl">Entries</div><div class="sv" id="d-entries">—</div></div>
+        <div class="stat"><div class="sl">Pending</div><div class="sv" style="color:var(--amber)" id="d-pending">—</div></div>
+        <div class="stat"><div class="sl">Income</div><div class="sv dr" id="d-income" style="font-size:15px">—</div></div>
+        <div class="stat"><div class="sl">Expense</div><div class="sv cr" id="d-expense" style="font-size:15px">—</div></div>
+      </div>
+      <div class="card">
+        <div class="chd"><h3>⏳ Pending Approvals</h3><span class="badge ba" id="d-pcount">0</span></div>
+        <div id="dash-pending"></div>
+      </div>
+      <div class="card">
+        <div class="chd"><h3>📝 Recent Entries</h3></div>
+        <div id="dash-recent"></div>
+      </div>
+    </div>
+
+    <!-- LEDGER -->
+    <div id="v-ledger" class="view">
+      <!-- Filters -->
+      <div class="frow">
+        <div class="flt" style="min-width:140px"><div class="ss-wrap" id="lf-ac-wrap"></div></div>
+        <div class="flt" style="min-width:120px"><div class="ss-wrap" id="lf-proj-wrap"></div></div>
+      </div>
+      <div class="frow">
+        <div class="flt" style="min-width:120px"><div class="ss-wrap" id="lf-vendor-wrap"></div></div>
+        <div class="flt" style="min-width:120px">
+          <select id="lf-daterange" onchange="onLedgerDateRange()" style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 10px;border-radius:8px;font-size:12px;outline:none;-webkit-appearance:none">
+            <option value="">All Dates</option>
+            <option value="mtd">Month to Date</option>
+            <option value="30">Last 30 Days</option>
+            <option value="60">Last 60 Days</option>
+            <option value="90">Last 90 Days</option>
+            <option value="custom">Custom Range</option>
+          </select>
+        </div>
+      </div>
+      <div class="frow" id="lf-custom-dates" style="display:none">
+        <div class="flt">
+          <div style="position:relative">
+            <input id="lf-from-txt" placeholder="dd-mm-yyyy" maxlength="10"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 32px 8px 10px;border-radius:8px;font-size:12px;outline:none"
+              oninput="smartDateInput(this,'lf-from')" onblur="validateSmartDate(this,'lf-from')">
+            <input type="date" id="lf-from" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;opacity:0;cursor:pointer;padding:0;border:none"
+              onchange="syncDatePicker('lf-from','lf-from-txt')">
+            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;color:var(--muted)">📅</span>
+          </div>
+        </div>
+        <div class="flt">
+          <div style="position:relative">
+            <input id="lf-to-txt" placeholder="dd-mm-yyyy" maxlength="10"
+              style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 32px 8px 10px;border-radius:8px;font-size:12px;outline:none"
+              oninput="smartDateInput(this,'lf-to')" onblur="validateSmartDate(this,'lf-to')">
+            <input type="date" id="lf-to" style="position:absolute;right:4px;top:50%;transform:translateY(-50%);width:22px;height:22px;opacity:0;cursor:pointer;padding:0;border:none"
+              onchange="syncDatePicker('lf-to','lf-to-txt')">
+            <span style="position:absolute;right:8px;top:50%;transform:translateY(-50%);pointer-events:none;font-size:14px;color:var(--muted)">📅</span>
+          </div>
+        </div>
+      </div>
+      <div class="rsb" style="margin-bottom:8px">
+        <span id="ledger-sum" style="font-size:11px;color:var(--muted)"></span>
+        <div class="row" style="gap:5px">
+          <button class="btn btn-o btn-xs" onclick="resetLedgerFilters()">Reset</button>
+          <button class="btn btn-o btn-xs" onclick="downloadLedgerXLS()">⬇ XLS</button>
+          <button class="btn btn-o btn-xs" onclick="printLedgerPDF()">🖨 PDF</button>
+        </div>
+      </div>
       <div class="tw">
         <table>
-          <thead>
-            <tr>
-              <th>Date</th><th>Company</th><th>Account</th>
-              <th>Narration</th><th>Debit ₹</th><th>Credit ₹</th><th></th>
-            </tr>
-          </thead>
-          <tbody id="ledger-body"><tr><td colspan="7" class="empty"><span class="spin"></span></td></tr></tbody>
+          <thead><tr><th>Date</th><th>Company</th><th>Account</th><th>Narration</th><th style="text-align:right">Debit ₹</th><th style="text-align:right">Credit ₹</th><th></th></tr></thead>
+          <tbody id="ledger-body"></tbody>
           <tfoot id="ledger-foot"></tfoot>
         </table>
       </div>
     </div>
-  </div>
 
-  <!-- ADD ENTRY -->
-  <div id="v-add" class="view">
-    <div class="ctabs" id="add-tabs">
-      <div class="ctab active" onclick="switchAddTab('entry')" id="at-entry-tab">Entry</div>
-      <div class="ctab" onclick="switchAddTab('project')" id="at-project-tab">Project</div>
-      <div class="ctab" onclick="switchAddTab('vendor')" id="at-vendor-tab">Vendor</div>
-      <div class="ctab" onclick="switchAddTab('opening')" id="at-opening-tab">Opening Bal</div>
-      <div class="ctab" onclick="switchAddTab('bankimport')" id="at-bankimport-tab">Bank Import</div>
-    </div>
-
-    <!-- Entry sub-tab -->
-    <div id="at-entry">
-      <div class="sh">Category</div>
-      <div class="ctabs" id="entry-cats">
-        <div class="ctab active" onclick="switchEntryCat('client')" id="ec-client">Client</div>
-        <div class="ctab" onclick="switchEntryCat('vendor')" id="ec-vendor">Vendor</div>
-        <div class="ctab" onclick="switchEntryCat('expense')" id="ec-expense">Expense</div>
-        <div class="ctab" onclick="switchEntryCat('transfer')" id="ec-transfer">Transfer</div>
-        <div class="ctab" onclick="switchEntryCat('drawings')" id="ec-drawings">Drawings</div>
+    <!-- ADD -->
+    <div id="v-add" class="view">
+      <div class="ctabs" id="add-tabs">
+        <div class="ctab active" onclick="setAddTab('entry',this)">Entry</div>
+        <div class="ctab" onclick="setAddTab('project',this)">Project</div>
+        <div class="ctab" onclick="setAddTab('vendor',this)">Vendor</div>
+        <div class="ctab" onclick="setAddTab('opening',this)">Opening Bal</div>
+        <div class="ctab" onclick="setAddTab('bankimport',this)">Bank Import</div>
       </div>
-      <div class="sh">Entry Type</div>
-      <div class="type-grid" id="type-grid"></div>
-
-      <!-- Entry form (shown after type selected) -->
-      <div id="ae-form-card" class="card hidden" style="margin-top:12px">
-        <div class="chd" id="ae-form-header">
-          <div>
-            <div id="ae-form-title" style="font-weight:600;font-size:14px"></div>
-            <div id="ae-form-drCr" style="font-size:11px;color:var(--muted);margin-top:2px"></div>
-          </div>
-          <button class="btn btn-xs btn-o" onclick="resetEntryForm()">✕ Cancel</button>
+      <!-- Entry sub-tab -->
+      <div id="at-entry">
+        <div class="sh">Category</div>
+        <div class="ctabs" id="entry-cats">
+          <div class="ctab active" onclick="setEntryCat('client',this)">Client</div>
+          <div class="ctab" onclick="setEntryCat('vendor',this)">Vendor</div>
+          <div class="ctab" onclick="setEntryCat('expense',this)">Expense</div>
+          <div class="ctab" onclick="setEntryCat('transfer',this)">Transfer</div>
+          <div class="ctab" onclick="setEntryCat('drawings',this)">Drawings</div>
         </div>
-        <div class="cbd">
-          <div class="g2">
-            <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
-            <div class="field">
-              <label>Company *</label>
-              <select id="ae-co"><option value="">— Select —</option></select>
+        <div class="sh">Entry Type</div>
+        <div class="type-grid" id="type-grid"><div class="empty" style="padding:12px">Loading...</div></div>
+        <div class="card hidden" id="ae-form-card">
+          <div class="cbd">
+            <div id="ae-type-label" style="font-size:13px;font-weight:600;margin-bottom:12px;padding:8px 10px;background:rgba(79,142,247,.06);border-radius:7px;display:flex;align-items:center;gap:8px">
+              <span id="ae-type-name" style="flex:1"></span>
+              <button onclick="resetEntryForm()" style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:16px;line-height:1" title="Clear selection">✕</button>
             </div>
-          </div>
-          <!-- Dynamic fields injected by pickType() -->
-          <div id="ae-dynamic-fields"></div>
-          <div class="field"><label>Amount ₹ *</label><input type="number" id="ae-amount" placeholder="0.00" min="0" step="0.01"></div>
-          <div class="field"><label>Narration</label><textarea id="ae-narration" rows="2" placeholder="Brief note…"></textarea></div>
-          <!-- Document -->
-          <div class="field">
-            <label>Document / Bill <span style="color:var(--muted);font-size:10px">(optional)</span></label>
-            <input type="text" id="ae-doc-url" placeholder="Drive URL or tap 📎 to upload" style="margin-bottom:6px">
-            <div class="file-attach-area">
-              <label class="file-attach-btn">
-                📎 Browse
-                <input type="file" id="ae-doc-file" accept="image/*,application/pdf,.pdf" style="display:none" onchange="handleDocUpload(this)">
-              </label>
-              <label class="file-attach-btn">
-                📷 Camera
-                <input type="file" id="ae-doc-camera" accept="image/*" capture="environment" style="display:none" onchange="handleDocUpload(this)">
-              </label>
+            <div class="g2">
+              <div class="field"><label>Date *</label><input type="date" id="ae-date"></div>
+              <div class="field"><label>Company *</label><select id="ae-co" id="ae-co"></select><div id="ae-co-lock" style="display:none;font-size:11px;color:var(--muted);margin-top:3px">🔒 Set by top bar selection</div></div>
             </div>
-            <div id="ae-doc-status" class="file-status"></div>
-          </div>
-          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Project sub-tab -->
-    <div id="at-project" class="hidden">
-      <div class="card">
-        <div class="chd"><h3>Add Project</h3></div>
-        <div class="cbd" id="project-form-body">
-          <div class="g2">
-            <div class="field"><label>Project ID *</label><input id="np-id" placeholder="P001" oninput="this.value=this.value.toUpperCase()"></div>
-            <div class="field"><label>FY *</label><select id="np-fy"></select></div>
-          </div>
-          <div class="field"><label>Name *</label><input id="np-name" placeholder="Project name"></div>
-          <div class="g2">
-            <div class="field"><label>Client</label><input id="np-client" placeholder="Client name"></div>
-            <div class="field"><label>Location</label><input id="np-loc" placeholder="City"></div>
-          </div>
-          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="addProject()">Add Project</button>
-          <div id="project-list" class="mt3"></div>
-        </div>
-      </div>
-    </div>
-
-    <!-- Vendor sub-tab -->
-    <div id="at-vendor" class="hidden">
-      <div class="card">
-        <div class="chd"><h3>Add Vendor</h3></div>
-        <div class="cbd">
-          <div class="g2">
-            <div class="field"><label>Vendor ID *</label><input id="nv-id" placeholder="V001" oninput="this.value=this.value.toUpperCase()"></div>
-            <div class="field"><label>Type</label>
-              <select id="nv-type">
-                <option value="">General</option>
-                <option>Subcontractor</option><option>Supplier</option>
-                <option>Consultant</option><option>Labour</option><option>Other</option>
-              </select>
+            <div class="field" id="ae-proj-wrap-outer">
+              <label>Project <span style="color:var(--red)">*</span></label>
+              <div class="ss-wrap" id="ae-proj-wrap"></div>
             </div>
+            <div class="field hidden" id="ae-vendor-f">
+              <label>Vendor / Party</label>
+              <div class="ss-wrap" id="ae-vendor-wrap"></div>
+            </div>
+            <div class="field hidden" id="ae-ch-f">
+              <label>Cost Head *</label>
+              <div class="ss-wrap" id="ae-ch-wrap"></div>
+            </div>
+            <div class="field"><label>Amount ₹ *</label><input type="number" id="ae-amt" placeholder="0.00" step="0.01" inputmode="decimal"></div>
+            <div class="field"><label>Narration</label><input id="ae-narr" placeholder="Brief note..."></div>
+            <div class="field hidden" id="ae-doc-f">
+              <label>Document / Bill <span style="color:var(--muted);font-size:10px">(optional)</span></label>
+              <div style="display:flex;gap:8px;align-items:center">
+                <input type="text" id="ae-doc-url" placeholder="Drive URL or tap 📎 to upload" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none">
+                <label style="flex-shrink:0;cursor:pointer;display:flex;align-items:center;gap:5px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);transition:border .15s" title="Upload file">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
+                  <input type="file" id="ae-doc-file" accept="image/*,.pdf,.doc,.docx,.xlsx,.xls" style="position:absolute;opacity:0;width:0;height:0" onchange="handleDocUpload(this)">
+                  Attach
+                </label>
+              </div>
+              <div id="ae-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+            </div>
+            <div id="ae-preview" style="font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px;background:rgba(79,142,247,.05);border-radius:7px;display:none"></div>
+            <button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
           </div>
-          <div class="field"><label>Name *</label><input id="nv-name" placeholder="Company / Person name"></div>
-          <div class="g2">
-            <div class="field"><label>Contact</label><input id="nv-contact" placeholder="+91 …"></div>
-            <div class="field"><label>GSTIN</label><input id="nv-gstin" placeholder="22XXXXX…" oninput="this.value=this.value.toUpperCase()"></div>
-          </div>
-          <div class="field"><label>Notes</label><textarea id="nv-details" rows="2" placeholder="Address, notes…"></textarea></div>
-          <button class="btn btn-p" style="width:100%;justify-content:center" onclick="addVendor()">Add Vendor</button>
-          <div id="vendor-list-add" class="mt3"></div>
         </div>
       </div>
-    </div>
-
-    <!-- Opening Balance sub-tab -->
-    <div id="at-opening" class="hidden">
-      <div class="card">
-        <div class="chd"><h3>Opening Balances</h3></div>
-        <div class="cbd" id="ob-body"><div class="empty"><span class="spin"></span></div></div>
-      </div>
-    </div>
-
-    <!-- Bank Import sub-tab -->
-    <div id="at-bankimport" class="hidden">
-      <div class="card">
-        <div class="chd"><h3>Bank Import</h3></div>
-        <div class="cbd" id="bank-body">
-          <div class="field"><label>Upload Bank Statement (Excel/CSV)</label>
-            <label class="file-attach-btn" style="flex:none;display:inline-flex">
-              📎 Choose File
-              <input type="file" id="bank-file" accept=".xlsx,.xls,.csv" style="display:none" onchange="parseBankFile(this)">
-            </label>
-          </div>
-          <div id="bank-preview"></div>
+      <!-- Project sub-tab -->
+      <div id="at-project" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <input id="proj-search" placeholder="Search projects..." style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:13px;outline:none;flex:1" oninput="filterProjects(this.value)">
+          <button class="btn btn-p btn-sm" onclick="showProjectForm()">+ Add</button>
         </div>
+        <div id="proj-list"></div>
+      </div>
+      <!-- Vendor sub-tab -->
+      <div id="at-vendor" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <input id="vendor-search" placeholder="Search vendors..." style="background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:13px;outline:none;flex:1" oninput="filterVendors(this.value)">
+          <button class="btn btn-p btn-sm" onclick="showVendorForm()">+ Add</button>
+        </div>
+        <div id="vendor-list"></div>
+      </div>
+      <!-- Opening Balance sub-tab -->
+      <div id="at-opening" class="hidden">
+        <div class="rsb" style="margin-bottom:10px">
+          <span style="font-size:13px;font-weight:600">Opening Balances — <span id="ob-fy-label"></span></span>
+          <div class="row" style="gap:5px">
+            <button class="btn btn-o btn-xs" onclick="exportOBXLS()">⬇ XLS</button>
+            <button class="btn btn-o btn-xs" onclick="printOB()">🖨 PDF</button>
+          </div>
+        </div>
+        <div class="sh">Account Balances</div>
+        <div id="ob-accounts"></div>
+        <div class="sh" style="margin-top:16px">Vendor Balances</div>
+        <div id="ob-vendors"></div>
+      </div>
+      <!-- Bank Import sub-tab -->
+      <div id="at-bankimport" class="hidden">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(79,142,247,.06);border-radius:8px;border:1px solid rgba(79,142,247,.15)">
+          Upload your bank statement (.xlsx or .xls — HDFC, SBI, ICICI, Axis supported). Duplicate entries are auto-detected. Imported rows go to <strong>Pending Entries</strong> — you then add details (entry type, vendor, project) and approve each one.
+        </div>
+        <div class="field"><label>Bank Statement File</label><input type="file" id="bank-file" accept=".xlsx,.xls" style="color:var(--text)" onchange="parseBankFile(this)"></div>
+        <div id="bank-status" style="font-size:12px;color:var(--muted);margin-bottom:8px"></div>
+        <div id="bank-preview"></div>
+        <button class="btn btn-p" id="bank-import-btn" style="width:100%;justify-content:center;display:none" onclick="doImportBank()">Import to Pending Entries</button>
       </div>
     </div>
-  </div>
 
-  <!-- REPORTS -->
-  <div id="v-reports" class="view">
-    <div class="ctabs">
-      <div class="ctab active" onclick="switchRpt('pl')" id="rpt-pl">P&L</div>
-      <div class="ctab" onclick="switchRpt('tb')" id="rpt-tb">Trial Balance</div>
-      <div class="ctab" onclick="switchRpt('bs')" id="rpt-bs">Balance Sheet</div>
-      <div class="ctab" onclick="switchRpt('proj')" id="rpt-proj">Project</div>
-      <div class="ctab" onclick="switchRpt('vendor')" id="rpt-vendor">Vendor</div>
+    <!-- REPORTS -->
+    <div id="v-reports" class="view">
+      <div class="ctabs">
+        <div class="ctab active" onclick="setRpt('pl',this)">P&amp;L</div>
+        <div class="ctab" onclick="setRpt('bs',this)">Balance Sheet</div>
+        <div class="ctab" onclick="setRpt('vendor',this)">Vendor</div>
+        <div class="ctab" onclick="setRpt('project',this)">Project</div>
+        <div class="ctab" onclick="setRpt('trial',this)">Trial Balance</div>
+      </div>
+      <div id="rpt-out"></div>
     </div>
-    <div id="rpt-body"><div class="empty"><span class="spin"></span></div></div>
-  </div>
 
-  <!-- MORE -->
-  <div id="v-more" class="view">
-    <div class="ctabs" id="more-tabs">
-      <div class="ctab active" onclick="switchMore('pending')" id="mt-pending">Pending</div>
-      <div class="ctab" onclick="switchMore('users')" id="mt-users">Users</div>
-      <div class="ctab" onclick="switchMore('masters')" id="mt-masters">Masters</div>
-      <div class="ctab" onclick="switchMore('docs')" id="mt-docs">📎 Docs</div>
-      <div class="ctab" onclick="switchMore('rawdata')" id="mt-rawdata">Raw Data</div>
-      <div class="ctab" onclick="switchMore('import')" id="mt-import">Import</div>
+    <!-- MORE -->
+    <div id="v-more" class="view">
+      <div class="ctabs" id="more-tabs">
+        <div class="ctab active" onclick="setMore('pending',this)">Pending</div>
+        <div class="ctab" onclick="setMore('users',this)">Users</div>
+        <div class="ctab" onclick="setMore('masters',this)">Masters</div>
+        <div class="ctab" onclick="setMore('rawdata',this)">Raw Data</div>
+        <div class="ctab" onclick="setMore('import',this)">Import</div>
+      </div>
+      <div id="more-out"></div>
     </div>
-    <div id="more-out"></div>
+
+  </div><!-- /scroll -->
+
+  <div id="nav">
+    <button class="nb active" onclick="showView('home')" id="nb-home">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
+      Home</button>
+    <button class="nb" onclick="showView('ledger')" id="nb-ledger">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14,2 14,8 20,8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/><polyline points="10,9 9,9 8,9"/></svg>
+      Ledger</button>
+    <button class="nb" onclick="showView('add')" id="nb-add">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
+      Add</button>
+    <button class="nb" onclick="showView('reports')" id="nb-reports">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+      Reports</button>
+    <button class="nb" onclick="showView('more')" id="nb-more">
+      <svg class="ni" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1.5" fill="currentColor"/><circle cx="12" cy="12" r="1.5" fill="currentColor"/><circle cx="19" cy="12" r="1.5" fill="currentColor"/></svg>
+      More</button>
   </div>
-
-</div><!-- /scroll -->
-
-<!-- ═══════════════════ NAV BAR ═══════════════════════════════ -->
-<div id="nav">
-  <button class="nb active" onclick="showView('home')" id="nb-home">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/></svg>
-    Home</button>
-  <button class="nb" onclick="showView('ledger')" id="nb-ledger">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
-    Ledger</button>
-  <button class="nb" onclick="showView('add')" id="nb-add">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="16"/><line x1="8" y1="12" x2="16" y2="12"/></svg>
-    Add</button>
-  <button class="nb" onclick="showView('reports')" id="nb-reports">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
-    Reports</button>
-  <button class="nb" onclick="showView('more')" id="nb-more">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="5" cy="12" r="1"/><circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/></svg>
-    More</button>
 </div>
 
-<!-- ═══════════════════ MODALS ════════════════════════════════ -->
+<!-- Confirm Modal -->
+<div id="confirm-modal" class="modal-bg center hidden">
+  <div class="modal center">
+    <h3 id="confirm-title">Confirm</h3>
+    <p id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:18px"></p>
+    <div class="row" style="justify-content:flex-end;gap:8px">
+      <button class="btn btn-o" onclick="closeConfirm()">Cancel</button>
+      <button class="btn btn-d" id="confirm-ok-btn">Confirm</button>
+    </div>
+  </div>
+</div>
 
-<!-- Generic edit modal -->
+<!-- Edit Modal -->
 <div id="edit-modal" class="modal-bg hidden">
   <div class="modal">
-    <div class="modal-title-row">
+    <div class="rsb" style="margin-bottom:14px">
       <h3 id="edit-modal-title">Edit</h3>
-      <button class="modal-close" onclick="closeEditModal()">✕</button>
+      <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeEditModal()">✕</button>
     </div>
     <div id="edit-modal-body"></div>
   </div>
 </div>
 
-<!-- Confirm modal (separate, always has visible buttons) -->
+<!-- Confirm modal — dedicated, buttons always visible outside scroll -->
 <div id="confirm-modal" class="modal-bg hidden">
   <div class="modal">
-    <div class="modal-title-row">
+    <div class="rsb" style="margin-bottom:14px">
       <h3 id="confirm-modal-title">Confirm</h3>
-      <button class="modal-close" onclick="closeConfirmModal()">✕</button>
+      <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeConfirmModal()">✕</button>
     </div>
     <div id="confirm-modal-body"></div>
     <div class="modal-actions">
@@ -617,83 +486,9 @@ body.light-theme .toggle-thumb{transform:translateX(0)}
   </div>
 </div>
 
-<!-- Document viewer -->
-<div id="doc-viewer" class="hidden">
-  <div id="doc-viewer-bar">
-    <span style="font-weight:600;font-size:14px">📎 Document</span>
-    <div class="row" style="gap:8px">
-      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open ↗</a>
-      <button class="modal-close" onclick="closeDocViewer()">✕</button>
-    </div>
-  </div>
-  <iframe id="doc-viewer-frame" src="" allow="autoplay"></iframe>
-</div>
-
-<!-- Debug console -->
-<div id="debug-panel">
-  <div id="debug-toolbar">
-    <span style="font-size:11px;color:var(--accent);font-weight:600">🐞 Debug</span>
-    <button onclick="clearDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">Clear</button>
-    <button onclick="toggleDebug()" style="background:none;border:1px solid var(--border);color:var(--muted);padding:2px 8px;border-radius:4px;cursor:pointer;font-size:11px">✕</button>
-  </div>
-  <div id="debug-log"></div>
-</div>
-
-<!-- Toast -->
 <div id="toast"></div>
 
-</div><!-- /#app -->
-
-
 <script>
-
-function viewDoc(url) {
-  if (!url || !url.startsWith('http')) return;
-  const modal = document.getElementById('doc-viewer');
-  const frame = document.getElementById('doc-viewer-frame');
-  const link  = document.getElementById('doc-viewer-link');
-  const m = url.match(/\/file\/d\/([^\/]+)/);
-  frame.src = m ? `https://drive.google.com/file/d/${m[1]}/preview` : url;
-  link.href = url;
-  modal.classList.remove('hidden');
-}
-function closeDocViewer() {
-  document.getElementById('doc-viewer-frame').src = '';
-  document.getElementById('doc-viewer').classList.add('hidden');
-}
-
-// ═══════════════════════════════════════════════════════════════
-// CLEAN CONFIRM SYSTEM
-// Uses #confirm-modal which has buttons in .modal-actions
-// (always visible, outside the scroll area)
-// ═══════════════════════════════════════════════════════════════
-function showConfirm(title, bodyHTML, okLabel='Confirm', okClass='btn-p') {
-  return new Promise(resolve => {
-    document.getElementById('confirm-modal-title').textContent = title;
-    document.getElementById('confirm-modal-body').innerHTML = bodyHTML;
-    const okBtn = document.getElementById('confirm-ok-btn');
-    okBtn.textContent = okLabel;
-    okBtn.className = `btn ${okClass}`;
-    okBtn.style.cssText = 'flex:1;justify-content:center';
-    okBtn.onclick = () => { closeConfirmModal(); resolve(true); };
-    // Override cancel
-    document.querySelector('#confirm-modal .modal-close').onclick = () => { closeConfirmModal(); resolve(false); };
-    document.querySelector('#confirm-modal .btn-o').onclick = () => { closeConfirmModal(); resolve(false); };
-    document.getElementById('confirm-modal').classList.remove('hidden');
-  });
-}
-function closeConfirmModal() {
-  document.getElementById('confirm-modal').classList.add('hidden');
-}
-
-// Legacy confirm2 alias (used by rawDeleteRow etc)
-function confirm2(title, msg, cb) {
-  showConfirm(title, `<p style="color:var(--muted);font-size:13px;margin-bottom:8px">${msg}</p>`, 'Confirm', 'btn-d')
-    .then(ok => { if (ok) cb(); });
-}
-
-
-
 // Force unregister old broken service worker versions
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.getRegistrations().then(regs => {
@@ -702,7 +497,33 @@ if ('serviceWorker' in navigator) {
     });
   });
 }
-
+</script>
+<script>
+// ═══════════════════════════════════════════════════════════════
+// CONFIRM SYSTEM — uses #confirm-modal with always-visible buttons
+// ═══════════════════════════════════════════════════════════════
+function showConfirm(title, bodyHTML, okLabel, okClass) {
+  okLabel = okLabel || 'Confirm';
+  okClass = okClass || 'btn-p';
+  return new Promise(function(resolve) {
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-body').innerHTML = bodyHTML;
+    var okBtn = document.getElementById('confirm-ok-btn');
+    okBtn.textContent = okLabel;
+    okBtn.className = 'btn ' + okClass;
+    okBtn.style.cssText = 'flex:1;justify-content:center';
+    okBtn.onclick = function() { closeConfirmModal(); resolve(true); };
+    document.getElementById('confirm-modal').classList.remove('hidden');
+  });
+}
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+}
+// Legacy alias
+function confirm2(title, msg, cb) {
+  showConfirm(title, '<p style="color:var(--muted);font-size:13px;margin-bottom:4px">' + msg + '</p>', 'Confirm', 'btn-d')
+    .then(function(ok) { if (ok && cb) cb(); });
+}
 
 // ═══════════════════════════════════════════════════════════════
 // CONFIG & STATE
@@ -1838,29 +1659,28 @@ async function saveEntry() {
     }
   }
 
-  // Confirmation popup before saving
+  // Confirmation popup — uses showConfirm with always-visible buttons
   const vendorName = (_vendors||[]).find(v=>v.vendor_id===vendor)?.vendor_name||'';
   const projName   = (_projs||[]).find(p=>p.project_id===proj)?.project_name||'';
   const chName     = (_chs||[]).find(c=>c.ch_id===ch)?.ch_name||'';
   const coName     = (_cos||[]).find(c=>c.company_id===co)?.company_name||co;
-  const et         = _ets.find(t=>t.et_key===_selType.et_key);
-  const confirmed  = await showConfirm('Confirm Entry', `
-    <div class="confirm-box">
-      <h4>${_selType.label}</h4>
-      <div class="confirm-grid">
-        <div class="confirm-field"><div class="cf-label">Date</div><div class="cf-val">${fmtDate(date)}</div></div>
-        <div class="confirm-field"><div class="cf-label">Amount</div><div class="cf-val" style="color:var(--green)">${fmtAmt(amt)}</div></div>
-        <div class="confirm-field"><div class="cf-label">Company</div><div class="cf-val">${coName}</div></div>
-        ${vendorName?`<div class="confirm-field"><div class="cf-label">Vendor</div><div class="cf-val">${vendorName}</div></div>`:''}
-        ${projName?`<div class="confirm-field"><div class="cf-label">Project</div><div class="cf-val">${projName}</div></div>`:''}
-        ${chName?`<div class="confirm-field"><div class="cf-label">Cost Head</div><div class="cf-val">${chName}</div></div>`:''}
-      </div>
-      ${narr?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${narr}</div>`:''}
-      ${docUrl?`<div style="margin-top:8px;font-size:12px">📎 Document attached</div>`:''}
-      <div style="margin-top:10px;font-size:11px">
-        <span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span>
-      </div>
-    </div>`, 'Save Entry', 'btn-s');
+  const etx        = _ets.find(t=>t.et_key===_selType.et_key);
+  const confirmed  = await showConfirm('Confirm Entry',
+    '<div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px">' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:10px">' + _selType.label + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">' + fmtDate(date) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">' + fmtAmt(amt) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>' + coName + '</div></div>' +
+    (vendorName ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>' + vendorName + '</div></div>' : '') +
+    (projName   ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>' + projName + '</div></div>' : '') +
+    (chName     ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>' + chName + '</div></div>' : '') +
+    '</div>' +
+    (narr ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + narr + '</div>' : '') +
+    (docUrl ? '<div style="margin-top:8px;font-size:12px">📎 Document attached</div>' : '') +
+    '<div style="margin-top:10px;font-size:11px"><span class="badge bb">DR: ' + (etx?.dr||'—') + '</span> → <span class="badge bb">CR: ' + (etx?.cr||'—') + '</span></div>' +
+    '</div>',
+    'Save Entry', 'btn-s');
   if (!confirmed) return;
 
   const res=await api('addEntry',{
@@ -2644,7 +2464,19 @@ async function loadVendorRpt(vid){
 }
 function printVendorRpt(){
   const w=window.open('','_blank');
-  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
+  w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
+</body></html>');
   w.print();
 }
 function exportVendorXLS(vid){
@@ -2908,7 +2740,6 @@ async function renderMore(tab){
   else if(tab==='users') await renderUsers();
   else if(tab==='masters') renderMasters();
   else if(tab==='docs') renderDocs();
-  else if(tab==='docs') renderDocs();
   else if(tab==='rawdata') renderRawData();
   else if(tab==='import') renderImport();
 }
@@ -2919,30 +2750,29 @@ async function renderMore(tab){
 async function confirmApproveById(entryId) {
   const p = window._pendingMap?.[entryId];
   if (!p) { approvePending(entryId); return; }
-  const entryEt  = _ets.find(t => t.et_key === p.entry_type);
-  const vendor   = _vendors.find(v => v.vendor_id === p.vendor_id);
-  const proj     = _projs.find(pr => pr.project_id === p.project_id);
-  const ch       = _chs.find(c => c.ch_id === p.cost_head_id);
-  const co       = _cos.find(c => c.company_id === p.company_id);
-  const hasDoc   = p.drive_file_url && p.drive_file_url.startsWith('http');
-  const ok = await showConfirm('Confirm Approval', `
-    <div class="confirm-box confirm-approve">
-      <h4>${entryEt?.label||p.entry_type}</h4>
-      <div class="confirm-grid">
-        <div class="confirm-field"><div class="cf-label">Date</div><div class="cf-val">${fmtDate(p.date)}</div></div>
-        <div class="confirm-field"><div class="cf-label">Amount</div><div class="cf-val" style="color:var(--green)">${fmtAmt(p.amount)}</div></div>
-        <div class="confirm-field"><div class="cf-label">Company</div><div class="cf-val">${co?.company_name||p.company_id||'—'}</div></div>
-        <div class="confirm-field"><div class="cf-label">Submitted by</div><div class="cf-val">${p.submitted_by||'—'}</div></div>
-        ${vendor?`<div class="confirm-field"><div class="cf-label">Vendor</div><div class="cf-val">${vendor.vendor_name}</div></div>`:''}
-        ${proj?`<div class="confirm-field"><div class="cf-label">Project</div><div class="cf-val">${proj.project_name}</div></div>`:''}
-        ${ch?`<div class="confirm-field"><div class="cf-label">Cost Head</div><div class="cf-val">${ch.ch_name}</div></div>`:''}
-      </div>
-      ${p.narration?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${p.narration}</div>`:''}
-      ${hasDoc?`<div style="margin-top:8px"><a href="${p.drive_file_url}" target="_blank" style="color:var(--accent);font-size:12px">📎 View document</a></div>`:''}
-      <div style="margin-top:10px;font-size:11px">
-        <span class="badge bb">DR: ${entryEt?.dr||'—'}</span> → <span class="badge bb">CR: ${entryEt?.cr||'—'}</span>
-      </div>
-    </div>`, '✓ Approve', 'btn-s');
+  const entryEt = _ets.find(t => t.et_key === p.entry_type);
+  const vendor  = _vendors.find(v => v.vendor_id === p.vendor_id);
+  const proj    = _projs.find(pr => pr.project_id === p.project_id);
+  const ch      = _chs.find(c => c.ch_id === p.cost_head_id);
+  const coObj   = _cos.find(c => c.company_id === p.company_id);
+  const hasDoc  = p.drive_file_url && p.drive_file_url.startsWith('http');
+  const ok = await showConfirm('Confirm Approval',
+    '<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:14px">' +
+    '<div style="font-size:15px;font-weight:700;margin-bottom:10px">' + (entryEt?.label||p.entry_type) + '</div>' +
+    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">' + fmtDate(p.date) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">' + fmtAmt(p.amount) + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>' + (coObj?.company_name||p.company_id||'—') + '</div></div>' +
+    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Submitted by</div><div>' + (p.submitted_by||'—') + '</div></div>' +
+    (vendor ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>' + vendor.vendor_name + '</div></div>' : '') +
+    (proj   ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>' + proj.project_name + '</div></div>' : '') +
+    (ch     ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>' + ch.ch_name + '</div></div>' : '') +
+    '</div>' +
+    (p.narration ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + p.narration + '</div>' : '') +
+    (hasDoc ? '<div style="margin-top:8px"><a href="' + p.drive_file_url + '" target="_blank" style="color:var(--accent);font-size:12px">📎 View document</a></div>' : '') +
+    '<div style="margin-top:10px;font-size:11px"><span class="badge bb">DR: ' + (entryEt?.dr||'—') + '</span> → <span class="badge bb">CR: ' + (entryEt?.cr||'—') + '</span></div>' +
+    '</div>',
+    '✓ Approve', 'btn-s');
   if (ok) approvePending(entryId);
 }
 
@@ -3849,8 +3679,19 @@ if ('serviceWorker' in navigator) {
     navigator.serviceWorker.register('sw.js').catch(() => {});
   });
 }
-
 </script>
 
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
 </body>
 </html>
