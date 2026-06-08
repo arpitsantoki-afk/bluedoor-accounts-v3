@@ -2909,22 +2909,15 @@ async function renderMore(tab){
 async function confirmApproveById(entryId) {
   const p = window._pendingMap?.[entryId];
   if (!p) { approvePending(entryId); return; }
-  const et = _ets.find(t => t.et_key === p.entry_type);
-  const vendor = _vendors.find(v => v.vendor_id === p.vendor_id);
-  const proj = _projs.find(pr => pr.project_id === p.project_id);
-  const ch = _chs.find(c => c.ch_id === p.cost_head_id);
-  const co = _cos.find(c => c.company_id === p.company_id);
-  const hasDoc = p.drive_file_url && p.drive_file_url.startsWith('http');
-
-  const et = _ets.find(t => t.et_key === p.entry_type);
-  const vendor = _vendors.find(v => v.vendor_id === p.vendor_id);
-  const proj = _projs.find(pr => pr.project_id === p.project_id);
-  const ch = _chs.find(c => c.ch_id === p.cost_head_id);
-  const co = _cos.find(c => c.company_id === p.company_id);
-  const hasDoc = p.drive_file_url && p.drive_file_url.startsWith('http');
+  const entryEt  = _ets.find(t => t.et_key === p.entry_type);
+  const vendor   = _vendors.find(v => v.vendor_id === p.vendor_id);
+  const proj     = _projs.find(pr => pr.project_id === p.project_id);
+  const ch       = _chs.find(c => c.ch_id === p.cost_head_id);
+  const co       = _cos.find(c => c.company_id === p.company_id);
+  const hasDoc   = p.drive_file_url && p.drive_file_url.startsWith('http');
   const ok = await showConfirm('Confirm Approval', `
     <div class="confirm-box confirm-approve">
-      <h4>${et?.label||p.entry_type}</h4>
+      <h4>${entryEt?.label||p.entry_type}</h4>
       <div class="confirm-grid">
         <div class="confirm-field"><div class="cf-label">Date</div><div class="cf-val">${fmtDate(p.date)}</div></div>
         <div class="confirm-field"><div class="cf-label">Amount</div><div class="cf-val" style="color:var(--green)">${fmtAmt(p.amount)}</div></div>
@@ -2936,14 +2929,14 @@ async function confirmApproveById(entryId) {
       </div>
       ${p.narration?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${p.narration}</div>`:''}
       ${hasDoc?`<div style="margin-top:8px"><a href="${p.drive_file_url}" target="_blank" style="color:var(--accent);font-size:12px">📎 View document</a></div>`:''}
-      <div style="margin-top:10px;font-size:11px"><span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span></div>
+      <div style="margin-top:10px;font-size:11px">
+        <span class="badge bb">DR: ${entryEt?.dr||'—'}</span> → <span class="badge bb">CR: ${entryEt?.cr||'—'}</span>
+      </div>
     </div>`, '✓ Approve', 'btn-s');
   if (ok) approvePending(entryId);
 }
-}
 
 
-// ── DOCUMENTS TAB ─────────────────────────────────────────────────────────────
 async function renderDocs() {
   const el = document.getElementById('more-out');
   el.innerHTML = '<div class="empty"><span class="spin"></span> Loading documents…</div>';
