@@ -11,12 +11,13 @@
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="apple-mobile-web-app-title" content="BD Admin">
-<meta name="theme-color" content="#4f8ef7">
+<meta name="theme-color" content="#0d0f14" id="theme-color-meta">
 <meta name="mobile-web-app-capable" content="yes">
 <title>BlueDoor Admin</title>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
+  color-scheme:dark;
   --bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;
   --green:#22c55e;--red:#ef4444;--amber:#f59e0b;--purple:#a78bfa;
   --text:#e2e8f0;--muted:#64748b;--nav-h:56px;--top-h:52px;
@@ -559,9 +560,13 @@ function toggleTheme(isDark) {
   if (isDark) {
     document.body.classList.remove('light-theme');
     localStorage.setItem('bd_theme', 'dark');
+    document.getElementById('theme-color-meta')?.setAttribute('content', '#0d0f14');
+    document.documentElement.style.background = '#0d0f14';
   } else {
     document.body.classList.add('light-theme');
     localStorage.setItem('bd_theme', 'light');
+    document.getElementById('theme-color-meta')?.setAttribute('content', '#f8fafc');
+    document.documentElement.style.background = '#f8fafc';
   }
   const thumb = document.getElementById('theme-thumb');
   const track = document.getElementById('theme-track');
