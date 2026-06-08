@@ -798,6 +798,9 @@ async function doLogout() {
 window.addEventListener('DOMContentLoaded', () => {
   checkSession();
   const theme = localStorage.getItem('bd_theme') || 'dark';
+  // Sync html bg immediately to prevent gap flash
+  document.documentElement.style.background = theme === 'light' ? '#f8fafc' : '#0d0f14';
+  document.getElementById('theme-color-meta')?.setAttribute('content', theme === 'light' ? '#f8fafc' : '#0d0f14');
   const toggle = document.getElementById('theme-toggle');
   if (theme === 'light') {
     document.body.classList.add('light-theme');
