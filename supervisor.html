@@ -787,9 +787,9 @@ async function loadMasters() {
   // FY pill dropdown
   const fyList2 = document.getElementById('fy-list');
   if (fyList2) {
-    fyList2.innerHTML = ['FY2627','FY2526','FY2425'].map(fy =>
-      '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setSupFY(''+fy+'')">' + fy + '</div>'
-    ).join('');
+    fyList2.innerHTML = ['FY2627','FY2526','FY2425'].map(function(fy) {
+        return '<div style="padding:8px 14px;font-size:13px;cursor:pointer" data-fy="'+fy+'" onclick="setSupFY(this.dataset.fy)">' + fy + '</div>';
+      }).join('');
   }
 
   // Vendor ledger selects — only allowed vendors
