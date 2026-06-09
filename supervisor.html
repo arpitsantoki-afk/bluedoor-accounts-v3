@@ -671,7 +671,26 @@ function toggleMenu(id) {
   ['fy-menu','co-menu','user-menu'].forEach(m => {
     if (m !== id) document.getElementById(m).classList.add('hidden');
   });
-  document.getElementById(id).classList.toggle('hidden');
+  const menu = document.getElementById(id);
+  const wasHidden = menu.classList.contains('hidden');
+  menu.classList.toggle('hidden');
+  if (wasHidden) {
+    // Position menu under the triggering pill/button
+    const trigMap = {'fy-menu':'fy-pill','co-menu':'co-pill','user-menu':'user-btn'};
+    const trigId = trigMap[id];
+    const trig = trigId ? document.getElementById(trigId) : null;
+    if (trig) {
+      const rect = trig.getBoundingClientRect();
+      menu.style.position = 'fixed';
+      menu.style.top = (rect.bottom + 4) + 'px';
+      const menuW = menu.offsetWidth || 160;
+      // Align left edge with trigger, clamp to screen
+      let left = rect.left;
+      if (left + menuW > window.innerWidth - 8) left = window.innerWidth - menuW - 8;
+      menu.style.left = Math.max(8, left) + 'px';
+      menu.style.right = 'auto';
+    }
+  }
 }
 function closeMenus() { ['fy-menu','co-menu','user-menu'].forEach(m => document.getElementById(m).classList.add('hidden')); }
 document.addEventListener('click', e => {
@@ -1786,6 +1805,9 @@ function supHandleDocSelect(input) {
   const preview = document.getElementById('doc-preview');
   const labelEl = document.getElementById('sup-doc-label');
   const clearBtn = document.getElementById('sup-doc-clear');
+  // Mark docUrl so validation passes even before upload
+  const docUrlEl = document.getElementById('ae-doc-url');
+  if (docUrlEl && !docUrlEl.value) docUrlEl.value = file.name;
   if (preview) { preview.textContent = '📎 ' + file.name + ' (' + sizeStr + ')'; preview.style.display = 'block'; }
   if (labelEl) labelEl.style.borderColor = 'var(--accent)';
   if (clearBtn) clearBtn.style.display = 'flex';
@@ -1798,10 +1820,12 @@ function supClearDoc() {
   const preview = document.getElementById('doc-preview');
   const labelEl = document.getElementById('sup-doc-label');
   const clearBtn = document.getElementById('sup-doc-clear');
+  const docUrlEl = document.getElementById('ae-doc-url');
   if (fileInput) fileInput.value = '';
   if (preview) { preview.textContent = ''; preview.style.display = 'none'; }
   if (labelEl) labelEl.style.borderColor = '';
   if (clearBtn) clearBtn.style.display = 'none';
+  if (docUrlEl && docUrlEl.value && !docUrlEl.value.startsWith('http')) docUrlEl.value = '';
 }
 
 // Called when user picks a file — store file object, show preview, don't upload yet
