@@ -111,6 +111,10 @@ tr:last-child td{border-bottom:none}
 .modal-bg.center{align-items:center}
 .modal{background:var(--card);border-radius:16px 16px 0 0;padding:20px;width:100%;max-width:480px;max-height:90dvh;overflow-y:auto}
 .modal-actions{position:sticky;bottom:-20px;background:var(--card);border-top:1px solid var(--border);margin:16px -20px -20px;padding:12px 20px;display:flex;gap:8px}
+.conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.conf-row:last-child{border-bottom:none}
+.conf-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;padding-top:1px}
+.conf-val{font-weight:600;text-align:right;color:var(--text)}
 .modal.center{border-radius:16px;margin:16px}
 .modal h3{font-size:15px;font-weight:700;margin-bottom:14px}
 /* Debug console */
@@ -476,13 +480,13 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 <div id="confirm-modal" class="modal-bg hidden">
   <div class="modal">
     <div class="rsb" style="margin-bottom:14px">
-      <h3 id="confirm-modal-title">Confirm</h3>
+      <h3 id="confirm-modal-title" style="font-size:15px;font-weight:700">Confirm Entry</h3>
       <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeConfirmModal()">✕</button>
     </div>
     <div id="confirm-modal-body"></div>
     <div class="modal-actions">
-      <button class="btn btn-p" id="confirm-ok-btn" style="flex:1;justify-content:center">Confirm</button>
       <button class="btn btn-o" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-s" id="confirm-ok-btn" style="flex:1;justify-content:center">Save Entry</button>
     </div>
   </div>
 </div>
@@ -505,7 +509,7 @@ if ('serviceWorker' in navigator) {
 // ═══════════════════════════════════════════════════════════════
 function showConfirm(title, bodyHTML, okLabel, okClass) {
   okLabel = okLabel || 'Confirm';
-  okClass = okClass || 'btn-p';
+  okClass = okClass || 'btn-s';
   return new Promise(function(resolve) {
     document.getElementById('confirm-modal-title').textContent = title;
     document.getElementById('confirm-modal-body').innerHTML = bodyHTML;
@@ -516,6 +520,14 @@ function showConfirm(title, bodyHTML, okLabel, okClass) {
     okBtn.onclick = function() { closeConfirmModal(); resolve(true); };
     document.getElementById('confirm-modal').classList.remove('hidden');
   });
+}
+
+// Build V2-style conf-row HTML from key-value pairs
+function buildConfRows(rows) {
+  return rows.map(function(row) {
+    if (!row) return '';
+    return '<div class="conf-row"><span class="conf-label">' + row[0] + '</span><span class="conf-val' + (row[2] ? '" style="color:' + row[2] : '') + '">' + row[1] + '</span></div>';
+  }).join('');
 }
 function closeConfirmModal() {
   document.getElementById('confirm-modal').classList.add('hidden');
@@ -1673,21 +1685,20 @@ async function saveEntry() {
   const chName     = (_chs||[]).find(c=>c.ch_id===ch)?.ch_name||'';
   const coName     = (_cos||[]).find(c=>c.company_id===co)?.company_name||co;
   const etx        = _ets.find(t=>t.et_key===_selType.et_key);
-  const confirmed  = await showConfirm('Confirm Entry',
-    '<div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px">' +
-    '<div style="font-size:15px;font-weight:700;margin-bottom:10px">' + _selType.label + '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">' + fmtDate(date) + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">' + fmtAmt(amt) + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>' + coName + '</div></div>' +
-    (vendorName ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>' + vendorName + '</div></div>' : '') +
-    (projName   ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>' + projName + '</div></div>' : '') +
-    (chName     ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>' + chName + '</div></div>' : '') +
-    '</div>' +
-    (narr ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + narr + '</div>' : '') +
-    (docUrl ? '<div style="margin-top:8px;font-size:12px">📎 Document attached</div>' : '') +
-    '<div style="margin-top:10px;font-size:11px"><span class="badge bb">DR: ' + (etx?.dr||'—') + '</span> → <span class="badge bb">CR: ' + (etx?.cr||'—') + '</span></div>' +
-    '</div>',
+  const confirmed = await showConfirm('Confirm Entry',
+    buildConfRows([
+      ['Entry Type',  _selType.label],
+      ['Date',        fmtDate(date)],
+      ['Amount',      fmtAmt(amt), 'var(--green)'],
+      ['Company',     coName],
+      vendorName ? ['Vendor', vendorName] : null,
+      projName   ? ['Project', projName] : null,
+      chName     ? ['Cost Head', chName] : null,
+      narr       ? ['Narration', narr] : null,
+      ['DR Account',  etx?.dr||'—', 'var(--green)'],
+      ['CR Account',  etx?.cr||'—', 'var(--red)'],
+      docUrl     ? ['Document', '📎 Attached'] : null
+    ]),
     'Save Entry', 'btn-s');
   if (!confirmed) return;
 
@@ -2764,21 +2775,20 @@ async function confirmApproveById(entryId) {
   const coObj   = _cos.find(c => c.company_id === p.company_id);
   const hasDoc  = p.drive_file_url && p.drive_file_url.startsWith('http');
   const ok = await showConfirm('Confirm Approval',
-    '<div style="background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:10px;padding:14px">' +
-    '<div style="font-size:15px;font-weight:700;margin-bottom:10px">' + (entryEt?.label||p.entry_type) + '</div>' +
-    '<div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">' + fmtDate(p.date) + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">' + fmtAmt(p.amount) + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>' + (coObj?.company_name||p.company_id||'—') + '</div></div>' +
-    '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Submitted by</div><div>' + (p.submitted_by||'—') + '</div></div>' +
-    (vendor ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>' + vendor.vendor_name + '</div></div>' : '') +
-    (proj   ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>' + proj.project_name + '</div></div>' : '') +
-    (ch     ? '<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>' + ch.ch_name + '</div></div>' : '') +
-    '</div>' +
-    (p.narration ? '<div style="margin-top:8px;font-size:12px;color:var(--muted)">' + p.narration + '</div>' : '') +
-    (hasDoc ? '<div style="margin-top:8px"><a href="' + p.drive_file_url + '" target="_blank" style="color:var(--accent);font-size:12px">📎 View document</a></div>' : '') +
-    '<div style="margin-top:10px;font-size:11px"><span class="badge bb">DR: ' + (entryEt?.dr||'—') + '</span> → <span class="badge bb">CR: ' + (entryEt?.cr||'—') + '</span></div>' +
-    '</div>',
+    buildConfRows([
+      ['Entry Type',    entryEt?.label||p.entry_type],
+      ['Date',          fmtDate(p.date)],
+      ['Amount',        fmtAmt(p.amount), 'var(--green)'],
+      ['Company',       coObj?.company_name||p.company_id||'—'],
+      ['Submitted by',  p.submitted_by||'—'],
+      vendor  ? ['Vendor',    vendor.vendor_name] : null,
+      proj    ? ['Project',   proj.project_name] : null,
+      ch      ? ['Cost Head', ch.ch_name] : null,
+      p.narration ? ['Narration', p.narration] : null,
+      ['DR Account', entryEt?.dr||'—', 'var(--green)'],
+      ['CR Account', entryEt?.cr||'—', 'var(--red)'],
+      hasDoc  ? ['Document', '📎 Attached — click to view'] : null
+    ]),
     '✓ Approve', 'btn-s');
   if (ok) approvePending(entryId);
 }
