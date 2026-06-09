@@ -1256,50 +1256,44 @@ function resetLedgerFilters() {
   renderLedger();
 }
 
-
-// ─── PDF print helper ────────────────────────────────────────────────────────
+// ─── PDF print helper ─────────────────────────────────────────────────────
 function openPrintWindow(title, headerHtml, bodyHtml) {
-  const w = window.open('', '_blank');
+  var w = window.open('', '_blank');
   if (!w) { toast('Pop-up blocked. Allow pop-ups for this site.', 'err'); return; }
   w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>'
     + '<style>'
     + '*{box-sizing:border-box}'
     + 'body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px;color:#111}'
-    + '.report-header{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}'
-    + '.report-header h1{font-size:16px;margin:0 0 3px}'
-    + '.report-header h2{font-size:13px;margin:0 0 2px;font-weight:normal}'
-    + '.report-header p{font-size:11px;color:#555;margin:2px 0}'
+    + '.rh{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}'
+    + '.rh h1{font-size:16px;margin:0 0 3px}.rh h2{font-size:13px;margin:0 0 2px;font-weight:normal}'
+    + '.rh p{font-size:11px;color:#555;margin:2px 0}'
     + 'table{width:100%;border-collapse:collapse;margin-bottom:16px}'
     + 'th,td{border:1px solid #ccc;padding:5px 7px;vertical-align:top}'
     + 'th{background:#f0f0f0;font-weight:600;text-align:left}'
-    + 'td.num,td.dr,td.cr{text-align:right}'
-    + 'td.dr{color:#16a34a}td.cr{color:#dc2626}'
-    + '.section-head td{background:#e8e8e8;font-weight:700}'
-    + '.total-row td{border-top:2px solid #000;font-weight:700}'
-    + '.subtotal-row td{font-weight:600;background:#f9f9f9}'
+    + 'td.num,td.dr,td.cr{text-align:right}td.dr{color:#16a34a}td.cr{color:#dc2626}'
+    + '.tot td{border-top:2px solid #000;font-weight:700}'
     + 'h3{font-size:12px;margin:12px 0 4px;border-bottom:1px solid #ccc;padding-bottom:3px}'
-    + '@media print{.no-print{display:none}}'
+    + '@media print{.np{display:none}}'
     + '</style></head><body>'
-    + '<div class="no-print" style="margin-bottom:12px;text-align:right">'
+    + '<div class="np" style="margin-bottom:12px;text-align:right">'
     + '<button onclick="window.print()" style="padding:6px 14px;font-size:12px;cursor:pointer">Print / Save as PDF</button>'
     + '</div>'
-    + '<div class="report-header">' + headerHtml + '</div>'
-    + bodyHtml
-    + '</body></html>');
+    + '<div class="rh">' + headerHtml + '</div>'
+    + bodyHtml + '</body></html>');
   w.document.close();
 }
 function printLedgerPDF() {
   if (!_ledgerRows.length) { toast('No data to print', 'err'); return; }
-  const coName   = _cos.find(c => c.company_id === curCo)?.company_name || 'All Companies';
-  const acFilter = ssGet('lf-ac-wrap');
-  const acName   = acFilter ? (_acs.find(a => a.ac_code === acFilter)?.ac_name || acFilter) : 'All Accounts';
-  const fromDate = document.getElementById('lf-from')?.value;
-  const toDate   = document.getElementById('lf-to')?.value;
-  const dateRange = fromDate && toDate ? (fmtDate(fromDate) + ' to ' + fmtDate(toDate)) : curFY;
-  const header = '<h1>Account Ledger</h1><h2>' + coName + '</h2>'
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var acFilter = ssGet('lf-ac-wrap');
+  var acName = acFilter ? ((_acs.find(function(a){return a.ac_code===acFilter;})||{}).ac_name || acFilter) : 'All Accounts';
+  var fromDate = (document.getElementById('lf-from')||{}).value || '';
+  var toDate   = (document.getElementById('lf-to')||{}).value || '';
+  var dateRange = (fromDate && toDate) ? (fmtDate(fromDate) + ' to ' + fmtDate(toDate)) : curFY;
+  var header = '<h1>Account Ledger</h1><h2>' + coName + '</h2>'
     + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Period: ' + dateRange + ' &nbsp;|&nbsp; Account: ' + acName + '</p>'
     + '<p>Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
-  const byAc = {};
+  var byAc = {};
   _ledgerRows.forEach(function(r) {
     if (!byAc[r.ac_code]) byAc[r.ac_code] = { name: r.ac_name, code: r.ac_code, rows: [] };
     byAc[r.ac_code].rows.push(r);
@@ -1309,19 +1303,2678 @@ function printLedgerPDF() {
     var dr = 0, cr = 0;
     var trs = ac.rows.map(function(r) {
       dr += (r.debit || 0); cr += (r.credit || 0);
-      var et = _ets.find(t => t.et_key === r.entry_type);
-      var vendor = _vendors.find(v => v.vendor_id === r.vendor_id)?.vendor_name || '';
-      var proj   = _projs.find(p => p.project_id === r.project_id)?.project_name || '';
-      return '<tr><td>' + fmtDate(r.date) + '</td><td>' + (et ? et.label : (r.entry_type || '')) + '</td>'
-        + '<td>' + (r.narration || '') + (vendor ? '<br><small>' + vendor + '</small>' : '') + (proj ? '<br><small>' + proj + '</small>' : '') + '</td>'
-        + '<td class="dr">' + (r.debit > 0 ? fmtAmt(r.debit) : '') + '</td>'
-        + '<td class="cr">' + (r.credit > 0 ? fmtAmt(r.credit) : '') + '</td></tr>';
+      var et = _ets.find(function(t){return t.et_key===r.entry_type;});
+      var vn = (_vendors.find(function(v){return v.vendor_id===r.vendor_id;})||{}).vendor_name || '';
+      var pn = (_projs.find(function(p){return p.project_id===r.project_id;})||{}).project_name || '';
+      return '<tr><td>' + fmtDate(r.date) + '</td>'
+        + '<td>' + (et ? et.label : (r.entry_type || '')) + '</td>'
+        + '<td>' + (r.narration||'') + (vn?'<br><small>'+vn+'</small>':'') + (pn?'<br><small>'+pn+'</small>':'') + '</td>'
+        + '<td class="dr">' + (r.debit>0?fmtAmt(r.debit):'') + '</td>'
+        + '<td class="cr">' + (r.credit>0?fmtAmt(r.credit):'') + '</td></tr>';
     }).join('');
     body += '<h3>' + ac.name + ' (' + ac.code + ')</h3>'
-      + '<table><thead><tr><th>Date</th><th>Type</th><th>Narration / Details</th><th>Debit (DR)</th><th>Credit (CR)</th></tr></thead>'
+      + '<table><thead><tr><th>Date</th><th>Type</th><th>Narration/Details</th><th>Debit (DR)</th><th>Credit (CR)</th></tr></thead>'
       + '<tbody>' + trs + '</tbody>'
-      + '<tfoot><tr class="total-row"><td colspan="3" style="text-align:right">Total</td>'
+      + '<tfoot><tr class="tot"><td colspan="3" style="text-align:right">Total</td>'
       + '<td class="dr">' + fmtAmt(dr) + '</td><td class="cr">' + fmtAmt(cr) + '</td></tr></tfoot></table>';
   });
   openPrintWindow('Ledger — ' + coName, header, body);
 }
+
+
+function downloadLedgerXLS() {
+  if (!_ledgerRows.length) { toast('No data', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = _ledgerRows.map(function(r) {
+    var et = _ets.find(function(t){return t.et_key===r.entry_type;});
+    return { 'Date': fmtDate(r.date), 'Company': coName, 'FY': curFY,
+      'Entry Type': et ? et.label : (r.entry_type||''),
+      'Account Code': r.ac_code, 'Account Name': r.ac_name,
+      'DR/CR': r.dr_cr, 'Debit': r.debit||0, 'Credit': r.credit||0,
+      'Narration': r.narration||'',
+      'Vendor': (_vendors.find(function(v){return v.vendor_id===r.vendor_id;})||{}).vendor_name||'',
+      'Project': (_projs.find(function(p){return p.project_id===r.project_id;})||{}).project_name||'',
+      'Cost Head': (_chs.find(function(c){return c.ch_id===r.cost_head_id;})||{}).ch_name||'' };
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Ledger');
+  XLSX.writeFile(wb, 'Ledger_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+
+function printLedger() {
+  const w=window.open('','_blank');
+  const rows=_ledgerRows.map(r=>`<tr><td>${fmtDate(r.date)}</td><td>${r.company_id}</td><td>${r.ac_name}</td><td>${r.narration||''}</td><td style="text-align:right">${r.debit>0?'₹'+fmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?'₹'+fmt(r.credit):''}</td></tr>`).join('');
+  w.document.write(`<html><head><title>Ledger ${curFY}</title><style>body{font-family:Arial,sans-serif;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}th{background:#f5f5f5}</style></head><body><h2>BlueDoor Ledger — ${curFY}</h2><table><thead><tr><th>Date</th><th>Co</th><th>Account</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>${rows}</tbody></table>
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
+</body></html>`);
+  w.print();
+}
+
+// ═══════════════════════════════════════════════════════════════
+// ADD TAB
+// ═══════════════════════════════════════════════════════════════
+function setAddTab(tab, el) {
+  _curAddTab=tab;
+  document.querySelectorAll('#add-tabs .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  ['entry','project','vendor','opening','bankimport'].forEach(t=>{
+    document.getElementById(`at-${t}`)?.classList.toggle('hidden',t!==tab);
+  });
+  if(tab==='project') loadProjects();
+  else if(tab==='vendor') loadVendors();
+  else if(tab==='opening') loadOpeningBalances();
+}
+function renderAddTab(tab) {
+  // Just show the correct tab
+  document.querySelectorAll('#add-tabs .ctab').forEach((t,i)=>{
+    const tabs=['entry','project','vendor','opening','bankimport'];
+    t.classList.toggle('active', tabs[i]===tab);
+  });
+  setAddTab(tab);
+}
+
+// ── ENTRY ─────────────────────────────────────────────────────
+function setEntryCat(cat, el) {
+  _curEntryCat=cat; _selType=null;
+  document.querySelectorAll('#entry-cats .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  // Hide form when switching category
+  document.getElementById('ae-form-card')?.classList.add('hidden');
+  const types=_ets.filter(t=>t.category===cat&&t.active);
+  const grid=document.getElementById('type-grid');
+  if(!types.length){grid.innerHTML='<div class="empty">No entry types</div>';return;}
+  grid.innerHTML=types.map(t=>`
+    <div class="type-opt" onclick="pickType(this,'${t.et_key}')">
+      <div class="tol">${t.label}</div>
+      <div class="toh">${t.dr} → ${t.cr}</div>
+    </div>`).join('');
+}
+
+function onCostHeadChange(chId) {
+  if (!_selType) return;
+  const ch = _chs.find(c => c.ch_id === chId);
+  // Determine if this cost head is indirect (not project-specific)
+  const isIndirect = ch && (
+    ch.ac_key === 'EXP_INDIRECT' ||
+    ch.ac_key === 'EXP_OTHER' ||
+    /indirect|office|salary|marketing|overhead/i.test(ch.ch_name)
+  );
+
+  const projWrap = document.getElementById('ae-proj-wrap-outer');
+  if (!projWrap) return;
+
+  if (_selType.et_key === 'vendor_bill') {
+    // vendor_bill: project required for direct, hidden+cleared for indirect
+    if (isIndirect) {
+      projWrap.style.display = 'none';
+      ssClear('ae-proj-wrap'); // clear any selected project
+    } else {
+      projWrap.style.display = '';
+      const lbl = projWrap.querySelector('label');
+      if (lbl) lbl.innerHTML = 'Project <span style="color:var(--red)">*</span>';
+    }
+  } else if (['expense_cash','expense_petty_cash','expense_bank'].includes(_selType.et_key)) {
+    // expense entries: project required, but indirect heads → hide project
+    if (isIndirect) {
+      projWrap.style.display = 'none';
+      ssClear('ae-proj-wrap');
+    } else {
+      projWrap.style.display = '';
+      const lbl = projWrap.querySelector('label');
+      if (lbl) lbl.innerHTML = 'Project <span style="color:var(--red)">*</span>';
+    }
+  }
+}
+
+// Field requirement rules from Excel spec
+const FIELD_RULES = {
+  "invoice_raised": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "cash_payment_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "Bank_payment_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_received": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_received_bank": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_adjusted_cr": {
+    "project": "required",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_bill": {
+    "project": "conditional",
+    "vendor": "required",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "credit_note": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_paid_cash": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "vendor_paid_bank": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_paid_vendor": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_bank": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "advance_adjusted_dr": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "expense_cash": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "expense_petty_cash": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "expense_bank": {
+    "project": "required",
+    "vendor": "optional",
+    "cost_head": "required",
+    "doc": "required"
+  },
+  "transfer_cash_to_petty": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "transfer_cash_to_bank": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "transfer_bank_to_cash": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "drawings_cash": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  },
+  "drawings_bank": {
+    "project": "hidden",
+    "vendor": "hidden",
+    "cost_head": "hidden",
+    "doc": "hidden"
+  }
+};
+
+function getFieldRule(key, field) {
+  const r = FIELD_RULES[key];
+  return r ? (r[field] || 'hidden') : 'hidden';
+}
+
+function pickType(el, key) {
+  document.querySelectorAll('.type-opt').forEach(t=>t.classList.remove('sel'));
+  el.classList.add('sel');
+  _selType=_ets.find(t=>t.et_key===key);
+  if(!_selType) return;
+
+  const rules = FIELD_RULES[key] || {};
+
+  // Project field
+  const projRule = rules.project || 'hidden';
+  const projWrap = document.getElementById('ae-proj-wrap-outer');
+  if (projWrap) {
+    projWrap.style.display = projRule === 'hidden' ? 'none' : '';
+    const projLabel = projWrap.querySelector('label');
+    if (projLabel) {
+      projLabel.innerHTML = projRule === 'required'
+        ? 'Project <span style="color:var(--red)">*</span>'
+        : projRule === 'conditional'
+        ? 'Project <span style="color:var(--amber);font-size:10px">(if direct expense)</span>'
+        : 'Project <span style="color:var(--muted);font-size:10px">(optional)</span>';
+    }
+  }
+
+  // Vendor field
+  const vendRule = rules.vendor || 'hidden';
+  const vendWrap = document.getElementById('ae-vendor-f');
+  if (vendWrap) {
+    vendWrap.classList.toggle('hidden', vendRule === 'hidden');
+    const vendLabel = vendWrap.querySelector('label');
+    if (vendLabel) vendLabel.innerHTML = vendRule === 'required'
+      ? 'Vendor <span style="color:var(--red)">*</span>'
+      : 'Vendor <span style="color:var(--muted);font-size:10px">(optional)</span>';
+  }
+
+  // Cost Head field
+  const chRule = rules.cost_head || 'hidden';
+  const chWrap = document.getElementById('ae-ch-f');
+  if (chWrap) {
+    chWrap.classList.toggle('hidden', chRule === 'hidden');
+    const chLabel = chWrap.querySelector('label');
+    if (chLabel) chLabel.innerHTML = chRule === 'required'
+      ? 'Cost Head <span style="color:var(--red)">*</span>'
+      : 'Cost Head <span style="color:var(--muted);font-size:10px">(optional)</span>';
+  }
+
+  // Document field
+  const docRule = rules.doc || 'hidden';
+  document.getElementById('ae-doc-f')?.classList.toggle('hidden', docRule === 'hidden');
+
+  // Show form card
+  document.getElementById('ae-form-card')?.classList.remove('hidden');
+  // Update type label in form
+  const tn = document.getElementById('ae-type-name');
+  if (tn) tn.innerHTML = `<span class="badge bg" style="font-size:11px">DR: ${_selType.dr}</span>&nbsp;<span class="badge br" style="font-size:11px">CR: ${_selType.cr}</span>&nbsp;<strong>${_selType.label}</strong>${_selType.hint?'<span style="font-size:11px;color:var(--muted);margin-left:6px">'+_selType.hint+'</span>':''}`;
+
+  // Hide old preview div (now shown in form header)
+  const prev=document.getElementById('ae-preview');
+  if (prev) prev.style.display='none';
+}
+
+async function saveEntry() {
+  if(!_selType){toast('Select an entry type first','err');return;}
+  const date=document.getElementById('ae-date').value;
+  const co=document.getElementById('ae-co').value;
+  const amt=parseFloat(document.getElementById('ae-amt').value);
+  const narr=document.getElementById('ae-narr').value.trim();
+  const proj=ssGet('ae-proj-wrap');
+  const vendor=ssGet('ae-vendor-wrap');
+  const ch=ssGet('ae-ch-wrap');
+  if(!date){toast('Select a date','err');return;}
+  if(!co){toast('Select company','err');return;}
+  if(!amt||amt<=0){toast('Enter valid amount','err');return;}
+  const rules=FIELD_RULES[_selType.et_key]||{};
+  if(rules.project==='required'&&!proj){
+    // Check if cost head is indirect — if so, project is not required
+    const selCh=_chs.find(c=>c.ch_id===ch);
+    const selChIndirect=selCh&&(/indirect|office|salary|marketing|overhead/i.test(selCh.ch_name)||selCh.ac_key==='EXP_INDIRECT'||selCh.ac_key==='EXP_OTHER');
+    if(!selChIndirect){toast('Project is required for this entry type','err');return;}
+  }
+  if(rules.vendor==='required'&&!vendor){toast('Vendor is required for this entry type','err');return;}
+  if(rules.cost_head==='required'&&!ch){toast('Cost Head is required for this entry type','err');return;}
+
+  // Upload document first if file was selected
+  let docUrl = document.getElementById('ae-doc-url')?.value?.trim() || '';
+  const docFileInput = document.getElementById('ae-doc-file');
+  const docFile = docFileInput?.files?.[0];
+  dbg(`saveEntry: docFile=${docFile?.name||'none'} docUrl=${docUrl||'empty'}`);
+  if (docFile && (!docUrl || docUrl === docFile.name)) {
+    // File selected but not yet uploaded (or only filename stored)
+    const statusEl = document.getElementById('ae-doc-status');
+    if (statusEl) { statusEl.textContent = '⬆️ Uploading document…'; statusEl.style.color = 'var(--amber)'; }
+    const vendorObj = (_vendors||[]).find(v => v.vendor_id === vendor);
+    const uploadedUrl = await uploadFileToDrive(docFile, co, _selType.et_key, vendorObj?.vendor_name || '', date);
+    if (uploadedUrl) {
+      docUrl = uploadedUrl;
+      if (statusEl) { statusEl.innerHTML = `✅ <a href="${uploadedUrl}" target="_blank" style="color:var(--green)">View in Drive</a>`; }
+      toast('📎 Document uploaded');
+    }
+  }
+
+  // Confirmation popup — uses showConfirm with always-visible buttons
+  const vendorName = (_vendors||[]).find(v=>v.vendor_id===vendor)?.vendor_name||'';
+  const projName   = (_projs||[]).find(p=>p.project_id===proj)?.project_name||'';
+  const chName     = (_chs||[]).find(c=>c.ch_id===ch)?.ch_name||'';
+  const coName     = (_cos||[]).find(c=>c.company_id===co)?.company_name||co;
+  const etx        = _ets.find(t=>t.et_key===_selType.et_key);
+  const confirmed = await showConfirm('Confirm Entry',
+    buildConfRows([
+      ['Entry Type',  _selType.label],
+      ['Date',        fmtDate(date)],
+      ['Amount',      fmtAmt(amt), 'var(--green)'],
+      ['Company',     coName],
+      vendorName ? ['Vendor', vendorName] : null,
+      projName   ? ['Project', projName] : null,
+      chName     ? ['Cost Head', chName] : null,
+      narr       ? ['Narration', narr] : null,
+      ['DR Account',  etx?.dr||'—', 'var(--green)'],
+      ['CR Account',  etx?.cr||'—', 'var(--red)'],
+      docUrl     ? ['Document', '📎 Attached'] : null
+    ]),
+    'Save Entry', 'btn-s');
+  if (!confirmed) return;
+
+  const res=await api('addEntry',{
+    date,fyid:curFY,company_id:co,entry_type:_selType.et_key,
+    project_id:proj,vendor_id:vendor,cost_head_id:ch,amount:amt,narration:narr,
+    drive_file_url: docUrl || undefined
+  });
+  if(res.ok){
+    const drInfo=res.dr_account||'—';
+    const crInfo=res.cr_account||'—';
+    toast(`✓ Entry saved | DR: ${drInfo} | CR: ${crInfo}`);
+    dbg(`Entry ${res.entry_id}: DR=${drInfo} CR=${crInfo} Amt=${amt}`, 'ok');
+    resetEntryForm();
+  } else {
+    toast(res.error,'err');
+    dbg('addEntry failed: '+res.error,'err');
+  }
+}
+
+// ── Google Drive Upload ──────────────────────────────────────────────────────
+const DRIVE_CLIENT_ID = '449634347678-tkbk083eu1igcil0rq58tgvdrs54l4nm.apps.googleusercontent.com';
+const DRIVE_SCOPE = 'https://www.googleapis.com/auth/drive.file';
+
+async function getDriveToken() {
+  // If we already have a valid token, return it
+  if (_driveToken && _driveToken.expires > Date.now()) return _driveToken.token;
+
+  return new Promise((resolve, reject) => {
+    const w = window.open(
+      `https://accounts.google.com/o/oauth2/v2/auth?` +
+      `client_id=${DRIVE_CLIENT_ID}` +
+      `&redirect_uri=${encodeURIComponent('https://arpitsantoki-afk.github.io/bluedoor-accounts-v3/drive_callback.html')}` +
+      `&response_type=token` +
+      `&scope=${encodeURIComponent(DRIVE_SCOPE)}` +
+      `&prompt=none`,
+      'drive_auth', 'width=500,height=600'
+    );
+    // Listen for token from popup
+    const handler = (e) => {
+      if (e.origin !== 'https://arpitsantoki-afk.github.io') return;
+      if (e.data?.type === 'drive_token') {
+        window.removeEventListener('message', handler);
+        _driveToken = { token: e.data.token, expires: Date.now() + (e.data.expires_in - 60) * 1000 };
+        resolve(e.data.token);
+      } else if (e.data?.type === 'drive_error') {
+        window.removeEventListener('message', handler);
+        reject(new Error(e.data.error));
+      }
+    };
+    window.addEventListener('message', handler);
+    setTimeout(() => { window.removeEventListener('message', handler); reject(new Error('Auth timeout')); }, 60000);
+  });
+}
+
+async function getOrCreateDriveFolder(token, folderName) {
+  // Check if folder exists
+  const searchRes = await fetch(
+    `https://www.googleapis.com/drive/v3/files?q=name='${folderName}' and mimeType='application/vnd.google-apps.folder' and trashed=false&fields=files(id,name)`,
+    { headers: { 'Authorization': `Bearer ${token}` } }
+  );
+  const searchData = await searchRes.json();
+  if (searchData.files?.length > 0) return searchData.files[0].id;
+  // Create folder
+  const createRes = await fetch('https://www.googleapis.com/drive/v3/files', {
+    method: 'POST',
+    headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name: folderName, mimeType: 'application/vnd.google-apps.folder' })
+  });
+  const folder = await createRes.json();
+  return folder.id;
+}
+
+// ── Google Drive Upload via Worker → GAS ────────────────────────────────────
+function buildDriveFilename(entryType, vendorName, date) {
+  const d = (date || new Date().toISOString().slice(0,10)).replace(/-/g,'_');
+  const v = (vendorName || 'General').replace(/[^a-zA-Z0-9]/g,'_').substring(0,30);
+  const et = (entryType || 'entry').replace(/[^a-zA-Z0-9]/g,'_');
+  return `${d}_${v}_${et}`;
+}
+
+async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
+  const co = (_cos||[]).find(c => c.company_id === companyId);
+  const folderId = co?.drive_folder;
+  if (!folderId || folderId.length <= 10) {
+    dbg(`No Drive folder ID for company ${companyId}`, 'warn');
+    return null;
+  }
+  const b64 = await new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = e => resolve(e.target.result.split(',')[1]);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+  const baseName = buildDriveFilename(entryType, vendorName, date);
+  const ext = file.name.includes('.') ? file.name.split('.').pop() : 'jpg';
+  const filename = `${baseName}.${ext}`;
+  dbg(`Uploading ${filename} to ${folderId}`);
+  const r = await api('uploadFile', {
+    folderId, filename, base64Data: b64,
+    mimeType: file.type || 'application/octet-stream'
+  });
+  if (r.ok) { dbg(`Uploaded: ${r.fileName}`, 'ok'); return r.url; }
+  dbg(`Upload failed: ${r.error}`, 'err');
+  return null;
+}
+
+
+async function uploadToDrive(file, companyId) {
+  return uploadFileToDrive(file, companyId, _curEntryType, _curVendorName, document.getElementById('ae-date')?.value);
+}
+
+
+async function handleDocUpload(input) {
+  const file = input.files[0];
+  if (!file) return;
+  const statusEl = document.getElementById('ae-doc-status');
+  const urlEl    = document.getElementById('ae-doc-url');
+  const labelEl  = document.getElementById('ae-doc-label');
+  const clearBtn = document.getElementById('ae-doc-clear');
+  const sizeStr  = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+
+  // Show file name + size immediately (V2 style)
+  statusEl.textContent = '📎 ' + file.name + ' (' + sizeStr + ')';
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'var(--accent)';
+  if (labelEl) labelEl.style.borderColor = 'var(--accent)';
+  if (clearBtn) clearBtn.style.display = 'flex';
+
+  // Upload to Drive in background
+  const coId       = document.getElementById('ae-co')?.value || '';
+  const date       = document.getElementById('ae-date')?.value || new Date().toISOString().slice(0,10);
+  const vendorId   = ssGet('ae-vendor-wrap');
+  const vendorName = (_vendors||[]).find(v => v.vendor_id === vendorId)?.vendor_name || '';
+  const etKey      = _selType?.et_key || '';
+
+  const uploadedUrl = await uploadFileToDrive(file, coId, etKey, vendorName, date);
+  if (uploadedUrl) {
+    urlEl.value = uploadedUrl;
+    statusEl.innerHTML = '✅ ' + file.name + ' — <a href="' + uploadedUrl + '" target="_blank" style="color:var(--green)">View in Drive</a>';
+    toast('📎 Uploaded to Drive');
+  } else {
+    urlEl.value = '';
+    statusEl.textContent = '📎 ' + file.name + ' (' + sizeStr + ')';
+  }
+}
+
+function clearDocUpload() {
+  const fileInput = document.getElementById('ae-doc-file');
+  const statusEl  = document.getElementById('ae-doc-status');
+  const urlEl     = document.getElementById('ae-doc-url');
+  const labelEl   = document.getElementById('ae-doc-label');
+  const clearBtn  = document.getElementById('ae-doc-clear');
+  if (fileInput) fileInput.value = '';
+  if (statusEl)  { statusEl.textContent = ''; statusEl.style.display = 'none'; }
+  if (urlEl)     urlEl.value = '';
+  if (labelEl)   labelEl.style.borderColor = '';
+  if (clearBtn)  clearBtn.style.display = 'none';
+}
+
+function resetEntryForm() {
+  // Hide form, clear selections, reset to unselected state
+  document.getElementById('ae-form-card')?.classList.add('hidden');
+  document.getElementById('ae-amt').value = '';
+  document.getElementById('ae-narr').value = '';
+  clearDocUpload();
+  ssClear('ae-proj-wrap');
+  ssClear('ae-vendor-wrap');
+  ssClear('ae-ch-wrap');
+  document.querySelectorAll('.type-opt').forEach(t => t.classList.remove('sel'));
+  _selType = null;
+  // Re-show project wrap for next entry
+  const pw = document.getElementById('ae-proj-wrap-outer');
+  if (pw) pw.style.display = '';
+}
+
+// ── PROJECTS ─────────────────────────────────────────────────
+let _allProjs=[];
+async function loadProjects() {
+  const res=await api('listProjects',{fyid:curFY});
+  _allProjs=res.projects||[];
+  renderProjects(_allProjs);
+}
+function filterProjects(q) {
+  const fl=q.toLowerCase();
+  renderProjects(fl?_allProjs.filter(p=>p.project_name.toLowerCase().includes(fl)||p.client?.toLowerCase().includes(fl)):_allProjs);
+}
+function renderProjects(projs) {
+  document.getElementById('proj-list').innerHTML=projs.length?projs.map(p=>`
+    <div class="card" style="margin-bottom:8px">
+      <div class="cbd">
+        <div class="rsb">
+          <div>
+            <div style="font-weight:600;font-size:13px">${p.project_name}</div>
+            <div style="font-size:11px;color:var(--muted)">${p.client||'—'} · ${p.location||'—'} · ${fmtDate(p.start_date)||'—'}</div>
+          </div>
+          <span class="badge ${p.status==='Active'?'bg':'bx'}">${p.status}</span>
+        </div>
+        <div class="row mt2" style="gap:6px">
+          <button class="btn btn-o btn-xs" onclick="editProject('${p.project_id}')">✏️ Edit</button>
+          <button class="btn btn-d btn-xs" onclick="confirm2('Delete Project','Delete ${p.project_name}?',()=>deleteProject('${p.project_id}'))">🗑 Delete</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="empty">No projects</div>';
+}
+function showProjectForm(proj={}) {
+  showEditModal(proj.project_id?'Edit Project':'Add Project',`
+    <div class="field"><label>Project Name *</label><input id="pf-name" value="${proj.project_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Client</label><input id="pf-client" value="${proj.client||''}"></div>
+      <div class="field"><label>Location</label><input id="pf-loc" value="${proj.location||''}"></div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Start Date</label><input type="date" id="pf-date" value="${toISO(proj.start_date)||''}"></div>
+      <div class="field"><label>Status</label>
+        <select id="pf-status"><option ${proj.status==='Active'?'selected':''}>Active</option><option ${proj.status==='On Hold'?'selected':''}>On Hold</option><option ${proj.status==='Completed'?'selected':''}>Completed</option></select>
+      </div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveProject('${proj.project_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveProject(pid) {
+  const name=document.getElementById('pf-name').value.trim();
+  if(!name){toast('Project name required','err');return;}
+  const payload={project_name:name,client:document.getElementById('pf-client').value.trim(),location:document.getElementById('pf-loc').value.trim(),status:document.getElementById('pf-status').value,start_date:document.getElementById('pf-date').value,fyid:curFY};
+  const res=pid?await api('updateProject',{project_id:pid,...payload}):await api('addProject',payload);
+  if(res.ok){toast(pid?'Project updated':'Project added');closeEditModal();loadProjects();}else toast(res.error,'err');
+}
+function editProject(id){const p=_allProjs.find(x=>x.project_id===id);if(p)showProjectForm(p);}
+async function deleteProject(id){const r=await api('deleteProject',{project_id:id});if(r.ok){toast('Deleted');loadProjects();}else toast(r.error||'Cannot delete — entries exist','err');}
+
+// ── VENDORS ──────────────────────────────────────────────────
+let _allVendors=[];
+async function loadVendors(){
+  const res=await api('listVendors');
+  _allVendors=res.vendors||[];
+  renderVendors(_allVendors);
+}
+function filterVendors(q){const fl=q.toLowerCase();renderVendors(fl?_allVendors.filter(v=>v.vendor_name.toLowerCase().includes(fl)):_allVendors);}
+function renderVendors(vs){
+  document.getElementById('vendor-list').innerHTML=vs.length?vs.map(v=>`
+    <div class="card" style="margin-bottom:8px">
+      <div class="cbd rsb">
+        <div>
+          <div style="font-weight:600;font-size:13px">${v.vendor_name}</div>
+          <div style="font-size:11px;color:var(--muted)">${v.vendor_type||'—'} · ${v.contact||'—'}</div>
+        </div>
+        <div class="row" style="gap:5px">
+          <button class="btn btn-o btn-xs" onclick="editVendor('${v.vendor_id}')">✏️</button>
+          <button class="btn btn-d btn-xs" onclick="confirm2('Delete Vendor','Delete ${v.vendor_name}?',()=>deleteVendor('${v.vendor_id}'))">🗑</button>
+        </div>
+      </div>
+    </div>`).join(''):'<div class="empty">No vendors</div>';
+}
+function showVendorForm(v={}){
+  showEditModal(v.vendor_id?'Edit Vendor':'Add Vendor',`
+    <div class="field"><label>Name *</label><input id="vf-name" value="${v.vendor_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Type</label><select id="vf-type"><option ${v.vendor_type==='Supplier'?'selected':''}>Supplier</option><option ${v.vendor_type==='Contractor'?'selected':''}>Contractor</option><option ${v.vendor_type==='Labour'?'selected':''}>Labour</option><option ${v.vendor_type==='Consultant'?'selected':''}>Consultant</option><option ${v.vendor_type==='Other'?'selected':''}>Other</option></select></div>
+      <div class="field"><label>Contact</label><input id="vf-contact" type="tel" value="${v.contact||''}"></div>
+    </div>
+    <div class="field"><label>GSTIN</label><input id="vf-gstin" value="${v.gstin||''}"></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveVendor('${v.vendor_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveVendor(vid){
+  const name=document.getElementById('vf-name').value.trim();
+  if(!name){toast('Vendor name required','err');return;}
+  const payload={vendor_name:name,vendor_type:document.getElementById('vf-type').value,contact:document.getElementById('vf-contact').value.trim(),gstin:document.getElementById('vf-gstin').value.trim()};
+  const res=vid?await api('updateVendor',{vendor_id:vid,...payload}):await api('addVendor',{vendor_id:`V${Date.now()}`,...payload});
+  if(res.ok){toast(vid?'Vendor updated':'Vendor added');closeEditModal();loadVendors();}else toast(res.error,'err');
+}
+function editVendor(id){const v=_allVendors.find(x=>x.vendor_id===id);if(v)showVendorForm(v);}
+async function deleteVendor(id){const r=await api('deleteVendor',{vendor_id:id});if(r.ok){toast('Deleted');loadVendors();}else toast(r.error||'Cannot delete','err');}
+
+// ── OPENING BALANCES ──────────────────────────────────────────
+async function loadOpeningBalances(){
+  document.getElementById('ob-fy-label').textContent=curFY + (curCo?' — '+(_cos.find(c=>c.company_id===curCo)?.company_name||curCo):'');
+  // Use curCo filter
+  const coParam = curCo ? {fyid:curFY,company_id:curCo} : {fyid:curFY};
+  const [obRes,vobRes,tbRes,ledRes]=await Promise.all([
+    api('listOpeningBalances',coParam),
+    api('listVendorOpeningBalances',coParam),
+    api('getTrialBalance',coParam),
+    api('getLedger',coParam)
+  ]);
+  const obs=obRes.opening_balances||[];
+  const vobs=vobRes.vendor_opening_balances||[];
+  const tbRows=tbRes.trial_balance||[];
+  const ledRows=ledRes.ledger||[];
+
+  // Account balances: OB + activity = Closing
+  document.getElementById('ob-accounts').innerHTML=`
+    <div class="tw"><table>
+      <thead><tr><th>Account</th><th>Opening Balance</th><th>Period Activity</th><th>Closing Balance</th><th></th></tr></thead>
+      <tbody>${_acs.map(ac=>{
+        const ob=obs.find(o=>o.ac_key===ac.ac_key)||{};
+        const tb=tbRows.find(t=>t.ac_code===ac.ac_code)||{};
+        const obAmt=parseFloat(ob.amount||0);
+        const obDrCr=(ob.dr_cr||'DR').toUpperCase();
+        const actDr=parseFloat(tb.total_dr||0);
+        const actCr=parseFloat(tb.total_cr||0);
+        // Net activity
+        const actNet=actDr-actCr; // positive = net debit
+        // Closing = OB ± activity (depends on normal balance)
+        const isDebitNormal=(ac.ac_type==='Asset'||ac.ac_type==='Expense'||ac.ac_type==='Contra-Equity');
+        const obNet = obDrCr==='DR'?obAmt:-obAmt;
+        const closeNet = obNet + actNet;
+        const closeDrCr = closeNet>=0?'DR':'CR';
+        const closeAmt = Math.abs(closeNet);
+        if(!obAmt && !actDr && !actCr) return'';// skip empty rows
+        return`<tr>
+          <td><strong style="font-size:12px">${ac.ac_name}</strong><br><code style="font-size:10px">${ac.ac_key}</code></td>
+          <td>${obAmt>0?`<span class="amt ${obDrCr==='DR'?'dr':'cr'}">${fmtAmt(obAmt)} ${obDrCr}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
+          <td><span class="amt dr" style="font-size:11px">${actDr>0?fmtAmt(actDr)+' DR':''}</span>${actDr>0&&actCr>0?' / ':''}<span class="amt cr" style="font-size:11px">${actCr>0?fmtAmt(actCr)+' CR':''}</span></td>
+          <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
+          <td><button class="btn btn-o btn-xs" onclick="editOB('${ac.ac_key}','${ac.ac_name}','${(ob.dr_cr||'DR').toUpperCase()}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+        </tr>`;}).filter(r=>r).join('')}
+      </tbody></table></div>`;
+
+  // Vendor balances: OB + vendor ledger activity = Closing
+  document.getElementById('ob-vendors').innerHTML=`
+    <div class="tw"><table>
+      <thead><tr><th>Vendor</th><th>Opening Balance</th><th>Paid (DR)</th><th>Bills (CR)</th><th>Closing Balance</th><th></th></tr></thead>
+      <tbody>${_vendors.map(v=>{
+        const ob=vobs.find(o=>o.vendor_id===v.vendor_id)||{};
+        const vLed=ledRows.filter(l=>l.vendor_id===v.vendor_id);
+        const actDr=vLed.reduce((s2,l)=>s2+parseFloat(l.debit||0),0); // payments
+        const actCr=vLed.reduce((s2,l)=>s2+parseFloat(l.credit||0),0); // bills
+        const obAmt=parseFloat(ob.amount||0);
+        const obDrCr=(ob.dr_cr||'CR').toUpperCase();
+        // Vendor OB typically CR (we owe them)
+        const obNet=obDrCr==='CR'?-obAmt:obAmt; // negative = owe vendor
+        const actNet=actDr-actCr; // positive = net paid
+        const closeNet=obNet+actNet;
+        const closeDrCr=closeNet>=0?'DR':'CR';
+        const closeAmt=Math.abs(closeNet);
+        if(!obAmt&&!actDr&&!actCr) return'';
+        return`<tr>
+          <td><strong style="font-size:12px">${v.vendor_name}</strong></td>
+          <td>${obAmt>0?`<span class="amt ${obDrCr==='DR'?'dr':'cr'}">${fmtAmt(obAmt)} ${obDrCr}</span>`:'<span style="color:var(--muted);font-size:11px">—</span>'}</td>
+          <td class="amt dr">${actDr>0?fmtAmt(actDr):''}</td>
+          <td class="amt cr">${actCr>0?fmtAmt(actCr):''}</td>
+          <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
+          <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${(ob.dr_cr||'CR').toUpperCase()}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
+        </tr>`;}).filter(r=>r).join('')}
+      </tbody></table></div>`;
+}
+
+function editOB(acKey,acName,drCr,amount,coId){
+  showEditModal('Edit Opening Balance',`
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">${acName} <code>${acKey}</code></div>
+    <div class="g2">
+      <div class="field"><label>DR / CR</label><select id="ob-drcr"><option value="DR" ${drCr==='DR'?'selected':''}>DR (Debit)</option><option value="CR" ${drCr==='CR'?'selected':''}>CR (Credit)</option></select></div>
+      <div class="field"><label>Amount ₹</label><input type="number" id="ob-amt" value="${amount}" step="0.01"></div>
+    </div>
+    <div class="field"><label>Company</label><select id="ob-co">${_cos.map(c=>`<option value="${c.company_id}" ${coId===c.company_id?'selected':''}>${c.company_name}</option>`).join('')}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveOB('${acKey}','${acName}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveOB(acKey,acName){
+  const r=await api('saveOpeningBalance',{fyid:curFY,ac_key:acKey,ac_name:acName,dr_cr:document.getElementById('ob-drcr').value,amount:parseFloat(document.getElementById('ob-amt').value)||0,company_id:document.getElementById('ob-co').value});
+  if(r.ok){toast('Opening balance saved');closeEditModal();loadOpeningBalances();}else toast(r.error,'err');
+}
+function editVOB(vid,vname,drCr,amount,coId){
+  showEditModal('Edit Vendor Opening Balance',`
+    <div style="font-size:13px;font-weight:600;margin-bottom:12px">${vname}</div>
+    <div class="g2">
+      <div class="field"><label>DR / CR</label><select id="vob-drcr"><option value="DR" ${drCr==='DR'?'selected':''}>DR (Debit)</option><option value="CR" ${drCr==='CR'?'selected':''}>CR (Credit)</option></select></div>
+      <div class="field"><label>Amount ₹</label><input type="number" id="vob-amt" value="${amount}" step="0.01"></div>
+    </div>
+    <div class="field"><label>Company</label><select id="vob-co">${_cos.map(c=>`<option value="${c.company_id}" ${coId===c.company_id?'selected':''}>${c.company_name}</option>`).join('')}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveVOB('${vid}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveVOB(vid){
+  const r=await api('saveVendorOpeningBalance',{fyid:curFY,vendor_id:vid,dr_cr:document.getElementById('vob-drcr').value,amount:parseFloat(document.getElementById('vob-amt').value)||0,company_id:document.getElementById('vob-co').value});
+  if(r.ok){toast('Saved');closeEditModal();loadOpeningBalances();}else toast(r.error,'err');
+}
+function exportOBXLS() {
+  var el = document.getElementById('ob-accounts');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'OpeningBalances');
+  XLSX.writeFile(wb, 'OB_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+function printOB() {
+  var el = document.getElementById('ob-accounts');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var header = '<h1>Opening and Closing Balances</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+  var div = el.cloneNode(true);
+  div.querySelectorAll('.modal-bg, .modal, .hidden, .btn, .no-print').forEach(function(n){n.remove();});
+  openPrintWindow('Opening and Closing Balances — ' + coName, header, div.innerHTML);
+}
+
+
+// ── BANK IMPORT ───────────────────────────────────────────────
+function parseBankFile(input){
+  const file=input.files[0]; if(!file) return;
+  document.getElementById('bank-status').textContent='Parsing...';
+  const reader=new FileReader();
+  reader.onload=ev=>{
+    try{
+      const wb=XLSX.read(ev.target.result,{type:'array',cellDates:true});
+      const ws=wb.Sheets[wb.SheetNames[0]];
+      const raw=XLSX.utils.sheet_to_json(ws,{header:1,defval:''});
+      parseBankRows(raw);
+    }catch(e){document.getElementById('bank-status').textContent='Error: '+e.message;}
+  };
+  reader.readAsArrayBuffer(file);
+}
+function parseBankDateStr(raw) {
+  if (!raw || raw === '********') return '';
+  const sv = s(raw).trim();
+  if (!sv) return '';
+  // dd/mm/yy (HDFC format: 03/05/26)
+  if (/^\d{2}\/\d{2}\/\d{2}$/.test(sv)) {
+    const [d,m,y] = sv.split('/');
+    const fullY = parseInt(y) > 50 ? '19'+y : '20'+y;
+    return `${fullY}-${m}-${d}`;
+  }
+  // dd/mm/yyyy
+  if (/^\d{2}\/\d{2}\/\d{4}$/.test(sv)) {
+    const [d,m,y] = sv.split('/');
+    return `${y}-${m}-${d}`;
+  }
+  // dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}$/.test(sv)) {
+    const [d,m,y] = sv.split('-');
+    return `${y}-${m}-${d}`;
+  }
+  // yyyy-mm-dd
+  if (/^\d{4}-\d{2}-\d{2}/.test(sv)) return sv.substring(0,10);
+  // JS date object
+  if (raw instanceof Date) return raw.toISOString().slice(0,10);
+  try { const d = new Date(sv); if (!isNaN(d) && d.getFullYear() > 1990) return d.toISOString().slice(0,10); } catch(e) {}
+  return '';
+}
+
+function parseBankRows(raw){
+  _bankRows=[];
+  let hIdx=-1;
+  for(let i=0;i<raw.length;i++){
+    const r=raw[i].join('|').toLowerCase();
+    if(r.includes('date')&&(r.includes('narration')||r.includes('description'))&&(r.includes('withdrawal')||r.includes('debit'))){hIdx=i;break;}
+  }
+  if(hIdx===-1){document.getElementById('bank-status').textContent='Header row not found. Expected: Date, Narration, Withdrawal/Debit, Deposit/Credit columns';return;}
+  const hdrs=raw[hIdx].map(h=>s(h).toLowerCase());
+  const iDate=hdrs.findIndex(h=>h.includes('date')&&!h.includes('value'));
+  const iNarr=hdrs.findIndex(h=>h.includes('narration')||h.includes('description'));
+  const iRef=hdrs.findIndex(h=>h.includes('chq')||h.includes('ref')||h.includes('reference'));
+  const iWD=hdrs.findIndex(h=>h.includes('withdrawal')||h.includes('debit'));
+  const iDep=hdrs.findIndex(h=>h.includes('deposit')||h.includes('credit'));
+  const iBal=hdrs.findIndex(h=>h.includes('closing')||h.includes('balance'));
+
+  for(let i=hIdx+1;i<raw.length;i++){
+    const row=raw[i];
+    const dateStr = parseBankDateStr(row[iDate]);
+    if(!dateStr) continue;
+    const narr=s(row[iNarr]);
+    if(!narr || narr.startsWith('***')) continue;
+    const wd=parseFloat(s(row[iWD]||'').replace(/,/g,''))||0;
+    const dep=parseFloat(s(row[iDep]||'').replace(/,/g,''))||0;
+    const bal=iBal>=0?parseFloat(s(row[iBal]||'').replace(/,/g,''))||null:null;
+    const ref=iRef>=0?s(row[iRef]||''):'';
+    if(wd===0&&dep===0) continue;
+    _bankRows.push({date:dateStr,narration:narr,reference:ref,withdrawal:wd,deposit:dep,balance:bal,_hash:`${dateStr}|${narr.substring(0,30)}|${wd}|${dep}`});
+  }
+
+  // Remove duplicates (same date+narration+amount already in entries)
+  document.getElementById('bank-status').textContent=`Parsed ${_bankRows.length} rows. Checking duplicates...`;
+  api('listEntries',{fyid:curFY,limit:1000}).then(res=>{
+    const existing=new Set((res.entries||[]).map(e=>`${e.date}|${e.narration}|${e.amount}`));
+    const before=_bankRows.length;
+    _bankRows=_bankRows.filter(r=>!existing.has(`${r.date}|${r.narration}|${r.withdrawal||r.deposit}`));
+    const dups=before-_bankRows.length;
+    document.getElementById('bank-status').textContent=`${_bankRows.length} rows ready (${dups} duplicates removed)`;
+    renderBankPreview();
+    document.getElementById('bank-import-btn').style.display=_bankRows.length?'block':'none';
+  });
+}
+function renderBankPreview(){
+  document.getElementById('bank-preview').innerHTML=_bankRows.length?`
+    <div class="tw"><table style="min-width:300px">
+      <thead><tr><th>Date</th><th>Narration</th><th class="cr">Withdrawal</th><th class="dr">Deposit</th></tr></thead>
+      <tbody>${_bankRows.slice(0,20).map(r=>`<tr>
+        <td>${fmtDate(r.date)}</td>
+        <td style="font-size:11px;max-width:160px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${r.narration}</td>
+        <td class="amt cr" style="text-align:right">${r.withdrawal>0?fmtAmt(r.withdrawal):''}</td>
+        <td class="amt dr" style="text-align:right">${r.deposit>0?fmtAmt(r.deposit):''}</td>
+      </tr>`).join('')}
+      </tbody></table></div>
+    ${_bankRows.length>20?`<div style="font-size:11px;color:var(--muted);padding:6px">...and ${_bankRows.length-20} more</div>`:''}`:'';}
+
+async function doImportBank(){
+  if(!_bankRows.length){toast('No rows','err');return;}
+  if(!curCo){
+    await showConfirm('Company Required',
+      '<p style="color:var(--muted);font-size:13px">Please select a specific company from the top bar before importing bank entries. Currently "All" is selected.</p>',
+      'OK', 'btn-p');
+    return;
+  }
+  const btn=document.getElementById('bank-import-btn');
+  btn.disabled=true; btn.textContent='Checking duplicates...';
+
+  // Fetch existing pending + ledger entries for duplicate check
+  const [pendRes, ledgRes] = await Promise.all([
+    api('listPending',{fyid:curFY,company_id:curCo}),
+    api('getLedger',{fyid:curFY,company_id:curCo})
+  ]);
+  // Build a Set of "date|amount|narration" keys from existing data
+  const existingKeys = new Set();
+  for(const p of (pendRes.pending||[])){
+    existingKeys.add(`${p.date}|${p.amount}|${(p.narration||'').trim().toLowerCase()}`);
+  }
+  for(const e of (ledgRes.entries||[])){
+    existingKeys.add(`${e.date}|${e.amount}|${(e.narration||'').trim().toLowerCase()}`);
+  }
+
+  btn.textContent='Importing...';
+  let imported=0, skipped=0, failed=0;
+  for(const row of _bankRows){
+    const entry_type=row.deposit>0?'Bank_payment_received':'expense_bank';
+    const amount=row.deposit>0?row.deposit:row.withdrawal;
+    const key=`${row.date}|${amount}|${(row.narration||'').trim().toLowerCase()}`;
+    if(existingKeys.has(key)){ skipped++; continue; }
+    const res=await api('submitPending',{date:row.date,fyid:curFY,entry_type,amount,narration:row.narration,company_id:curCo});
+    if(res.ok){ imported++; existingKeys.add(key); } else failed++;
+  }
+  btn.disabled=false; btn.textContent='Import to Pending Entries';
+  const parts=[`${imported} imported`];
+  if(skipped) parts.push(`${skipped} duplicate${skipped>1?'s':''} skipped`);
+  if(failed) parts.push(`${failed} failed`);
+  toast(parts.join(', '));
+  _bankRows=[]; document.getElementById('bank-file').value='';
+  document.getElementById('bank-status').textContent='Done.';
+  document.getElementById('bank-preview').innerHTML='';
+}
+
+// ═══════════════════════════════════════════════════════════════
+// REPORTS
+// ═══════════════════════════════════════════════════════════════
+function setRpt(r,el){
+  _curRpt=r;
+  document.querySelectorAll('#v-reports .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderRpt(r);
+}
+async function renderRpt(r){
+  const el=document.getElementById('rpt-out');
+  el.innerHTML='<div class="empty"><span class="spin"></span></div>';
+  if(r==='pl') await renderPL(el);
+  else if(r==='bs') await renderBS(el);
+  else if(r==='trial') await renderTrial(el);
+  else if(r==='vendor') renderVendorRptPicker(el);
+  else if(r==='project') renderProjectRptPicker(el);
+}
+
+function rptActions(exportFn, printFn) {
+  return `<div class="row" style="gap:6px;margin-bottom:12px">
+    <button class="btn btn-o btn-xs" onclick="${exportFn}()">⬇ XLS</button>
+    <button class="btn btn-o btn-xs" onclick="${printFn}()">🖨 Print/PDF</button>
+  </div>`;
+}
+
+async function renderPL(el){
+  const res=await api('getPL',{fyid:curFY,company_id:curCo});
+  const tbRes=await api('getTrialBalance',{fyid:curFY,company_id:curCo});
+  const rows=res.pl||[];
+  const tb=tbRes.trial_balance||[];
+
+  // Advances received from client = ADV_RECV account (credit side = income-like)
+  // Advances paid to vendor = ADV_PAID account (debit side = expense-like)
+  const getNet=(acType,side)=>tb.filter(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_type===acType;}).reduce((s,r)=>s+parseFloat(side==='cr'?r.total_cr:r.total_dr||0),0);
+
+  const incRows=rows.filter(r=>r.ac_type==='Income');
+  const expRows=rows.filter(r=>r.ac_type==='Expense');
+  // Add advance received as income
+  const advRecv=tb.find(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_key==='ADV_RECV';});
+  const advPaid=tb.find(r=>{ const ac=_acs.find(a=>a.ac_code===r.ac_code); return ac?.ac_key==='ADV_PAID';});
+  const advRecvAmt=advRecv?parseFloat(advRecv.total_cr||0)-parseFloat(advRecv.total_dr||0):0;
+  const advPaidAmt=advPaid?parseFloat(advPaid.total_dr||0)-parseFloat(advPaid.total_cr||0):0;
+
+  let income=incRows.reduce((s,r)=>s+parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0),0)+advRecvAmt;
+  let expense=expRows.reduce((s,r)=>s+parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0),0)+advPaidAmt;
+  const net=income-expense;
+
+  const html=`
+    ${rptActions('exportPLXLS','printPL')}
+    <div class="card"><div class="chd"><h3>Income</h3><span class="badge bg">${fmtAmt(income)}</span></div>
+      <div class="tw"><table><tbody>
+        ${incRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amt dr" style="text-align:right">${fmtAmt(parseFloat(r.total_cr||0)-parseFloat(r.total_dr||0))}</td></tr>`).join('')}
+        ${advRecvAmt>0?`<tr><td>Advances Received (Client)</td><td class="amt dr" style="text-align:right">${fmtAmt(advRecvAmt)}</td></tr>`:''}
+      </tbody></table></div></div>
+    <div class="card"><div class="chd"><h3>Expenses</h3><span class="badge br">${fmtAmt(expense)}</span></div>
+      <div class="tw"><table><tbody>
+        ${expRows.map(r=>`<tr><td>${r.ac_name}</td><td class="amt cr" style="text-align:right">${fmtAmt(parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0))}</td></tr>`).join('')}
+        ${advPaidAmt>0?`<tr><td>Advances Paid (Vendors)</td><td class="amt cr" style="text-align:right">${fmtAmt(advPaidAmt)}</td></tr>`:''}
+      </tbody></table></div></div>
+    <div class="card"><div class="cbd rsb"><strong>Net Profit / Loss</strong><span class="amt ${net>=0?'dr':'cr'}" style="font-size:16px">${fmtAmt(Math.abs(net))} ${net>=0?'Profit':'Loss'}</span></div></div>`;
+  el.innerHTML=html;
+  window._plData={income,expense,net,incRows,expRows};
+}
+
+function exportPLXLS() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'PL');
+  XLSX.writeFile(wb, 'PL_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+function printPL() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var header = '<h1>Profit and Loss Statement</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+  var div = el.cloneNode(true);
+  div.querySelectorAll('.modal-bg, .modal, .hidden, .btn, .no-print').forEach(function(n){n.remove();});
+  openPrintWindow('Profit and Loss Statement — ' + coName, header, div.innerHTML);
+}
+
+
+async function renderBS(el){
+  const [res, obRes] = await Promise.all([
+    api('getBS',{fyid:curFY,company_id:curCo}),
+    api('listOpeningBalances',{fyid:curFY,company_id:curCo||undefined})
+  ]);
+  const rows=res.balance_sheet||[];
+  const obs=obRes.opening_balances||[];
+
+  // Compute closing balance = OB ± period activity
+  function closingBalance(acKey, acType, totalDr, totalCr) {
+    const ob = obs.find(o=>o.ac_key===acKey)||{};
+    const obAmt = parseFloat(ob.amount||0);
+    const obDrCr = (ob.dr_cr||'DR').toUpperCase();
+    const obNet = obDrCr==='DR' ? obAmt : -obAmt;
+    const actNet = parseFloat(totalDr||0) - parseFloat(totalCr||0);
+    const closeNet = obNet + actNet;
+    return { amount: Math.abs(closeNet), drCr: closeNet>=0?'DR':'CR', obAmt, obDrCr };
+  }
+
+  const assets = rows.filter(r=>r.ac_type==='Asset');
+  const liab   = rows.filter(r=>r.ac_type==='Liability');
+  const equity = rows.filter(r=>r.ac_type==='Equity'||r.ac_type==='Contra-Equity');
+
+  // Compute closing totals
+  let totalAssets=0, totalLiab=0, totalEq=0;
+  assets.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.amount>0) totalAssets+=c.amount; });
+  liab.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.drCr==='CR') totalLiab+=c.amount; });
+  equity.forEach(r=>{ const c=closingBalance(r.ac_key||_acs.find(a=>a.ac_code===r.ac_code)?.ac_key,r.ac_type,r.total_dr,r.total_cr); if(c.drCr==='CR') totalEq+=c.amount; });
+
+  function rowLine(r, side) {
+    const acKey = r.ac_key || _acs.find(a=>a.ac_code===r.ac_code)?.ac_key;
+    const c = closingBalance(acKey, r.ac_type, r.total_dr, r.total_cr);
+    if (c.amount < 0.01) return '';
+    const cls = side==='dr'?'dr':'cr';
+    return `<div class="rsb" style="padding:4px 0;border-bottom:1px solid var(--border)">
+      <span style="font-size:12px">${r.ac_name}</span>
+      <div style="text-align:right">
+        <span class="amt ${cls}">${fmtAmt(c.amount)}</span>
+        ${c.obAmt>0?`<div style="font-size:10px;color:var(--muted)">${fmtAmt(c.obAmt)} OB + activity</div>`:''}
+      </div>
+    </div>`;
+  }
+
+  const diff = Math.abs(totalAssets-(totalLiab+totalEq));
+  const colStyle='width:50%;vertical-align:top;padding:8px';
+  el.innerHTML=`
+    ${rptActions('exportBSXLS','printBS')}
+    <div class="card"><div class="cbd">
+      <table style="min-width:0"><tbody><tr>
+        <td style="${colStyle};border-right:2px solid var(--border)">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--accent)">ASSETS (Closing)</div>
+          ${assets.map(r=>rowLine(r,'dr')).filter(Boolean).join('')}
+          <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total Assets</span><span class="amt dr">${fmtAmt(totalAssets)}</span></div>
+        </td>
+        <td style="${colStyle}">
+          <div style="font-weight:700;font-size:13px;margin-bottom:8px;color:var(--red)">LIABILITIES & EQUITY (Closing)</div>
+          ${liab.map(r=>rowLine(r,'cr')).filter(Boolean).join('')}
+          ${equity.map(r=>rowLine(r,'cr')).filter(Boolean).join('')}
+          <div class="rsb" style="padding:6px 0;border-top:2px solid var(--border);font-weight:700"><span>Total L+E</span><span class="amt cr">${fmtAmt(totalLiab+totalEq)}</span></div>
+        </td>
+      </tr></tbody></table>
+      <div class="rsb" style="padding:8px;background:${diff<1?'rgba(34,197,94,.08)':'rgba(239,68,68,.08)'};border-radius:6px;margin-top:8px">
+        <span style="font-size:12px">Balance Check (Closing)</span>
+        <span class="badge ${diff<1?'bg':'br'}">${diff<1?'✓ Balanced':'✗ Diff: '+fmtAmt(diff)}</span>
+      </div>
+    </div></div>`;
+  window._bsData={assets,liab,equity};
+}
+function exportBSXLS() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'BalanceSheet');
+  XLSX.writeFile(wb, 'BS_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+function printBS() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var header = '<h1>Balance Sheet</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+  var div = el.cloneNode(true);
+  div.querySelectorAll('.modal-bg, .modal, .hidden, .btn, .no-print').forEach(function(n){n.remove();});
+  openPrintWindow('Balance Sheet — ' + coName, header, div.innerHTML);
+}
+
+
+function renderVendorRptPicker(el){
+  el.innerHTML=`<div class="field"><label>Select Vendor</label><div class="ss-wrap" id="rpt-v-wrap"></div></div><div id="vendor-rpt-out"></div>`;
+  createSS('rpt-v-wrap',_vendors.map(v=>({value:v.vendor_id,label:v.vendor_name})),'— Select Vendor —',loadVendorRpt);
+}
+async function loadVendorRpt(vid){
+  if(!vid) return;
+  const el=document.getElementById('vendor-rpt-out');
+  el.innerHTML='<span class="spin"></span>';
+  // getVendorReport now returns opening_balance directly
+  const res=await api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo});
+  const v=res.vendor||{}; const es=res.entries||[];
+  // Use opening_balance from response (already tries with/without company filter)
+  const ob=res.opening_balance||null;
+  const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=((ob?.dr_cr||'CR').toUpperCase()).toUpperCase();
+  dbg(`Vendor ${v.vendor_name}: OB=${obAmt} ${obDrCr}, entries=${es.length}`);
+  let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
+  // Build running balance for vendor ledger
+  // OB CR means we owe vendor (liability), OB DR means vendor owes us
+  let runBal = obDrCr==='CR' ? -obAmt : obAmt; // negative = we owe vendor
+  let totalDr=0, totalCr=0;
+  const ledgerRows = es.map(e=>{
+    const et=_ets.find(t=>t.et_key===e.entry_type);
+    // For vendor: payments = DR (reduces liability), bills = CR (increases liability)
+    const isCr = et?.cr==='PAYABLE' || et?.cr==='ADV_PAID' || e.entry_type?.includes('bill') || e.entry_type?.includes('advance_paid');
+    const isDr = !isCr;
+    const dr = isDr ? parseFloat(e.amount||0) : 0;
+    const cr = isCr ? parseFloat(e.amount||0) : 0;
+    totalDr += dr; totalCr += cr;
+    runBal += dr - cr;
+    const balDrCr = runBal>=0?'DR':'CR';
+    return {date:e.date, narration:e.narration||et?.label||e.entry_type, dr, cr, balance:Math.abs(runBal), balDrCr};
+  });
+  const finalBal = obDrCr==='CR' ? -obAmt : obAmt;
+  const finalBalNet = finalBal + totalDr - totalCr;
+  const finalDrCr = finalBalNet>=0?'DR':'CR';
+
+  el.innerHTML=`
+    <div class="rsb" style="margin-bottom:8px">
+      <span style="font-weight:600">${v.vendor_name||vid}</span>
+      <div class="row" style="gap:5px">
+        <button class="btn btn-o btn-xs" onclick="exportVendorXLS('${vid}')">⬇ XLS</button>
+        <button class="btn btn-o btn-xs" onclick="printVendorRpt()">🖨 Print</button>
+      </div>
+    </div>
+    <div class="tw"><table style="min-width:420px;table-layout:fixed;width:100%">
+      <colgroup><col style="width:90px"><col><col style="width:120px"><col style="width:120px"></colgroup>
+      <thead><tr>
+        <th>Date</th>
+        <th>Narration</th>
+        <th style="text-align:right">DR — Paid ₹</th>
+        <th style="text-align:right">CR — Bills ₹</th>
+      </tr></thead>
+      <tbody>
+        <tr style="background:rgba(79,142,247,.06)">
+          <td style="color:var(--muted);font-style:italic;white-space:nowrap;font-size:11px">Opening Bal</td>
+          <td style="font-style:italic;color:var(--muted);font-size:11px">${ob?ob.company_id:'not set'}</td>
+          <td class="amt dr" style="text-align:right">${obAmt>0&&obDrCr==='DR'?fmtAmt(obAmt):'—'}</td>
+          <td class="amt cr" style="text-align:right">${obAmt>0&&obDrCr==='CR'?fmtAmt(obAmt):'—'}</td>
+        </tr>
+        ${ledgerRows.map(r=>`<tr>
+          <td style="white-space:nowrap;font-size:12px">${fmtDate(r.date)}</td>
+          <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.narration}</td>
+          <td class="amt dr" style="text-align:right">${r.dr>0?fmtAmt(r.dr):''}</td>
+          <td class="amt cr" style="text-align:right">${r.cr>0?fmtAmt(r.cr):''}</td>
+        </tr>`).join('')}
+      </tbody>
+      <tfoot>
+        <tr style="border-top:1px solid var(--border);font-weight:600;background:rgba(255,255,255,.03)">
+          <td colspan="2" style="font-size:12px">Totals</td>
+          <td class="amt dr" style="text-align:right">${fmtAmt(totalDr)}</td>
+          <td class="amt cr" style="text-align:right">${fmtAmt(totalCr)}</td>
+        </tr>
+        <tr style="background:rgba(34,197,94,.06);font-weight:700;border-top:2px solid var(--border)">
+          <td colspan="2">Closing Balance</td>
+          <td class="amt ${finalDrCr==='DR'?'dr':'cr'}" style="text-align:right">${finalDrCr==='DR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
+          <td class="amt ${finalDrCr==='CR'?'cr':'dr'}" style="text-align:right">${finalDrCr==='CR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
+        </tr>
+      </tfoot>
+    </table></div>`;
+  window._vendorRptData={vendor:v,entries:es,ob,ledgerRows};
+}
+function printVendorRpt() {
+  var el = document.getElementById('vendor-rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var header = '<h1>Vendor Ledger Report</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+  var div = el.cloneNode(true);
+  div.querySelectorAll('.modal-bg, .modal, .hidden, .btn, .no-print').forEach(function(n){n.remove();});
+  openPrintWindow('Vendor Ledger Report — ' + coName, header, div.innerHTML);
+}
+
+function exportVendorXLS(vid) {
+  if (!vid) { toast('Select item first', 'err'); return; }
+  var el = document.getElementById('vendor-rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'VendorLedger');
+  XLSX.writeFile(wb, 'Vendor_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+
+function renderProjectRptPicker(el){
+  el.innerHTML=`
+    <div class="field"><label>Select Project</label><div class="ss-wrap" id="rpt-p-wrap"></div></div>
+    <div id="proj-rpt-out"></div>`;
+  createSS('rpt-p-wrap',_projs.map(p=>({value:p.project_id,label:p.project_name+' · '+(p.client||'')})),'— Select Project —',loadProjectRpt);
+}
+
+async function loadProjectRpt(pid){
+  if(!pid) return;
+  const el=document.getElementById('proj-rpt-out');
+  el.innerHTML='<span class="spin"></span>';
+
+  const [res, ledRes] = await Promise.all([
+    api('getProjectReport',{project_id:pid,fyid:curFY,company_id:curCo||undefined}),
+    api('getLedger',{fyid:curFY,company_id:curCo||undefined})
+  ]);
+  const p=res.project||{}; const es=res.entries||[];
+  // Filter ledger rows for this project
+  const pLed=ledRes.ledger?.filter(l=>l.project_id===pid)||[];
+
+  // ── Build structured report per Excel spec ──────────────────────────────────
+  // Helper: get entry type object
+  const getET = e => _ets.find(t=>t.et_key===e.entry_type);
+
+  // a. Sales / Invoiced ONLY — entry types that have cr=SALES (invoice_raised)
+  // NOT cash_payment_received (that has cr=RECEIVABLE, it's a receipt not a sale)
+  const salesEntries = es.filter(e=>{ const et=getET(e); return et?.cr==='SALES'; });
+  const totalIncome = salesEntries.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // b. Received Cash — dr=CASH AND cr=RECEIVABLE (payment against invoice)
+  const rcvCash = es.filter(e=>{ const et=getET(e); return et?.dr==='CASH'&&et?.cr==='RECEIVABLE'; });
+  const totalRcvCash = rcvCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // c. Received via Bank — dr=BANK AND cr=RECEIVABLE
+  const rcvBank = es.filter(e=>{ const et=getET(e); return et?.dr==='BANK'&&et?.cr==='RECEIVABLE'; });
+  const totalRcvBank = rcvBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // d. Advances Received from client — cr=ADV_RECV
+  const advances = es.filter(e=>{ const et=getET(e); return et?.cr==='ADV_RECV'; });
+  const totalAdvances = advances.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // e. Direct Expenses — ONLY entries where dr=COST_HEAD AND needs_ch=true
+  //    These are actual expense entries (vendor_bill, expense_cash, expense_bank, expense_petty_cash)
+  //    NOT vendor payments (vendor_paid_cash/bank which have dr=PAYABLE)
+  const directExpEntryTypes = new Set(_ets.filter(t=>t.dr==='COST_HEAD'&&t.needs_ch).map(t=>t.et_key));
+  const directExp = es.filter(e=>directExpEntryTypes.has(e.entry_type));
+  const totalDirectExp = directExp.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // Group direct expenses by cost head for display
+  const expByCH = {};
+  directExp.forEach(e=>{
+    const chId = e.cost_head_id||'_none';
+    const ch = _chs.find(c=>c.ch_id===chId);
+    const chName = ch?.ch_name||'Other';
+    if(!expByCH[chId]) expByCH[chId]={name:chName,entries:[],total:0};
+    expByCH[chId].entries.push(e);
+    expByCH[chId].total+=parseFloat(e.amount||0);
+  });
+
+  // f. Paid Cash — vendor payments via cash (dr=PAYABLE, cr=CASH)
+  const paidCash = es.filter(e=>{ const et=getET(e); return et?.dr==='PAYABLE'&&et?.cr==='CASH'; });
+  // g. Paid Petty Cash — dr=COST_HEAD or PAYABLE, cr=PETTY_CASH
+  const paidPetty = es.filter(e=>{ const et=getET(e); return et?.cr==='PETTY_CASH'; });
+  // h. Paid Bank — dr=PAYABLE, cr=BANK
+  const paidBank = es.filter(e=>{ const et=getET(e); return et?.dr==='PAYABLE'&&et?.cr==='BANK'; });
+  const totalPaidCash=paidCash.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaidPetty=paidPetty.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaidBank=paidBank.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+  const totalPaid=totalPaidCash+totalPaidPetty+totalPaidBank;
+
+  // i. Payable = Total Direct Expense − Total Paid
+  const payable = totalDirectExp - totalPaid;
+
+  // j. Advances paid to vendors — dr=ADV_PAID
+  const advPaid = es.filter(e=>{ const et=getET(e); return et?.dr==='ADV_PAID'; });
+  const totalAdvPaid = advPaid.reduce((s,e)=>s+parseFloat(e.amount||0),0);
+
+  // k. Net Cash Flow = Income + Advances received − Direct Expenses − Vendor Advances
+  const cashFlow = totalIncome + totalAdvances - totalDirectExp - totalAdvPaid;
+
+  const section = (label, rows, total, cls='dr') => rows.length===0?'':`
+    <div style="margin-bottom:6px">
+      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">${label}</div>
+      ${rows.map(e=>{const et=_ets.find(t=>t.et_key===e.entry_type); return`<div class="rsb" style="padding:3px 0;font-size:12px"><span>${fmtDate(e.date)} · ${e.narration||et?.label||e.entry_type}</span><span class="amt ${cls}">${fmtAmt(e.amount)}</span></div>`;}).join('')}
+      <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Subtotal</span><span class="amt ${cls}">${fmtAmt(total)}</span></div>
+    </div>`;
+
+  el.innerHTML=`
+    <div class="rsb" style="margin-bottom:10px">
+      <div>
+        <div style="font-weight:700;font-size:14px">${p.project_name||pid}</div>
+        <div style="font-size:11px;color:var(--muted)">${p.client||''} · ${p.location||''} · ${p.status||''}</div>
+      </div>
+      <div class="row" style="gap:5px">
+        <button class="btn btn-o btn-xs" onclick="exportProjXLS('${pid}')">⬇ XLS</button>
+        <button class="btn btn-o btn-xs" onclick="printProjectRpt()">🖨 PDF</button>
+      </div>
+    </div>
+
+    <div class="g2" style="gap:10px">
+      <!-- Income side -->
+      <div class="card">
+        <div class="chd"><h3 style="color:var(--green)">💰 Income</h3><span class="amt dr">${fmtAmt(totalIncome)}</span></div>
+        <div class="cbd">
+          ${section('(a) Invoiced / Sales', salesEntries, totalIncome, 'dr')}
+          ${section('(b) Received — Cash', rcvCash, totalRcvCash, 'dr')}
+          ${section('(c) Received — Bank', rcvBank, totalRcvBank, 'dr')}
+          ${section('(d) Advances Received', advances, totalAdvances, 'dr')}
+        </div>
+      </div>
+      <!-- Expense side -->
+      <div class="card">
+        <div class="chd"><h3 style="color:var(--red)">💸 Expense</h3><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+        <div class="cbd">
+          <!-- (e) Direct Expenses grouped by cost head -->
+          <div style="margin-bottom:6px">
+            <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">(E) Direct Expenses — by Cost Head</div>
+            ${Object.values(expByCH).sort((a,b)=>b.total-a.total).map(ch=>`
+              <div style="margin:5px 0 3px;font-size:11px;font-weight:600;color:var(--text);padding:2px 0;border-bottom:1px dashed var(--border)">${ch.name}</div>
+              ${ch.entries.map(e=>`<div class="rsb" style="padding:2px 0;font-size:12px;padding-left:8px">
+                <span>${fmtDate(e.date)} · ${e.narration||getET(e)?.label||e.entry_type}</span>
+                <span class="amt cr">${fmtAmt(e.amount)}</span>
+              </div>`).join('')}
+              <div class="rsb" style="padding:2px 0 4px 8px;font-size:11px;color:var(--muted)">
+                <span>Subtotal</span><span class="amt cr">${fmtAmt(ch.total)}</span>
+              </div>`).join('')}
+            <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+          </div>
+          ${section('(f) Paid — Cash', paidCash, totalPaidCash, 'cr')}
+          ${section('(g) Paid — Petty Cash', paidPetty, totalPaidPetty, 'cr')}
+          ${section('(h) Paid — Bank', paidBank, totalPaidBank, 'cr')}
+          ${section('(j) Vendor Advances Paid', advPaid, totalAdvPaid, 'cr')}
+        </div>
+      </div>
+    </div>
+
+    <!-- Summary -->
+    <div class="card">
+      <div class="chd"><h3>📊 Project Summary</h3></div>
+      <div class="cbd">
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(a) Total Income / Invoiced</span><span class="amt dr">${fmtAmt(totalIncome)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(d) Advances Received</span><span class="amt dr">${fmtAmt(totalAdvances)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(e) Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(i) Outstanding Payable <span style="font-size:10px;color:var(--muted)">(e−paid)</span></span><span class="amt cr">${fmtAmt(Math.max(0,payable))}</span></div>
+        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(j) Vendor Advances Paid</span><span class="amt cr">${fmtAmt(totalAdvPaid)}</span></div>
+        <div class="rsb" style="padding:6px 0;font-weight:700;font-size:13px;border-top:2px solid var(--border)">
+          <span>(k) Net Cash Flow <span style="font-size:10px;color:var(--muted)">(a+d−e−j)</span></span>
+          <span class="amt ${cashFlow>=0?'dr':'cr'}">${fmtAmt(Math.abs(cashFlow))} ${cashFlow>=0?'surplus':'deficit'}</span>
+        </div>
+      </div>
+    </div>`;
+
+  window._projRptData={project:p,entries:es,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
+}
+function printProjectRpt(){
+  const d=window._projRptData||{};const p=d.project||{};const s=d.summary||{};
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><title>Project Report — ${p.project_name||''}</title>
+  <style>body{font-family:Arial;font-size:11px;margin:20px}.header{text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:8px}h2{font-size:15px;margin:0 0 2px}h3{font-size:12px;margin:0;font-weight:normal}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f0f0}.dr{color:green}.cr{color:red}</style></head><body>
+  <div class="header"><h2>${p.project_name||''}</h2><h3>${p.client||''} · ${p.location||''}</h3><p>FY: ${curFY}</p></div>
+  <table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>
+  <tr><td>(a) Total Income</td><td class="dr">₹${fmt(s.totalIncome)}</td></tr>
+  <tr><td>(d) Advances Received</td><td class="dr">₹${fmt(s.totalAdvances)}</td></tr>
+  <tr><td>(e) Total Direct Expense</td><td class="cr">₹${fmt(s.totalDirectExp)}</td></tr>
+  <tr><td>(i) Outstanding Payable</td><td class="cr">₹${fmt(Math.max(0,s.payable))}</td></tr>
+  <tr><td>(j) Vendor Advances Paid</td><td class="cr">₹${fmt(s.totalAdvPaid)}</td></tr>
+  <tr><td><strong>(k) Net Cash Flow</strong></td><td class="${s.cashFlow>=0?'dr':'cr'}"><strong>₹${fmt(Math.abs(s.cashFlow))} ${s.cashFlow>=0?'surplus':'deficit'}</strong></td></tr>
+  </tbody></table>
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
+</body></html>`);w.print();
+}
+function exportProjXLS(pid) {
+  if (!pid) { toast('Select item first', 'err'); return; }
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'ProjectReport');
+  XLSX.writeFile(wb, 'Project_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+
+async function renderTrial(el){
+  const res=await api('getTrialBalance',{fyid:curFY,company_id:curCo});
+  const rows=res.trial_balance||[];
+  let tDr=0,tCr=0; rows.forEach(r=>{tDr+=parseFloat(r.total_dr||0);tCr+=parseFloat(r.total_cr||0);});
+  el.innerHTML=`
+    ${rptActions('exportTrialXLS','printTrial')}
+    <div class="tw"><table>
+      <thead><tr><th>Account Code</th><th>Account Name</th><th>Total DR</th><th>Total CR</th><th>Net</th></tr></thead>
+      <tbody>${rows.map(r=>{const net=parseFloat(r.total_dr||0)-parseFloat(r.total_cr||0);return`<tr>
+        <td><code>${r.ac_code}</code></td><td>${r.ac_name}</td>
+        <td class="amt dr" style="text-align:right">${fmtAmt(r.total_dr)}</td>
+        <td class="amt cr" style="text-align:right">${fmtAmt(r.total_cr)}</td>
+        <td class="amt ${net>0?'dr':'cr'}" style="text-align:right">${fmtAmt(Math.abs(net))} ${net>0?'DR':net<0?'CR':''}</td>
+      </tr>`;}).join('')}</tbody>
+      <tfoot><tr style="font-weight:700;border-top:2px solid var(--border)">
+        <td colspan="2"><strong>TOTAL</strong></td>
+        <td class="amt dr" style="text-align:right"><strong>${fmtAmt(tDr)}</strong></td>
+        <td class="amt cr" style="text-align:right"><strong>${fmtAmt(tCr)}</strong></td>
+        <td class="badge ${Math.abs(tDr-tCr)<1?'bg':'br'}">${Math.abs(tDr-tCr)<1?'✓ Balanced':'✗ '+fmtAmt(Math.abs(tDr-tCr))}</td>
+      </tr></tfoot>
+    </table></div>`;
+  window._trialData=rows;
+}
+function exportTrialXLS() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = [];
+  el.querySelectorAll('tr').forEach(function(tr) {
+    var cells = Array.from(tr.querySelectorAll('th, td')).map(function(td){return td.innerText.trim();});
+    if (cells.some(function(c){return c;})) rows.push(cells);
+  });
+  if (!rows.length) { toast('No data to export', 'err'); return; }
+  var ws = XLSX.utils.aoa_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'TrialBalance');
+  XLSX.writeFile(wb, 'Trial_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+function printTrial() {
+  var el = document.getElementById('rpt-out');
+  if (!el || !el.innerText.trim()) { toast('Load the report first', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || 'All Companies';
+  var header = '<h1>Trial Balance</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+  var div = el.cloneNode(true);
+  div.querySelectorAll('.modal-bg, .modal, .hidden, .btn, .no-print').forEach(function(n){n.remove();});
+  openPrintWindow('Trial Balance — ' + coName, header, div.innerHTML);
+}
+
+
+// ═══════════════════════════════════════════════════════════════
+// MORE
+// ═══════════════════════════════════════════════════════════════
+function setMore(tab,el){
+  _curMore=tab;
+  document.querySelectorAll('#more-tabs .ctab').forEach(t=>t.classList.remove('active'));
+  if(el) el.classList.add('active');
+  renderMore(tab);
+}
+async function renderMore(tab){
+  if(tab==='pending') await renderPending();
+  else if(tab==='users') await renderUsers();
+  else if(tab==='masters') renderMasters();
+  else if(tab==='docs') renderDocs();
+  else if(tab==='rawdata') renderRawData();
+  else if(tab==='import') renderImport();
+}
+
+// Pending
+
+// ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
+
+async function adminEditPending(entryId) {
+  let entry = window._pendingMap?.[entryId];
+  if (!entry) {
+    const res = await api('listPending', {fyid:curFY});
+    window._pendingMap = window._pendingMap || {};
+    (res.pending||[]).forEach(x => window._pendingMap[x.entry_id] = x);
+    entry = window._pendingMap?.[entryId];
+  }
+  if (!entry) { toast('Entry not found', 'err'); return; }
+
+  const et   = _ets.find(t => t.et_key === entry.entry_type);
+  const rules = FIELD_RULES[entry.entry_type] || {};
+  const isBankImport = entry.entry_type === 'Bank_payment_received' || entry.entry_type === 'expense_bank';
+  const hasDoc = entry.drive_file_url && entry.drive_file_url.startsWith('http');
+
+  // Build vendor options
+  const vendorOpts = (_vendors||[]).map(v =>
+    `<option value="${v.vendor_id}" ${v.vendor_id===entry.vendor_id?'selected':''}>${v.vendor_name}</option>`
+  ).join('');
+
+  // Build project options
+  const projOpts = (_projs||[]).map(p =>
+    `<option value="${p.project_id}" ${p.project_id===entry.project_id?'selected':''}>${p.project_name}</option>`
+  ).join('');
+
+  // Build cost head options
+  const chOpts = (_chs||[]).map(c =>
+    `<option value="${c.ch_id}" ${c.ch_id===entry.cost_head_id?'selected':''}>${c.ch_name}</option>`
+  ).join('');
+
+  const bankNote = isBankImport
+    ? `<div style="padding:7px 10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;margin-bottom:10px;font-size:12px;color:var(--muted)">
+        ℹ️ Bank-imported entry — date, amount and narration are locked.
+      </div>` : '';
+
+  const body = `
+    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
+      <div style="font-weight:600">${et?.label||entry.entry_type}</div>
+      <div style="color:var(--muted)">${fmtDate(entry.date)} · ${fmtAmt(entry.amount)} · ${entry.submitted_by}</div>
+    </div>
+    ${bankNote}
+    <div class="g2">
+      <div class="field">
+        <label>Date *</label>
+        <input type="date" id="ape-date" value="${entry.date}" ${isBankImport?'disabled style="opacity:.5"':''}>
+      </div>
+      <div class="field">
+        <label>Amount ₹ *</label>
+        <input type="number" id="ape-amt" value="${entry.amount}" step="0.01" ${isBankImport?'disabled style="opacity:.5"':''}>
+      </div>
+    </div>
+    <div class="field">
+      <label>Narration</label>
+      <input id="ape-narr" value="${(entry.narration||'').replace(/"/g,'&quot;')}" ${isBankImport?'disabled style="opacity:.5"':''}>
+    </div>
+    ${rules.vendor && rules.vendor!=='hidden' ? `
+    <div class="field">
+      <label>Vendor${rules.vendor==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
+      <select id="ape-vendor" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
+        <option value="">— select vendor —</option>
+        ${vendorOpts}
+      </select>
+    </div>` : '<input type="hidden" id="ape-vendor" value="">'}
+    ${rules.project && rules.project!=='hidden' ? `
+    <div class="field">
+      <label>Project${rules.project==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
+      <select id="ape-proj" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
+        <option value="">— select project —</option>
+        ${projOpts}
+      </select>
+    </div>` : '<input type="hidden" id="ape-proj" value="">'}
+    ${rules.cost_head && rules.cost_head!=='hidden' ? `
+    <div class="field">
+      <label>Cost Head${rules.cost_head==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
+      <select id="ape-ch" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
+        <option value="">— select cost head —</option>
+        ${chOpts}
+      </select>
+    </div>` : '<input type="hidden" id="ape-ch" value="">'}
+    ${rules.doc && rules.doc!=='hidden' ? `
+    <div class="field">
+      <label>Document</label>
+      ${hasDoc ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px">
+        <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px">📎 View current document</a>
+        <button class="btn btn-xs btn-d" onclick="document.getElementById('ape-del-doc').value='1';this.closest('div').style.display='none'">🗑</button>
+      </div>` : ''}
+      <input type="hidden" id="ape-del-doc" value="0">
+      <label id="ape-doc-label" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted)">
+        📎 ${hasDoc ? 'Replace Document' : 'Attach Document'}
+        <input type="file" id="ape-doc-file" accept="image/*,application/pdf" style="display:none" onchange="apeDocSelected(this)">
+      </label>
+      <div id="ape-doc-status" style="font-size:12px;color:var(--accent);margin-top:6px"></div>
+    </div>` : '<input type="hidden" id="ape-del-doc" value="0"><div id="ape-doc-status"></div>'}
+    <div class="modal-actions">
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveAdminPendingEdit('${entryId}','${entry.drive_file_url||''}','${entry.entry_type||''}','${entry.company_id||''}','${isBankImport}')">Save Changes</button>
+    </div>`;
+
+  showEditModal('Edit Pending Entry', body);
+  window._apeNewFile = null;
+}
+
+async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId, isBankImport) {
+  isBankImport = isBankImport === 'true' || isBankImport === true;
+  const entry = window._pendingMap?.[entryId] || {};
+
+  const date   = isBankImport ? entry.date   : (document.getElementById('ape-date')?.value || entry.date);
+  const amount = isBankImport ? entry.amount : (parseFloat(document.getElementById('ape-amt')?.value) || entry.amount);
+  const narr   = isBankImport ? (entry.narration||'') : (document.getElementById('ape-narr')?.value || '');
+  const vendor_id   = document.getElementById('ape-vendor')?.value || '';
+  const project_id  = document.getElementById('ape-proj')?.value || '';
+  const cost_head_id = document.getElementById('ape-ch')?.value || '';
+  const delDoc = document.getElementById('ape-del-doc')?.value === '1';
+
+  if (!date || !amount) { toast('Date and amount required', 'err'); return; }
+
+  let newUrl = delDoc ? '' : oldUrl;
+  if (window._apeNewFile) {
+    const st = document.getElementById('ape-doc-status');
+    if (st) st.textContent = '⬆️ Uploading…';
+    const vendor = (_vendors||[]).find(v => v.vendor_id === vendor_id);
+    const uploaded = await uploadFileToDrive(window._apeNewFile, companyId, entryType, vendor?.vendor_name||'', date);
+    if (uploaded) { newUrl = uploaded; toast('📎 Document uploaded'); }
+  }
+
+  const r = await api('updatePending', {
+    entry_id: entryId, date, amount, narration: narr,
+    vendor_id, project_id, cost_head_id,
+    drive_file_url: newUrl, delete_file: delDoc && !window._apeNewFile
+  });
+  if (r.ok) {
+    toast('Pending entry updated ✓');
+    closeEditModal();
+    window._apeNewFile = null;
+    renderPending();
+    renderHome();
+  } else toast(r.error || 'Update failed', 'err');
+}
+
+async function confirmApproveById(entryId) {
+  const p = window._pendingMap?.[entryId];
+  if (!p) { approvePending(entryId); return; }
+  const entryEt = _ets.find(t => t.et_key === p.entry_type);
+  const vendor  = _vendors.find(v => v.vendor_id === p.vendor_id);
+  const proj    = _projs.find(pr => pr.project_id === p.project_id);
+  const ch      = _chs.find(c => c.ch_id === p.cost_head_id);
+  const coObj   = _cos.find(c => c.company_id === p.company_id);
+  const hasDoc  = p.drive_file_url && p.drive_file_url.startsWith('http');
+  const ok = await showConfirm('Confirm Approval',
+    buildConfRows([
+      ['Entry Type',    entryEt?.label||p.entry_type],
+      ['Date',          fmtDate(p.date)],
+      ['Amount',        fmtAmt(p.amount), 'var(--green)'],
+      ['Company',       coObj?.company_name||p.company_id||'—'],
+      ['Submitted by',  p.submitted_by||'—'],
+      vendor  ? ['Vendor',    vendor.vendor_name] : null,
+      proj    ? ['Project',   proj.project_name] : null,
+      ch      ? ['Cost Head', ch.ch_name] : null,
+      p.narration ? ['Narration', p.narration] : null,
+      ['DR Account', entryEt?.dr||'—', 'var(--green)'],
+      ['CR Account', entryEt?.cr||'—', 'var(--red)'],
+      hasDoc  ? ['Document', '📎 Attached — click to view'] : null
+    ]),
+    '✓ Approve', 'btn-s');
+  if (ok) approvePending(entryId);
+}
+
+
+async function renderDocs() {
+  const el = document.getElementById('more-out');
+  el.innerHTML = '<div class="empty"><span class="spin"></span> Loading documents…</div>';
+
+  // Fetch entries with drive_file_url
+  const [entriesRes, vendorsRes] = await Promise.all([
+    api('listEntries', { fyid: curFY, company_id: curCo || '', limit: 2000 }),
+    api('listVendors')
+  ]);
+  const allEntries = (entriesRes.entries || []).filter(e => e.drive_file_url && e.drive_file_url.startsWith('http'));
+  const vendorMap = {};
+  (vendorsRes.vendors || []).forEach(v => vendorMap[v.vendor_id] = v.vendor_name);
+
+  if (!allEntries.length) {
+    el.innerHTML = '<div class="empty">No documents found for this FY</div>';
+    return;
+  }
+
+  // Group by month
+  const byMonth = {};
+  allEntries.forEach(e => {
+    const mon = e.date ? e.date.substring(0, 7) : 'Unknown'; // yyyy-mm
+    if (!byMonth[mon]) byMonth[mon] = [];
+    byMonth[mon].push(e);
+  });
+  const months = Object.keys(byMonth).sort().reverse();
+
+  window._docEntries = allEntries;
+  window._docSelected = new Set();
+
+  el.innerHTML = `
+    <div class="row" style="gap:8px;margin-bottom:10px;flex-wrap:wrap">
+      <button class="btn btn-o btn-sm" onclick="docsSelectAll()">☑ All</button>
+      <button class="btn btn-o btn-sm" onclick="docsSelectNone()">☐ None</button>
+      <button class="btn btn-p btn-sm" onclick="docsExportZip()" id="docs-export-btn" style="display:none">⬇ Export ZIP (<span id="docs-sel-count">0</span>)</button>
+      <span style="font-size:11px;color:var(--muted);margin-left:auto">${allEntries.length} documents</span>
+    </div>
+    <div id="docs-list">
+      ${months.map(mon => {
+        const rows = byMonth[mon];
+        const label = new Date(mon + '-01').toLocaleString('en-IN', { month: 'long', year: 'numeric' });
+        return `<div class="sh">${label} (${rows.length})</div>
+        <div class="card" style="margin-bottom:12px">
+          ${rows.map(e => {
+            const et = _ets.find(t => t.et_key === e.entry_type);
+            const vendor = e.vendor_id ? (vendorMap[e.vendor_id] || e.vendor_id) : '—';
+            return `<div style="display:flex;align-items:center;gap:10px;padding:9px 14px;border-bottom:1px solid var(--border)">
+              <input type="checkbox" class="doc-cb" data-id="${e.entry_id}" data-url="${e.drive_file_url}"
+                onchange="docsToggle(this)"
+                style="width:16px;height:16px;accent-color:var(--accent);flex-shrink:0;cursor:pointer">
+              <div style="flex:1;min-width:0">
+                <div style="font-size:12px;font-weight:600">${fmtDate(e.date)} · ${fmtAmt(e.amount)}</div>
+                <div style="font-size:11px;color:var(--muted)">${et?.label||e.entry_type} · ${vendor}</div>
+                ${e.narration?`<div style="font-size:11px;color:var(--muted)">${e.narration}</div>`:''}
+              </div>
+              <button onclick="viewDoc('${e.drive_file_url}')" class="btn btn-o btn-xs" style="flex-shrink:0">👁</button>
+            </div>`;
+          }).join('')}
+        </div>`;
+      }).join('')}
+    </div>`;
+}
+
+function docsToggle(cb) {
+  if (cb.checked) window._docSelected.add(cb.dataset.id);
+  else window._docSelected.delete(cb.dataset.id);
+  const count = window._docSelected.size;
+  const exportBtn = document.getElementById('docs-export-btn');
+  const countEl  = document.getElementById('docs-sel-count');
+  if (exportBtn) exportBtn.style.display = count > 0 ? 'flex' : 'none';
+  if (countEl)  countEl.textContent = count;
+}
+
+function docsSelectAll() {
+  document.querySelectorAll('.doc-cb').forEach(cb => { cb.checked = true; docsToggle(cb); });
+}
+function docsSelectNone() {
+  document.querySelectorAll('.doc-cb').forEach(cb => { cb.checked = false; docsToggle(cb); });
+}
+
+async function docsExportZip() {
+  const selected = [...window._docSelected];
+  if (!selected.length) { toast('Select documents first', 'err'); return; }
+  toast(`Preparing ZIP of ${selected.length} documents…`);
+  // Export: open each Drive URL in new tab (browser ZIP API not available without JSZip)
+  // Use JSZip via CDN
+  const btn = document.getElementById('docs-export-btn');
+  if (btn) { btn.textContent = '⏳ Preparing…'; btn.disabled = true; }
+  try {
+    // Load JSZip dynamically
+    await new Promise((resolve, reject) => {
+      if (window.JSZip) { resolve(); return; }
+      const s = document.createElement('script');
+      s.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+      s.onload = resolve; s.onerror = reject;
+      document.head.appendChild(s);
+    });
+    const zip = new JSZip();
+    const entries = (window._docEntries||[]).filter(e => selected.includes(e.entry_id));
+    let fetched = 0;
+    for (const e of entries) {
+      try {
+        // Convert Drive view URL to direct download
+        const m = e.drive_file_url.match(/\/file\/d\/([^\/]+)/);
+        if (!m) continue;
+        const fileId = m[1];
+        const dlUrl = `https://drive.google.com/uc?export=download&id=${fileId}`;
+        const resp = await fetch(dlUrl, { mode: 'cors' });
+        if (!resp.ok) throw new Error('fetch failed');
+        const blob = await resp.blob();
+        const ext  = blob.type.includes('pdf') ? 'pdf' : blob.type.includes('png') ? 'png' : 'jpg';
+        const fname = `${e.date}_${(e.entry_id||'doc')}.${ext}`;
+        zip.file(fname, blob);
+        fetched++;
+      } catch(err) { dbg(`Skip ${e.entry_id}: ${err.message}`, 'warn'); }
+    }
+    if (!fetched) { toast('Could not download files — try opening them individually', 'err'); return; }
+    const content_zip = await zip.generateAsync({ type: 'blob' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(content_zip);
+    a.download = `BlueDoor_Docs_${curFY}_${new Date().toISOString().slice(0,10)}.zip`;
+    a.click();
+    toast(`✓ ZIP downloaded (${fetched} files)`);
+  } catch(e) {
+    toast('ZIP export failed: ' + e.message, 'err');
+    dbg('ZIP error: ' + e.message, 'err');
+  } finally {
+    if (btn) { btn.textContent = `⬇ Export ZIP`; btn.disabled = false; }
+  }
+}
+
+async function renderPending(){
+  const el=document.getElementById('more-out');
+  el.innerHTML='<div class="empty"><span class="spin"></span></div>';
+  const res=await api('listPending',{fyid:curFY,company_id:curCo});
+  const rows=res.pending||[];
+  window._pendingMap={}; rows.forEach(p=>window._pendingMap[p.entry_id]=p);
+  // Note: bank imports go to pending — don't show all entries as pending, only actual pending_entries
+  if(!rows.length){el.innerHTML='<div class="empty">No pending entries</div>';return;}
+  el.innerHTML=rows.map(p=>{
+    const et=_ets.find(t=>t.et_key===p.entry_type);
+    const isPending=p.status==='Pending';
+    const badgeCls=isPending?'ba':p.status==='Approved'?'bg':'br';
+    return`<div class="card" style="margin-bottom:9px"><div class="cbd">
+      <div class="rsb">
+        <div>
+          <div style="font-weight:600;font-size:13px">${et?.label||p.entry_type} — <span class="amt dr">${fmtAmt(p.amount)}</span></div>
+          <div style="font-size:11px;color:var(--muted)">${fmtDate(p.date)} · ${p.submitted_by} · ${p.company_id}</div>
+          ${p.narration?`<div style="font-size:12px;margin-top:3px">${p.narration}</div>`:''}
+          <div style="font-size:10px;margin-top:3px"><span class="badge bb">DR: ${et?.dr||'—'}</span> → <span class="badge bb">CR: ${et?.cr||'—'}</span></div>
+          ${p.reject_reason?`<div style="font-size:11px;color:var(--red);margin-top:3px">Reason: ${p.reject_reason}</div>`:''}
+          ${p.reviewed_by?`<div style="font-size:10px;color:var(--muted)">Reviewed by ${p.reviewed_by}</div>`:''}
+        </div>
+        <span class="badge ${badgeCls}">${p.status}</span>
+      </div>
+      ${isPending?`<div class="row mt2" style="gap:6px">
+        <button class="btn btn-s btn-sm" onclick="confirmApproveById('${p.entry_id}')">✓ Approve</button>
+        <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
+        <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
+      </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
+    </div></div>`;}).join('');
+}
+async function confirmRejectById(entryId) {
+  const p = window._pendingMap?.[entryId];
+  const entryEt = p ? _ets.find(t => t.et_key === p.entry_type) : null;
+  const ok = await showConfirm('Reject Entry',
+    buildConfRows([
+      ['Entry Type', entryEt?.label || (p?.entry_type||'')],
+      ['Date',       p ? fmtDate(p.date) : ''],
+      ['Amount',     p ? fmtAmt(p.amount) : '', 'var(--red)'],
+      p?.narration ? ['Narration', p.narration] : null
+    ].filter(Boolean)),
+    'Reject', 'btn-d');
+  if (!ok) return;
+  const r = await api('rejectPending', { entry_id: entryId });
+  if (r.ok) {
+    toast('Entry rejected');
+    renderHome();
+    renderPending();
+  } else toast(r.error || 'Reject failed', 'err');
+}
+
+async function approvePending(entryId) {
+  const p = window._pendingMap?.[entryId];
+  if (p) {
+    const rules = FIELD_RULES[p.entry_type] || {};
+    const missing = [];
+    if (rules.vendor    === 'required' && !p.vendor_id)    missing.push('Vendor');
+    if (rules.project   === 'required' && !p.project_id)   missing.push('Project');
+    if (rules.cost_head === 'required' && !p.cost_head_id) missing.push('Cost Head');
+    if (missing.length) {
+      const proceed = await showConfirm('Missing Required Fields',
+        '<p style="font-size:13px;color:var(--muted)">These required fields are empty:</p>'
+        + '<ul style="margin:8px 0 0 16px;font-size:13px">'
+        + missing.map(function(f){return '<li>'+f+'</li>';}).join('')
+        + '</ul><p style="margin-top:10px;font-size:12px;color:var(--amber)">Edit the entry first, or approve anyway.</p>',
+        'Approve Anyway', 'btn-d');
+      if (!proceed) return;
+    }
+  }
+  const r = await api('approvePending', { entry_id: entryId });
+  if (r.ok) {
+    toast('Entry approved \u2713');
+    renderHome();
+    renderPending();
+  } else toast(r.error || 'Approve failed', 'err');
+}
+
+
+async function rejectPending(id){const reason=prompt('Reason (optional):')||'';const r=await api('rejectPending',{entry_id:id,reject_reason:reason});if(r.ok){toast('Rejected');renderPending();}else toast(r.error,'err');}
+async function deletePending(id){confirm2('Delete','Delete this pending entry?',async()=>{const r=await api('deletePending',{entry_id:id});if(r.ok){toast('Deleted');renderPending();}else toast(r.error,'err');});}
+
+// Users
+// ── SUPERVISOR VENDOR ACCESS ─────────────────────────────────
+async function manageVendorAccess(userId, username) {
+  // Load current allowed_vendors for this user
+  const usersRes = await api('listUsers');
+  const user = (usersRes.users||[]).find(u=>u.user_id===userId);
+  let allowed = [];
+  try { allowed = JSON.parse(user?.allowed_vendors||'[]'); } catch(e) {}
+
+  const vendorChecks = _vendors.map(v => `
+    <label style="display:flex;align-items:center;gap:8px;padding:7px 0;border-bottom:1px solid var(--border);cursor:pointer">
+      <input type="checkbox" id="va-${v.vendor_id}" ${allowed.includes(v.vendor_id)?'checked':''} style="accent-color:var(--accent)">
+      <span>${v.vendor_name} <span style="font-size:10px;color:var(--muted)">(${v.vendor_type||'General'})</span></span>
+    </label>`).join('');
+
+  showEditModal(`Vendor Ledger Access — ${username}`, `
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px">
+      Select which vendor ledgers this supervisor can view.
+    </div>
+    <div style="max-height:300px;overflow-y:auto">${vendorChecks || '<div class="empty">No vendors</div>'}</div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveVendorAccess('${userId}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveVendorAccess(userId) {
+  const checked = _vendors.filter(v => document.getElementById('va-'+v.vendor_id)?.checked).map(v=>v.vendor_id);
+  const r = await api('updateUser', { user_id: userId, allowed_vendors: checked });
+  if (r.ok) { toast('Vendor access updated ✓'); closeEditModal(); }
+  else toast(r.error || 'Error', 'err');
+}
+
+async function renderUsers(){
+  const el=document.getElementById('more-out');
+  const res=await api('listUsers');
+  const rows=res.users||[];
+  window._usersMap={};
+  rows.forEach(u=>window._usersMap[u.user_id]=u);
+  el.innerHTML=`
+    <button class="btn btn-p btn-sm" style="margin-bottom:12px" onclick="showUserForm()">+ Add User</button>
+    <div class="tw"><table><thead><tr><th>User</th><th>Role</th><th>Email</th><th>Status</th><th></th></tr></thead><tbody>
+    ${rows.map(u=>`<tr>
+      <td><strong>${u.username}</strong></td>
+      <td><span class="badge ${u.role==='Admin'?'bb':'ba'}">${u.role}</span></td>
+      <td style="font-size:11px">${u.google_email||'—'}</td>
+      <td><span class="badge ${u.active?'bg':'br'}">${u.active?'Active':'Off'}</span></td>
+      <td style="display:flex;gap:4px;flex-wrap:wrap">
+        <button class="btn btn-o btn-xs" onclick="showEditUser('${u.user_id}')">✏️ Edit</button>
+        <button class="btn btn-o btn-xs" onclick="toggleUser('${u.user_id}',${u.active})">${u.active?'Disable':'Enable'}</button>
+        <button class="btn btn-xs" style="background:rgba(79,142,247,.1);color:var(--accent);border:1px solid rgba(79,142,247,.2)" onclick="sendOnboarding('${u.user_id}')">📧</button>
+        ${u.role==='Supervisor'?`<button class="btn btn-xs" style="background:rgba(167,139,250,.12);color:var(--purple);border:1px solid rgba(167,139,250,.2)" onclick="manageVendorAccess('${u.user_id}','${u.username}')">Vendors</button>`:''}
+      </td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+function showUserForm() {
+  showEditModal('Add User', `
+    <div class="g2">
+      <div class="field"><label>Username *</label><input id="uf-name" placeholder="e.g. Rahul"></div>
+      <div class="field"><label>Role *</label>
+        <select id="uf-role">
+          <option value="Supervisor">Supervisor</option>
+          <option value="Admin">Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Google Email <span style="color:var(--muted, () => {
+    const list = document.getElementById('uf-cos');
+    if (!list) return;
+    if (!_cos || !_cos.length) {
+      list.innerHTML = '<em style="color:var(--muted);font-size:12px">No companies loaded — sync first</em>';
+      return;
+    }
+    list.innerHTML = '';
+    _cos.forEach(c => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;user-select:none';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'uf-co-cb';
+      cb.value = c.company_id;
+      cb.style.cssText = 'width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + c.company_name));
+      list.appendChild(label);
+    });
+  })font-size:10px">(for Google Sign-In)</span></label>
+      <input id="uf-email" type="email" placeholder="user@gmail.com">
+    </div>
+    <div class="field"><label>Password <span style="color:var(--muted);font-size:10px">(auto-generated if blank)</span></label>
+      <input id="uf-pass" type="text" placeholder="Leave blank to auto-generate">
+    </div>
+    <div class="field"><label>Companies</label>
+      <div id="uf-cos" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto"><em style="color:var(--muted);font-size:12px">Loading…</em></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="addUser()">Create & Send Welcome Mail</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function addUser() {
+  const n = document.getElementById('uf-name').value.trim();
+  const role = document.getElementById('uf-role').value;
+  const email = document.getElementById('uf-email').value.trim();
+  const pass = document.getElementById('uf-pass').value.trim();
+  const companies = [...document.querySelectorAll('.uf-co-cb:checked')].map(el=>el.value);
+  if (!n) { toast('Username required', 'err'); return; }
+  const r = await api('addUser', { username: n, password: pass||undefined, role, google_email: email, companies });
+  if (!r.ok) { toast(r.error, 'err'); return; }
+  toast('User created ✓');
+  closeEditModal();
+  await renderUsers();
+  // Send onboarding email if email provided
+  if (email) {
+    const er = await api('sendOnboarding', { user_id: r.user_id });
+    if (er.ok) toast('Welcome email sent ✓');
+    else toast('User created but email failed: ' + er.error, 'err');
+  }
+}
+
+function showEditUser(uid) {
+  const u = window._usersMap[uid] || {};
+  if (!u.user_id) { toast('User data not loaded — please refresh', 'err'); return; }
+  const cos = (() => {
+    try {
+      const v = u.companies;
+      if (!v) return [];
+      if (typeof v === 'string') {
+        if (v.startsWith('[')) return JSON.parse(v);
+        return v.replace(/^"|"$/g,'').split(',').map(s=>s.trim()).filter(Boolean);
+      }
+      return Array.isArray(v) ? v : [];
+    } catch(e) { return []; }
+  })();
+  showEditModal(`Edit User — ${u.username}`, `
+    <div class="g2">
+      <div class="field"><label>Username</label><input id="eu-name" value="${u.username}"></div>
+      <div class="field"><label>Role</label>
+        <select id="eu-role">
+          <option value="Supervisor" ${u.role==='Supervisor'?'selected':''}>Supervisor</option>
+          <option value="Admin" ${u.role==='Admin'?'selected':''}>Admin</option>
+        </select>
+      </div>
+    </div>
+    <div class="field"><label>Google Email</label>
+      <input id="eu-email" type="email" value="${u.google_email||''}" placeholder="user@gmail.com">
+    </div>
+    <div class="field"><label>New Password <span style="color:var(--muted);font-size:10px">(blank = no change)</span></label>
+      <input id="eu-pass" type="text" placeholder="Leave blank to keep current">
+    </div>
+    <div class="field"><label>Companies</label>
+      <div id="eu-co-list" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto"><em style="color:var(--muted);font-size:12px">Loading…</em></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditUser('${u.user_id}')">Save</button>
+      <button class="btn btn-o btn-sm" onclick="sendOnboarding('${u.user_id}')">📧 Resend Welcome</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`, () => {
+    // Render checkboxes via JS after modal DOM is ready
+    const list = document.getElementById('eu-co-list');
+    if (!list) return;
+    if (!_cos || !_cos.length) {
+      list.innerHTML = '<em style="color:var(--muted);font-size:12px">No companies loaded — sync first</em>';
+      return;
+    }
+    list.innerHTML = '';
+    _cos.forEach(c => {
+      const label = document.createElement('label');
+      label.style.cssText = 'display:flex;align-items:center;gap:8px;padding:8px 4px;border-bottom:1px solid var(--border);cursor:pointer;font-size:13px;user-select:none';
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.className = 'eu-co-cb';
+      cb.value = c.company_id;
+      cb.checked = cos.includes(c.company_id);
+      cb.style.cssText = 'width:18px;height:18px;accent-color:var(--accent);flex-shrink:0;cursor:pointer';
+      label.appendChild(cb);
+      label.appendChild(document.createTextNode(' ' + c.company_name));
+      list.appendChild(label);
+    });
+  });
+}
+
+async function saveEditUser(uid) {
+  const name     = document.getElementById('eu-name').value.trim();
+  const role     = document.getElementById('eu-role').value;
+  const email    = document.getElementById('eu-email').value.trim();
+  const pass     = document.getElementById('eu-pass').value.trim();
+  const cbs      = [...document.querySelectorAll('.eu-co-cb')];
+  const companies = cbs.filter(el => el.checked).map(el => el.value);
+
+  if (!name) { toast('Username required', 'err'); return; }
+
+  // Guard: if no checkboxes rendered at all, don't wipe companies
+  if (cbs.length === 0) {
+    toast('Companies not loaded — please close and reopen the edit modal', 'err');
+    return;
+  }
+
+  const payload = { user_id: uid, username: name, role, companies, google_email: email };
+  if (pass) payload.password = pass;
+
+  const r = await api('updateUser', payload);
+  if (!r.ok) { toast(r.error, 'err'); return; }
+  toast('User updated ✓');
+  closeEditModal();
+  renderUsers();
+}
+
+async function sendOnboarding(uid) {
+  const r = await api('sendOnboarding', { user_id: uid });
+  if (r.ok) toast('Welcome email sent ✓');
+  else toast('Email failed: ' + r.error, 'err');
+}
+
+async function toggleUser(id, active) {
+  const r = await api('updateUser', { user_id: id, active: !active });
+  if (r.ok) { toast('Updated'); renderUsers(); } else toast(r.error, 'err');
+}
+
+// Masters (read-only reference)
+function renderMasters(){
+  const el=document.getElementById('more-out');
+  const acOpts=_acs.map(a=>`<option value="${a.ac_key}">${a.ac_key} — ${a.ac_name}</option>`).join('');
+  el.innerHTML=`
+    <div class="rsb" style="margin-bottom:6px"><div class="sh" style="margin:0">Chart of Accounts (${_acs.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddCOA()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>Code</th><th>Key</th><th>Name</th><th>Type</th><th></th></tr></thead><tbody>
+    ${_acs.map(a=>`<tr>
+      <td><code>${a.ac_code}</code></td><td><code>${a.ac_key}</code></td>
+      <td>${a.ac_name}</td><td><span class="badge bx">${a.ac_type}</span></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editCOA('${a.ac_key}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Account','Delete ${a.ac_name}?',()=>deleteCOA('${a.ac_key}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table></div>
+
+    <div class="rsb" style="margin:14px 0 6px"><div class="sh" style="margin:0">Cost Heads (${_chs.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddCH()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>ID</th><th>Name</th><th>Account</th><th></th></tr></thead><tbody>
+    ${_chs.map(c=>`<tr>
+      <td><code>${c.ch_id}</code></td><td>${c.ch_name}</td><td><code>${c.ac_key||'—'}</code></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editCH('${c.ch_id}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Cost Head','Delete ${c.ch_name}?',()=>deleteCH('${c.ch_id}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table></div>
+
+    <div class="rsb" style="margin:14px 0 6px"><div class="sh" style="margin:0">Entry Types (${_ets.length})</div>
+      <button class="btn btn-p btn-xs" onclick="showAddET()">+ Add</button></div>
+    <div class="tw"><table><thead><tr><th>Key</th><th>Label</th><th>Hint</th><th>Cat</th><th>DR</th><th>CR</th><th>CH?</th><th>Active</th><th></th></tr></thead><tbody>
+    ${_ets.map(e=>`<tr>
+      <td><code style="font-size:10px">${e.et_key}</code></td><td>${e.label}</td>
+      <td style="font-size:11px;color:var(--muted)">${e.hint||'—'}</td>
+      <td><span class="badge bx">${e.category}</span></td>
+      <td><code>${e.dr}</code></td><td><code>${e.cr}</code></td>
+      <td>${e.needs_ch?'✓':''}</td>
+      <td><span class="badge ${e.active?'bg':'br'}">${e.active?'Yes':'No'}</span></td>
+      <td class="row" style="gap:4px">
+        <button class="btn btn-o btn-xs" onclick="editET('${e.et_key}')">✏️</button>
+        <button class="btn btn-d btn-xs" onclick="confirm2('Delete Entry Type','Delete ${e.label}?',()=>deleteET('${e.et_key}'))">🗑</button>
+      </td>
+    </tr>`).join('')}
+    </tbody></table></div>`;
+}
+
+// COA CRUD
+function showAddCOA(ac={}) {
+  const acTypeOpts=['Asset','Liability','Income','Expense','Equity','Contra-Equity'].map(t=>`<option ${ac.ac_type===t?'selected':''}>${t}</option>`).join('');
+  showEditModal(ac.ac_key?'Edit Account':'Add Account',`
+    <div class="g2">
+      <div class="field"><label>Account Key *</label><input id="coa-key" value="${ac.ac_key||''}" ${ac.ac_key?'readonly':''}></div>
+      <div class="field"><label>Account Code *</label><input id="coa-code" value="${ac.ac_code||''}"></div>
+    </div>
+    <div class="field"><label>Account Name *</label><input id="coa-name" value="${ac.ac_name||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Type *</label><select id="coa-type">${acTypeOpts}</select></div>
+      <div class="field"><label>Normal Balance</label><input id="coa-cat" value="${ac.category||''}"></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveCOA('${ac.ac_key||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveCOA(existingKey) {
+  const key=document.getElementById('coa-key').value.trim().toUpperCase();
+  const code=document.getElementById('coa-code').value.trim();
+  const name=document.getElementById('coa-name').value.trim();
+  const type=document.getElementById('coa-type').value;
+  const cat=document.getElementById('coa-cat').value.trim();
+  if(!key||!code||!name){toast('Key, Code and Name required','err');return;}
+  const res=existingKey
+    ? await api('updateCOA',{ac_key:existingKey,ac_code:code,ac_name:name,ac_type:type,category:cat})
+    : await api('addAccount',{ac_key:key,ac_code:code,ac_name:name,ac_type:type,category:cat});
+  if(res.ok){toast(existingKey?'Updated':'Added');closeEditModal();const r=await api('listAccounts');_acs=r.accounts||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editCOA(key){const a=_acs.find(x=>x.ac_key===key);if(a)showAddCOA(a);}
+async function deleteCOA(key){
+  const r=await api('deleteCOA',{ac_key:key});
+  if(r.ok){toast('Deleted');const res=await api('listAccounts');_acs=res.accounts||[];renderMasters();}else toast(r.error,'err');
+}
+
+// CostHead CRUD
+function showAddCH(ch={}) {
+  const acOpts=[...(_acs.map(a=>`<option value="${a.ac_key}" ${ch.ac_key===a.ac_key?'selected':''}>${a.ac_key} — ${a.ac_name}</option>`))].join('');
+  showEditModal(ch.ch_id?'Edit Cost Head':'Add Cost Head',`
+    <div class="field"><label>ID *</label><input id="ch-id" value="${ch.ch_id||''}" ${ch.ch_id?'readonly':''}></div>
+    <div class="field"><label>Name *</label><input id="ch-name" value="${ch.ch_name||''}"></div>
+    <div class="field"><label>Account</label><select id="ch-ac"><option value="">— None —</option>${acOpts}</select></div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveCH('${ch.ch_id||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+async function saveCH(existingId){
+  const id=document.getElementById('ch-id').value.trim();
+  const name=document.getElementById('ch-name').value.trim();
+  const acKey=document.getElementById('ch-ac').value;
+  if(!id||!name){toast('ID and Name required','err');return;}
+  const res=existingId
+    ? await api('updateCostHead',{ch_id:existingId,ch_name:name,ac_key:acKey})
+    : await api('addCostHead',{ch_id:id,ch_name:name,ac_key:acKey});
+  if(res.ok){toast(existingId?'Updated':'Added');closeEditModal();const r=await api('listCostHeads');_chs=r.cost_heads||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editCH(id){const c=_chs.find(x=>x.ch_id===id);if(c)showAddCH(c);}
+async function deleteCH(id){
+  const r=await api('deleteCostHead',{ch_id:id});
+  if(r.ok){toast('Deleted');const res=await api('listCostHeads');_chs=res.cost_heads||[];renderMasters();}else toast(r.error,'err');
+}
+
+// EntryType CRUD
+function showAddET(et={}) {
+  const cats=['client','vendor','expense','transfer','drawings'];
+  const acOpts=_acs.map(a=>`<option value="${a.ac_key}">${a.ac_key} — ${a.ac_name}</option>`).join('');
+  showEditModal(et.et_key?'Edit Entry Type':'Add Entry Type',`
+    <div class="g2">
+      <div class="field"><label>Key *</label><input id="et-key" value="${et.et_key||''}" ${et.et_key?'readonly':''}></div>
+      <div class="field"><label>Label *</label><input id="et-label" value="${et.label||''}"></div>
+    </div>
+    <div class="field"><label>Category *</label><select id="et-cat">
+      ${cats.map(c=>`<option value="${c}" ${et.category===c?'selected':''}>${c}</option>`).join('')}
+    </select></div>
+    <div class="g2">
+      <div class="field"><label>DR Account *</label><select id="et-dr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
+      <div class="field"><label>CR Account *</label><select id="et-cr"><option value="COST_HEAD">COST_HEAD (dynamic)</option>${acOpts}</select></div>
+    </div>
+    <div class="field"><label>Hint Text <span style="color:var(--muted);font-size:10px">(shown under entry type in Add tab)</span></label><input id="et-hint" value="${et.hint||''}"></div>
+    <div class="g2">
+      <div class="field"><label>Needs Cost Head?</label><select id="et-ch"><option value="0">No</option><option value="1" ${et.needs_ch?'selected':''}>Yes</option></select></div>
+      <div class="field"><label>Active</label><select id="et-active"><option value="1" ${et.active!==0?'selected':''}>Yes</option><option value="0" ${et.active===0?'selected':''}>No</option></select></div>
+    </div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveET('${et.et_key||''}')">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+  if(et.dr) document.getElementById('et-dr').value=et.dr;
+  if(et.cr) document.getElementById('et-cr').value=et.cr;
+}
+async function saveET(existingKey){
+  const key=document.getElementById('et-key').value.trim();
+  const label=document.getElementById('et-label').value.trim();
+  if(!key||!label){toast('Key and Label required','err');return;}
+  const payload={et_key:key,label,category:document.getElementById('et-cat').value,dr:document.getElementById('et-dr').value,cr:document.getElementById('et-cr').value,needs_ch:parseInt(document.getElementById('et-ch').value),active:parseInt(document.getElementById('et-active').value),hint:document.getElementById('et-hint')?.value||''};
+  const res=existingKey
+    ? await api('updateEntryTypeAdmin',{...payload,et_key:existingKey})
+    : await api('addEntryType',payload);
+  if(res.ok){toast(existingKey?'Updated':'Added');closeEditModal();const r=await api('listEntryTypes');_ets=r.entry_types||[];renderMasters();}
+  else toast(res.error,'err');
+}
+function editET(key){const e=_ets.find(x=>x.et_key===key);if(e)showAddET(e);}
+async function deleteET(key){
+  const r=await api('deleteEntryType',{et_key:key});
+  if(r.ok){toast('Deleted');const res=await api('listEntryTypes');_ets=res.entry_types||[];renderMasters();}else toast(r.error,'err');
+}
+
+// Raw Data viewer
+const RAW_TABLES=['companies','users','chart_of_accounts','entry_types','cost_heads','vendors','projects','entries','pending_entries','opening_balances','vendor_opening_balances','ledger'];
+let _rawTbl='entries', _rawRows=[], _rawCols=[];
+
+// ── RAW DATA CRUD ─────────────────────────────────────────────────────────────
+// Which tables are editable vs read-only
+const RAW_READONLY = new Set(['ledger']); // ledger is auto-generated, never edit directly
+const RAW_PK = {
+  companies: 'company_id', users: 'user_id', chart_of_accounts: 'ac_key',
+  entry_types: 'et_key', cost_heads: 'ch_id', vendors: 'vendor_id',
+  projects: 'project_id', entries: 'entry_id', pending_entries: 'entry_id',
+  opening_balances: 'id', vendor_opening_balances: 'id', ledger: 'id'
+};
+
+function renderRawData(){
+  const el=document.getElementById('more-out');
+  const isRO = RAW_READONLY.has(_rawTbl);
+  el.innerHTML=`
+    <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:10px" id="raw-btns">
+      ${RAW_TABLES.map(t=>`<button class="btn btn-xs ${t===_rawTbl?'btn-p':'btn-o'}" onclick="loadRawTable('${t}')">${t}</button>`).join('')}
+    </div>
+    <div class="row" style="gap:6px;margin-bottom:8px;flex-wrap:wrap">
+      <span id="raw-info" style="font-size:11px;color:var(--muted);flex:1"></span>
+      ${isRO ? '' : `<button class="btn btn-s btn-xs" onclick="rawAddRow()">+ Add Row</button>`}
+      <button class="btn btn-o btn-xs" onclick="downloadRawCSV()">⬇ CSV</button>
+      <button class="btn btn-o btn-xs" onclick="downloadRawXLS()">⬇ XLS</button>
+    </div>
+    <div id="raw-search" style="margin-bottom:8px">
+      <input placeholder="🔍 Search…" oninput="rawSearch(this.value)"
+        style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:7px 10px;border-radius:8px;font-size:12px;outline:none">
+    </div>
+    <div id="raw-out"></div>`;
+  loadRawTable(_rawTbl);
+}
+
+async function loadRawTable(t){
+  _rawTbl=t;
+  document.querySelectorAll('#raw-btns .btn').forEach(b=>{
+    const active=b.textContent.trim()===t;
+    b.className='btn btn-xs '+(active?'btn-p':'btn-o');
+  });
+  const infoEl=document.getElementById('raw-info'),outEl=document.getElementById('raw-out');
+  if(outEl) outEl.innerHTML='<span class="spin"></span>';
+  try {
+    let rows=[];
+    if(t==='entries') rows=(await api('listEntries',{fyid:curFY,limit:500})).entries||[];
+    else if(t==='ledger') rows=(await api('getLedger',{fyid:curFY})).ledger||[];
+    else if(t==='pending_entries') rows=(await api('listPending',{fyid:curFY})).pending||[];
+    else if(t==='companies') rows=(await api('listCompanies')).companies||[];
+    else if(t==='users') rows=(await api('listUsers')).users||[];
+    else if(t==='projects') rows=(await api('listProjects')).projects||[];
+    else if(t==='vendors') rows=(await api('listVendors')).vendors||[];
+    else if(t==='chart_of_accounts') rows=(await api('listAccounts')).accounts||[];
+    else if(t==='cost_heads') rows=(await api('listCostHeads')).cost_heads||[];
+    else if(t==='entry_types') rows=(await api('listEntryTypes')).entry_types||[];
+    else if(t==='opening_balances') rows=(await api('listOpeningBalances',{fyid:curFY})).opening_balances||[];
+    else if(t==='vendor_opening_balances') rows=(await api('listVendorOpeningBalances',{fyid:curFY})).vendor_opening_balances||[];
+
+    _rawCols=rows.length?Object.keys(rows[0]):[];
+    _rawRows=rows;
+    if(infoEl) infoEl.textContent=`${t} — ${rows.length} rows${RAW_READONLY.has(t)?' (read-only)':''}`;
+    rawRenderTable(rows);
+  }catch(e){if(outEl)outEl.innerHTML=`<div class="empty">Error: ${e.message}</div>`;}
+}
+
+function rawRenderTable(rows){
+  const outEl=document.getElementById('raw-out');
+  if(!outEl) return;
+  if(!rows.length){outEl.innerHTML='<div class="empty">No rows</div>';return;}
+  const isRO=RAW_READONLY.has(_rawTbl);
+  const pk=RAW_PK[_rawTbl]||'id';
+  // Store rows in a map so onclick can look up by PK safely
+  window._rawRowMap={};
+  rows.forEach(r=>{ window._rawRowMap[String(r[pk]??'')]=r; });
+  outEl.innerHTML=`<div class="tw"><table>
+    <thead><tr>
+      ${_rawCols.map(c=>`<th style="font-size:10px">${c}</th>`).join('')}
+      ${isRO?'':`<th style="font-size:10px;width:70px">Actions</th>`}
+    </tr></thead>
+    <tbody>${rows.map(r=>{
+      const pkVal=String(r[pk]??'');
+      const safePk=pkVal.replace(/'/g,"\'");
+      return `<tr id="raw-row-${pkVal}">
+        ${_rawCols.map(c=>`<td style="max-width:140px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;font-size:11px" title="${s(r[c]).replace(/"/g,'&quot;')}">${s(r[c])}</td>`).join('')}
+        ${isRO?'':`<td>
+          <div style="display:flex;gap:3px">
+            <button class="btn btn-xs btn-o" onclick="rawEditRow('${safePk}')" style="padding:2px 6px">✏️</button>
+            <button class="btn btn-xs" onclick="rawDeleteRow('${safePk}')" style="padding:2px 6px;background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2)">🗑</button>
+          </div>
+        </td>`}
+      </tr>`;
+    }).join('')}</tbody>
+  </table></div>`;
+}
+
+function rawSearch(q){
+  if(!q){rawRenderTable(_rawRows);return;}
+  const lq=q.toLowerCase();
+  rawRenderTable(_rawRows.filter(r=>Object.values(r).some(v=>String(v??'').toLowerCase().includes(lq))));
+}
+
+function rawEditRow(pkVal){
+  const row=window._rawRowMap?.[pkVal];
+  if(!row){toast('Row not found — refresh the table','err');return;}
+  const pk=RAW_PK[_rawTbl]||'id';
+  const fields=Object.keys(row).map(k=>`
+    <div class="field">
+      <label>${k}${k===pk?' <span style="color:var(--amber);font-size:9px">PRIMARY KEY</span>':''}</label>
+      <input id="redit-${k}" value="${s(row[k]).replace(/"/g,'&quot;')}"
+        ${k===pk?'style="opacity:.6" readonly':''}>
+    </div>`).join('');
+  window._rawEditPk = pkVal;
+  showEditModal(`Edit Row — ${_rawTbl}`,`
+    <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
+    <div class="row mt3">
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="rawSaveEdit(window._rawEditPk)">Save</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function rawSaveEdit(pkVal){
+  const key = pkVal || window._rawEditPk;
+  const orig=window._rawRowMap?.[key];
+  if(!orig){toast('Original row not found — please refresh','err');return;}
+  pkVal = key;
+  const pk=RAW_PK[_rawTbl]||'id';
+  const updated={};
+  Object.keys(orig).forEach(k=>{
+    const el=document.getElementById('redit-'+k);
+    updated[k]=el?el.value:orig[k];
+  });
+  // Use migrate insert (INSERT OR REPLACE) to update the row
+  const r=await mig({step:'insert',table:_rawTbl,rows:[updated]});
+  if(r.ok && r.inserted>=1){
+    toast('Row updated ✓');
+    closeEditModal();
+    await loadRawTable(_rawTbl);
+  } else {
+    toast(r.errors?.[0]||r.error||'Update failed','err');
+  }
+}
+
+function rawAddRow(){
+  if(!_rawCols.length){toast('Load a table first','err');return;}
+  const pk=RAW_PK[_rawTbl]||'id';
+  const fields=_rawCols.map(k=>`
+    <div class="field">
+      <label>${k}${k===pk?' <span style="color:var(--accent);font-size:9px">PRIMARY KEY — required</span>':''}</label>
+      <input id="radd-${k}" placeholder="${k===pk?'Unique ID':''}">
+    </div>`).join('');
+  showEditModal(`Add Row — ${_rawTbl}`,`
+    <div style="max-height:55dvh;overflow-y:auto;padding-right:4px">${fields}</div>
+    <div class="row mt3">
+      <button class="btn btn-s" style="flex:1;justify-content:center" onclick="rawSaveAdd()">Add Row</button>
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+    </div>`);
+}
+
+async function rawSaveAdd(){
+  const pk=RAW_PK[_rawTbl]||'id';
+  const newRow={};
+  _rawCols.forEach(k=>{
+    const el=document.getElementById('radd-'+k);
+    if(el&&el.value!=='') newRow[k]=el.value;
+  });
+  if(!newRow[pk]){toast('Primary key required','err');return;}
+  const r=await mig({step:'insert',table:_rawTbl,rows:[newRow]});
+  if(r.ok && r.inserted>=1){
+    toast('Row added ✓');
+    closeEditModal();
+    await loadRawTable(_rawTbl);
+  } else {
+    toast(r.errors?.[0]||r.error||'Add failed','err');
+  }
+}
+
+async function rawDeleteRow(pkVal){
+  confirm2(
+    `Delete Row`,
+    `Delete row "${pkVal}" from ${_rawTbl}? This cannot be undone.`,
+    async()=>{
+      const pk=RAW_PK[_rawTbl]||'id';
+      const r=await mig({step:'delete_row',table:_rawTbl,pk_col:pk,pk_val:pkVal});
+      if(r.ok){
+        toast('Row deleted ✓');
+        await loadRawTable(_rawTbl);
+      } else {
+        toast(r.error||'Delete failed','err');
+      }
+    }
+  );
+}
+
+
+function downloadRawCSV(){
+  if(!_rawRows.length)return;
+  const csv=[_rawCols.join(','),..._rawRows.map(r=>_rawCols.map(c=>`"${s(r[c]).replace(/"/g,'""')}"`).join(','))].join('\n');
+  const a=document.createElement('a');a.href='data:text/csv;charset=utf-8,'+encodeURIComponent(csv);a.download=`${_rawTbl}.csv`;a.click();
+}
+function downloadRawXLS() {
+  if (!_ledgerRows.length) { toast('No data', 'err'); return; }
+  var coName = (_cos.find(function(c){return c.company_id===curCo;})||{}).company_name || curCo || 'All';
+  var rows = _ledgerRows.map(function(r) {
+    var et = _ets.find(function(t){return t.et_key===r.entry_type;});
+    return { 'Date': fmtDate(r.date), 'Company': coName, 'FY': curFY,
+      'Entry Type': et ? et.label : (r.entry_type||''),
+      'Account Code': r.ac_code, 'Account Name': r.ac_name,
+      'DR/CR': r.dr_cr, 'Debit': r.debit||0, 'Credit': r.credit||0,
+      'Narration': r.narration||'',
+      'Vendor': (_vendors.find(function(v){return v.vendor_id===r.vendor_id;})||{}).vendor_name||'',
+      'Project': (_projs.find(function(p){return p.project_id===r.project_id;})||{}).project_name||'' };
+  });
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'RawLedger');
+  XLSX.writeFile(wb, 'RawLedger_' + coName + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+
+// Import
+const SHEET_MAP={
+  Companies:{table:'companies',map:r=>({company_id:s(r.CompanyID),company_name:s(r.CompanyName),drive_folder:s(r.DriveFolder)||'',active:String(r.Active).toLowerCase()==='true'?1:0})},
+  Users:{table:'users',map:r=>({user_id:`USR_${s(r.Username).toUpperCase()}`,username:s(r.Username),password:'BlueDoor@2024',role:s(r.Role)==='Admin'?'Admin':s(r.Role),active:String(r.Active).toLowerCase()==='true'?1:0,companies:s(r.Companies)||'[]',google_email:s(r.GoogleEmail)||''})},
+  ChartOfAccounts:{table:'chart_of_accounts',map:r=>({ac_key:s(r.AccountKey),ac_code:s(r.Code),ac_name:s(r.Name),ac_type:s(r.Type),category:s(r.NormalBalance)||''})},
+  EntryTypes:{table:'entry_types',map:r=>({et_key:s(r.EntryKey),label:s(r.Label),category:s(r.Category),dr:s(r.DebitAccount),cr:s(r.CreditAccount),needs_ch:String(r.NeedsCostHead).toLowerCase()==='true'?1:0,active:String(r.Active).toLowerCase()==='true'?1:0})},
+  CostHeads:{table:'cost_heads',map:r=>({ch_id:s(r.CostHeadID),ch_name:s(r.Name),ac_key:s(r.AccountKey)||''})},
+  Vendors:{table:'vendors',map:r=>({vendor_id:s(r.VendorID),vendor_name:s(r.Name),vendor_type:s(r.Type)||'',contact:s(r.Contact)||'',gstin:s(r.GSTIN)||'',details:''})},
+  Projects:{table:'projects',map:r=>({project_id:s(r.ProjectID),project_name:s(r.Name),client:s(r.Client)||'',location:s(r.Location)||'',status:s(r.Status)||'Active',start_date:fmtDateISO(r.StartDate),budget:parseFloat(r.Budget)||0,fyid:s(r.FYID)||curFY})},
+  OpeningBalances:{table:'opening_balances',map:r=>({fyid:s(r.FYID),ac_key:s(r.AccountKey),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:s(r.EnteredAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  VendorOpeningBalance:{table:'vendor_opening_balances',map:r=>({fyid:s(r.FYID),vendor_id:s(r.VendorID),dr_cr:s(r.DrCr),amount:parseFloat(r.Amount)||0,entered_by:s(r.EnteredBy)||'import',entered_at:s(r.EnteredAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  Entries:{table:'entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',entry_type:s(r.EntryType),amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  Ledger:{table:'ledger',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,ac_code:s(r.AccountCode),ac_name:s(r.AccountName)||'',dr_cr:s(r.DrCr),debit:parseFloat(r.DebitAmt)||0,credit:parseFloat(r.CreditAmt)||0,project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',narration:s(r.Narration)||'',created_by:s(r.CreatedBy)||'import',created_at:s(r.CreatedAt)||new Date().toISOString(),company_id:s(r.CompanyID)||''})},
+  PendingEntries:{table:'pending_entries',map:r=>({entry_id:s(r.EntryID),date:fmtDateISO(r.Date),fyid:s(r.FYID)||curFY,entry_type:s(r.EntryType)||'',project_id:s(r.ProjectID)||'',cost_head_id:s(r.CostHeadID)||'',vendor_id:s(r.VendorID)||'',amount:parseFloat(r.Amount)||0,narration:s(r.Narration)||'',submitted_by:s(r.SubmittedBy)||'import',submitted_at:s(r.SubmittedAt)||new Date().toISOString(),status:s(r.Status)||'Pending',reviewed_by:s(r.ReviewedBy)||'',reviewed_at:s(r.ReviewedAt)||'',reject_reason:s(r.RejectReason)||'',drive_file_url:s(r.DriveFileURL)||'',company_id:s(r.CompanyID)||''})}
+};
+function fmtDateISO(v){
+  if(!v) return '';
+  // Handle Excel serial number (number type from cellDates:false)
+  if (typeof v === 'number') {
+    // Excel serial to JS date (Excel epoch = Dec 30 1899, leap year bug)
+    const d = new Date(Math.round((v - 25569) * 86400 * 1000));
+    if (!isNaN(d)) return d.toISOString().substring(0,10);
+  }
+  const sv = String(v).trim();
+  // Already ISO
+  if (/^\d{4}-\d{2}-\d{2}/.test(sv)) return sv.substring(0,10);
+  // dd-mm-yyyy
+  if (/^\d{2}-\d{2}-\d{4}/.test(sv)) { const [d2,m,y]=sv.split('-'); return `${y}-${m}-${d2}`; }
+  // Excel serial as string
+  if (/^\d{4,6}$/.test(sv)) {
+    const serial = parseInt(sv);
+    const d = new Date(Math.round((serial - 25569) * 86400 * 1000));
+    if (!isNaN(d) && d.getFullYear() > 1990) return d.toISOString().substring(0,10);
+  }
+  try { const d=new Date(sv); return isNaN(d)?sv:d.toISOString().substring(0,10); } catch { return sv; }
+}
+let _wb=null,_preview=null;
+function renderImport(){
+  const el=document.getElementById('more-out');
+  el.innerHTML=`
+    <div style="font-size:12px;color:var(--muted);margin-bottom:12px;padding:10px;background:rgba(79,142,247,.07);border-radius:8px;border:1px solid rgba(79,142,247,.18)">
+      Upload BlueDoor V2 Excel export. Imported in batches of 20. Existing rows are replaced.
+    </div>
+    <div style="border:2px dashed var(--border);border-radius:12px;padding:28px 14px;text-align:center;cursor:pointer;position:relative;margin-bottom:12px" id="imp-dz">
+      <input type="file" id="imp-file" accept=".xlsx,.xls" onchange="handleImpFile(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;width:100%;height:100%">
+      <div style="font-size:32px;margin-bottom:6px">📊</div>
+      <div style="font-size:14px;font-weight:600;margin-bottom:2px">Drop Excel or tap to browse</div>
+      <div style="font-size:12px;color:var(--muted)">BlueDoor_Account_V2.xlsx</div>
+    </div>
+    <div id="imp-prev" class="hidden">
+      <div class="sh">Sheets Detected</div>
+      <div id="imp-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px"></div>
+      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <button class="btn btn-s" id="imp-btn" onclick="runImport()">🚀 Import</button>
+        <button class="btn btn-d btn-sm" onclick="confirm2('Wipe & Reimport','This will DELETE ALL data in D1 and reimport fresh from the Excel file. Are you sure?',wipeAndReimport)">🗑 Wipe & Reimport</button>
+        <button class="btn btn-o btn-sm" onclick="clearImport()">Clear</button>
+        <span id="imp-total" style="font-size:12px;color:var(--muted)"></span>
+      </div>
+    </div>
+    <div id="imp-log" class="hidden" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:11px;max-height:160px;overflow-y:auto;font-family:monospace;font-size:11px"></div>`;
+}
+function handleImpFile(inp){if(inp.files[0])processImpFile(inp.files[0]);}
+function processImpFile(file){
+  const reader=new FileReader();
+  reader.onload=e=>{try{_wb=XLSX.read(e.target.result,{type:'array',cellDates:true});parseImpSheets();}catch(e2){toast('Error: '+e2.message,'err');}};
+  reader.readAsArrayBuffer(file);
+}
+function parseImpSheets(){
+  _preview={};
+  const grid=document.getElementById('imp-grid'); if(!grid) return;
+  grid.innerHTML=''; let total=0;
+  for(const[sn,cfg] of Object.entries(SHEET_MAP)){
+    if(!_wb.SheetNames.includes(sn)) continue;
+    const ws=_wb.Sheets[sn];
+    const json=XLSX.utils.sheet_to_json(ws,{defval:''});
+    try{
+      const rows=json.map(cfg.map).filter(r=>Object.values(r).some(v=>v!==''&&v!==null));
+      _preview[sn]={table:cfg.table,rows}; total+=rows.length;
+      grid.innerHTML+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px">
+        <div style="font-size:12px;font-weight:600">${sn}</div>
+        <div style="font-size:11px;color:var(--muted)">${rows.length} rows → ${cfg.table}</div>
+        <div style="font-size:12px;margin-top:3px" id="is-${sn}">⏳ Ready</div>
+      </div>`;
+    }catch(e){grid.innerHTML+=`<div style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:9px 11px"><div style="font-size:12px;font-weight:600">${sn}</div><div style="font-size:11px;color:var(--red)">${e.message}</div></div>`;}
+  }
+  document.getElementById('imp-prev').classList.remove('hidden');
+  document.getElementById('imp-total').textContent=`${total} total rows`;
+}
+function logImp(msg,type='info'){
+  const el=document.getElementById('imp-log');if(!el)return;
+  el.classList.remove('hidden');
+  const d=document.createElement('div');d.style.color=type==='ok'?'var(--green)':type==='err'?'var(--red)':'var(--accent)';
+  d.textContent=`[${new Date().toLocaleTimeString()}] ${msg}`;
+  el.appendChild(d);el.scrollTop=el.scrollHeight;
+}
+async function wipeAndReimport(){
+  if(!_preview){toast('Load Excel file first','err');return;}
+  // Security: require password confirmation
+  const pwd = prompt('⚠ This will DELETE ALL DATA.\n\nEnter your admin password to confirm:');
+  if (!pwd) return;
+  // Verify password via login
+  const check = await fetch('https://bluedoor-accounts.info-unikraft.workers.dev/api', {
+    method:'POST', headers:{'Content-Type':'application/json'},
+    body: JSON.stringify({action:'login', username: S.user?.username||'Arpit', password: pwd})
+  });
+  const checkJ = await check.json();
+  if (!checkJ.ok) { toast('Incorrect password — wipe cancelled','err'); return; }
+  logImp('✓ Password verified. Wiping all D1 tables...','ok');
+  const wipeRes = await mig({step:'wipe_all'});
+  if(wipeRes.ok){
+    const wiped = Object.values(wipeRes.wipe_results||{}).filter(v=>v==='wiped').length;
+    logImp(`✓ ${wiped} tables wiped`,'ok');
+  } else { logImp('Wipe error: '+JSON.stringify(wipeRes),'err'); return; }
+  logImp('Running schema migration...','info');
+  await mig({step:'migrate_schema'});
+  await runImport();
+}
+
+async function runImport(){
+  if(!_preview)return;
+  const btn=document.getElementById('imp-btn');btn.disabled=true;btn.textContent='⏳ Importing...';
+  const ORDER=['Companies','Users','ChartOfAccounts','EntryTypes','CostHeads','Vendors','Projects','OpeningBalances','VendorOpeningBalance','Entries','Ledger','PendingEntries'];
+  let grand=0,gFail=0;
+  // Run schema migrations first (adds hint column etc)
+  try{await mig({step:'migrate_schema'});}catch(e){}
+  for(const sn of ORDER){
+    if(!_preview[sn])continue;
+    const{table,rows}=_preview[sn];
+    const stEl=document.getElementById(`is-${sn}`);
+    logImp(`${sn}: ${rows.length} rows → ${table}`);
+    let ins=0,fail=0;
+    for(let i=0;i<rows.length;i+=20){
+      try{const r=await mig({step:'insert',table,rows:rows.slice(i,i+20)});ins+=r.inserted||0;fail+=r.failed||0;if(stEl)stEl.textContent=`${ins}/${rows.length}`;}catch(e){fail+=20;logImp('  Error: '+e.message,'err');}
+    }
+    grand+=ins;gFail+=fail;
+    if(stEl)stEl.textContent=fail?`⚠ ${ins}✓ ${fail}✗`:`✅ ${ins}`;
+    logImp(`  ${sn}: ${ins} inserted, ${fail} failed`,fail?'err':'ok');
+  }
+  logImp(`Done: ${grand} rows, ${gFail} failed`,gFail?'err':'ok');
+  btn.disabled=false;btn.textContent='🚀 Re-Import';
+  toast(`Import: ${grand} rows`,gFail?'err':'ok');
+  loadMasters();
+}
+function clearImport(){_wb=null;_preview=null;document.getElementById('imp-prev')?.classList.add('hidden');document.getElementById('imp-log')?.classList.add('hidden');document.getElementById('imp-file').value='';}
+
+
+// ── PWA ──────────────────────────────────────────────────────────────────────
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  });
+}
+</script>
+
+
+<!-- Document Viewer Modal -->
+<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
+    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
+    <div style="display:flex;gap:8px;align-items:center">
+      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
+      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
+    </div>
+  </div>
+  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
+</div>
+</body>
+</html>
