@@ -94,15 +94,13 @@ async function route(action, params, req, env, ctx) {
     case 'addEntry': return handleAddEntry(params, sess, env);
     case 'updateEntry': return handleUpdateEntry(params, sess, env);
     case 'deleteEntry': return handleDeleteEntry(params, sess, env);
-    case 'updateEntry': return handleUpdateEntry(params, sess, env);
     case 'updatePending': return handleUpdatePending(params, sess, env);
     case 'deletePending': return handleDeletePending(params, sess, env);
     case 'listPending': return handleListPending(params, sess, env);
     case 'submitPending': return handleSubmitPending(params, sess, env);
     case 'approvePending': return handleApprovePending(params, sess, env);
     case 'rejectPending': return handleRejectPending(params, sess, env);
-    case 'deletePending': return handleDeletePending(params, sess, env);
-    case 'getLedger': return handleGetLedger(params, sess, env);
+        case 'getLedger': return handleGetLedger(params, sess, env);
     case 'getTrialBalance': return handleGetTrialBalance(params, sess, env);
     case 'getPL': return handleGetPL(params, sess, env);
     case 'getBS': return handleGetBS(params, sess, env);
