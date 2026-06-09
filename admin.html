@@ -348,14 +348,14 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
             <div class="field hidden" id="ae-doc-f">
               <label>Document / Bill <span style="color:var(--muted);font-size:10px">(optional)</span></label>
               <div style="display:flex;gap:8px;align-items:center">
-                <input type="text" id="ae-doc-url" placeholder="Drive URL or tap 📎 to upload" style="flex:1;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:8px;font-size:13px;outline:none">
-                <label style="flex-shrink:0;cursor:pointer;display:flex;align-items:center;gap:5px;padding:9px 12px;background:var(--bg);border:1px solid var(--border);border-radius:8px;font-size:12px;color:var(--muted);transition:border .15s" title="Upload file">
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21.44 11.05l-9.19 9.19a6 6 0 01-8.49-8.49l9.19-9.19a4 4 0 015.66 5.66l-9.2 9.19a2 2 0 01-2.83-2.83l8.49-8.48"/></svg>
-                  <input type="file" id="ae-doc-file" accept="image/*,.pdf,.doc,.docx,.xlsx,.xls" style="position:absolute;opacity:0;width:0;height:0" onchange="handleDocUpload(this)">
-                  Attach
+                <label id="ae-doc-label" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s">
+                  📎 Choose / Take Photo
+                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf" style="display:none" onchange="handleDocUpload(this)">
                 </label>
+                <button id="ae-doc-clear" onclick="clearDocUpload()" style="display:none;flex-shrink:0;padding:9px 11px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px;cursor:pointer;line-height:1">✕</button>
               </div>
-              <div id="ae-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
+              <div id="ae-doc-status" style="font-size:12px;color:var(--accent);margin-top:6px;display:none"></div>
+              <input type="hidden" id="ae-doc-url">
             </div>
             <div id="ae-preview" style="font-size:12px;color:var(--muted);margin-bottom:10px;padding:8px;background:rgba(79,142,247,.05);border-radius:7px;display:none"></div>
             <button class="btn btn-p" style="width:100%;justify-content:center" onclick="saveEntry()">Save Entry</button>
@@ -1806,30 +1806,46 @@ async function handleDocUpload(input) {
   if (!file) return;
   const statusEl = document.getElementById('ae-doc-status');
   const urlEl    = document.getElementById('ae-doc-url');
+  const labelEl  = document.getElementById('ae-doc-label');
+  const clearBtn = document.getElementById('ae-doc-clear');
+  const sizeStr  = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
 
-  // Show filename immediately so user sees something right away
-  const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
-  urlEl.value = file.name;
-  statusEl.textContent = `📎 ${file.name} (${sizeStr}) — uploading…`;
-  statusEl.style.color = 'var(--muted)';
+  // Show file name + size immediately (V2 style)
+  statusEl.textContent = '📎 ' + file.name + ' (' + sizeStr + ')';
+  statusEl.style.display = 'block';
+  statusEl.style.color = 'var(--accent)';
+  if (labelEl) labelEl.style.borderColor = 'var(--accent)';
+  if (clearBtn) clearBtn.style.display = 'flex';
 
+  // Upload to Drive in background
   const coId       = document.getElementById('ae-co')?.value || '';
   const date       = document.getElementById('ae-date')?.value || new Date().toISOString().slice(0,10);
-  const etKey      = _curEtKey || '';
-  const vendor     = (_vendors||[]).find(v => v.vendor_id === document.getElementById('ae-vendor-val')?.value);
-  const vendorName = vendor?.vendor_name || '';
+  const vendorId   = ssGet('ae-vendor-wrap');
+  const vendorName = (_vendors||[]).find(v => v.vendor_id === vendorId)?.vendor_name || '';
+  const etKey      = _selType?.et_key || '';
 
-  const url = await uploadFileToDrive(file, coId, etKey, vendorName, date);
-  if (url) {
-    urlEl.value = url;
-    statusEl.innerHTML = `✅ <a href="${url}" target="_blank" style="color:var(--green)">View in Drive</a>`;
-    statusEl.style.color = 'var(--green)';
+  const uploadedUrl = await uploadFileToDrive(file, coId, etKey, vendorName, date);
+  if (uploadedUrl) {
+    urlEl.value = uploadedUrl;
+    statusEl.innerHTML = '✅ ' + file.name + ' — <a href="' + uploadedUrl + '" target="_blank" style="color:var(--green)">View in Drive</a>';
     toast('📎 Uploaded to Drive');
   } else {
-    // Keep filename as fallback — already set above
-    statusEl.textContent = `📎 ${file.name} (${sizeStr}) — saved locally`;
-    statusEl.style.color = 'var(--muted)';
+    urlEl.value = '';
+    statusEl.textContent = '📎 ' + file.name + ' (' + sizeStr + ')';
   }
+}
+
+function clearDocUpload() {
+  const fileInput = document.getElementById('ae-doc-file');
+  const statusEl  = document.getElementById('ae-doc-status');
+  const urlEl     = document.getElementById('ae-doc-url');
+  const labelEl   = document.getElementById('ae-doc-label');
+  const clearBtn  = document.getElementById('ae-doc-clear');
+  if (fileInput) fileInput.value = '';
+  if (statusEl)  { statusEl.textContent = ''; statusEl.style.display = 'none'; }
+  if (urlEl)     urlEl.value = '';
+  if (labelEl)   labelEl.style.borderColor = '';
+  if (clearBtn)  clearBtn.style.display = 'none';
 }
 
 function resetEntryForm() {
@@ -1837,12 +1853,7 @@ function resetEntryForm() {
   document.getElementById('ae-form-card')?.classList.add('hidden');
   document.getElementById('ae-amt').value = '';
   document.getElementById('ae-narr').value = '';
-  const docUrl = document.getElementById('ae-doc-url');
-  if (docUrl) docUrl.value = '';
-  const docFile = document.getElementById('ae-doc-file');
-  if (docFile) docFile.value = '';
-  const docStatus = document.getElementById('ae-doc-status');
-  if (docStatus) docStatus.textContent = '';
+  clearDocUpload();
   ssClear('ae-proj-wrap');
   ssClear('ae-vendor-wrap');
   ssClear('ae-ch-wrap');
