@@ -13,6 +13,7 @@
 <meta name="theme-color" content="#4f8ef7">
 <meta name="mobile-web-app-capable" content="yes">
 <title>BlueDoor Supervisor</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
   --bg:#0d0f14;--card:#161920;--border:#232630;--accent:#4f8ef7;
@@ -554,8 +555,8 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
   </div>
 
   <!-- Edit Pending Modal -->
-  <div id="ep-modal" class="modal-bg hidden" style="z-index:250">
-    <div class="modal" style="border-radius:16px;max-width:480px;width:calc(100% - 32px);max-height:85dvh;overflow-y:auto">
+  <div id="ep-modal" class="modal-bg center hidden" style="z-index:250">
+    <div class="modal center" style="max-width:480px;width:calc(100% - 32px);max-height:85dvh;overflow-y:auto">
       <div class="rsb" style="margin-bottom:14px">
         <h3>Edit Pending Entry</h3>
         <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeEpModal()">✕</button>
@@ -1520,6 +1521,51 @@ function populateVendorLedgerSelects() {
   if (curVal) sel.value = curVal;
 }
 
+
+function exportVendorLedgerXLS() {
+  const d = window._vlData;
+  if (!d) { toast('No data to export', 'err'); return; }
+  if (typeof XLSX === 'undefined') { toast('XLSX not loaded', 'err'); return; }
+  const rows = [];
+  // Opening balance
+  rows.push({ Date: '', Narration: 'Opening Balance', Debit: d.openingBalance > 0 ? d.openingBalance : '', Credit: d.openingBalance < 0 ? Math.abs(d.openingBalance) : '' });
+  // AP rows
+  d.apRows.forEach(r => rows.push({ Date: fmtDate(r.date), Narration: r.narration || r.ac_name || '', Debit: r.debit || '', Credit: r.credit || '' }));
+  // Totals
+  rows.push({ Date: '', Narration: 'TOTAL', Debit: d.apTotals.dr, Credit: d.apTotals.cr });
+  // Advances
+  if (d.advRows.length) {
+    rows.push({ Date: '', Narration: '--- Advances ---', Debit: '', Credit: '' });
+    d.advRows.forEach(r => rows.push({ Date: fmtDate(r.date), Narration: r.narration || '', Debit: r.debit || '', Credit: r.credit || '' }));
+  }
+  const ws = XLSX.utils.json_to_sheet(rows);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, d.vendor.vendor_name.substring(0,31));
+  XLSX.writeFile(wb, 'VendorLedger_' + d.vendor.vendor_id + '_' + curFY + '.xlsx');
+  toast('XLS downloaded');
+}
+
+function printVendorLedgerPDF() {
+  const d = window._vlData;
+  if (!d) { toast('No data to export', 'err'); return; }
+  const rows = d.apRows.map(r => `<tr><td>${fmtDate(r.date)}</td><td>${r.narration||r.ac_name||'—'}</td><td style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td></tr>`).join('');
+  const advRows = d.advRows.map(r => `<tr><td>${fmtDate(r.date)}</td><td>${r.narration||'—'}</td><td style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td></tr>`).join('');
+  const w = window.open('','_blank');
+  w.document.write('<html><head><title>Vendor Ledger</title><style>body{font-family:Arial;font-size:11px;margin:20px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f0f0}h2{margin:0 0 4px}h3{margin:8px 0 4px}</style></head><body>');
+  w.document.write('<h2>' + d.vendor.vendor_name + ' — Vendor Ledger</h2><p>FY: ' + curFY + '</p>');
+  w.document.write('<h3>Account Payable</h3><table><thead><tr><th>Date</th><th>Narration</th><th>Debit (Paid)</th><th>Credit (Bills)</th></tr></thead><tbody>');
+  w.document.write('<tr style="background:#f9f9f9"><td colspan="2"><em>Opening Balance</em></td><td style="text-align:right">' + (d.openingBalance>0?fmtAmt(d.openingBalance):'') + '</td><td style="text-align:right">' + (d.openingBalance<0?fmtAmt(Math.abs(d.openingBalance)):'') + '</td></tr>');
+  w.document.write(rows);
+  w.document.write('<tr style="font-weight:bold;background:#f0f0f0"><td colspan="2">Total</td><td style="text-align:right">' + fmtAmt(d.apTotals.dr) + '</td><td style="text-align:right">' + fmtAmt(d.apTotals.cr) + '</td></tr>');
+  w.document.write('</tbody></table>');
+  if (advRows) {
+    w.document.write('<h3>Advances</h3><table><thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>' + advRows + '</tbody></table>');
+  }
+  w.document.write('</body></html>');
+  w.document.close();
+  w.print();
+}
+
 async function renderVendorLedger() {
   const vid = document.getElementById('vl-vendor').value;
   const fy  = document.getElementById('vl-fy').value;
@@ -1606,12 +1652,21 @@ async function renderVendorLedger() {
       </tbody></table></div>`;
   }
 
+  // Store data for export
+  window._vlData = { vendor, apRows, advRows, apTotals, advTotals, openingBalance, totalDebit, totalCredit };
+
   out.innerHTML = `
     <!-- Vendor header -->
     <div class="card">
       <div class="chd">
-        <h3>${vendor.vendor_name}</h3>
-        <span class="badge bx">${vendor.vendor_type||'General'}</span>
+        <div>
+          <h3>${vendor.vendor_name}</h3>
+          <span class="badge bx">${vendor.vendor_type||'General'}</span>
+        </div>
+        <div class="row" style="gap:6px">
+          <button class="btn btn-o btn-xs" onclick="exportVendorLedgerXLS()">⬇ XLS</button>
+          <button class="btn btn-o btn-xs" onclick="printVendorLedgerPDF()">🖨 PDF</button>
+        </div>
       </div>
       <div class="cbd">
         <div class="g2">
