@@ -106,6 +106,10 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 .rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mt2{margin-top:8px}.mt3{margin-top:12px}
 .hidden{display:none!important}
+.conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
+.conf-row:last-child{border-bottom:none}
+.conf-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;padding-top:1px}
+.conf-val{font-weight:600;text-align:right;color:var(--text)}
 #toast{position:fixed;bottom:calc(var(--nav-h)+10px);left:50%;transform:translateX(-50%);z-index:999;pointer-events:none;text-align:center}
 .ti{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:9px 16px;font-size:13px;white-space:nowrap;animation:tup .2s ease;margin-top:5px;display:inline-block}
 .ti-ok{border-left:3px solid var(--green)}.ti-err{border-left:3px solid var(--red)}
@@ -159,6 +163,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <img src="assets/logo-black.png" alt="Blue Door Architects" class="bd-logo bd-logo-light" style="height:36px;width:auto;display:none">
     </h1>
     <div class="top-pills">
+      <span class="pill" id="fy-pill" onclick="toggleMenu('fy-menu')">FY2627 ▾</span>
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
@@ -185,6 +190,11 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <span style="font-size:10px;color:var(--accent)" id="um-role">Supervisor</span>
       </button>
     </div>
+  </div>
+
+  <!-- FY menu -->
+  <div id="fy-menu" class="hidden" style="position:fixed;top:var(--top-h);left:8px;background:var(--card);border:1px solid var(--border);border-radius:10px;z-index:150;min-width:130px;padding:6px 0;box-shadow:0 4px 20px rgba(0,0,0,.3)">
+    <div id="fy-list"></div>
   </div>
 
   <!-- Company menu -->
@@ -328,25 +338,16 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
             <!-- Document upload — browse or camera -->
             <div class="field">
               <label>Document <span id="doc-req" style="color:var(--red);font-size:10px">* Required</span></label>
-              <div style="display:flex;gap:8px;flex-wrap:wrap">
-                <label style="flex:1;min-width:140px;display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:12px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s" id="doc-browse-label">
-                  📎 Browse File
-                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf,.pdf,.jpg,.jpeg,.png"
-                    style="display:none" onchange="onDocFileChange(this)">
+              <div style="display:flex;gap:8px;align-items:center">
+                <label id="sup-doc-label" style="flex:1;display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted);transition:border-color .15s">
+                  📎 Choose / Take Photo
+                  <input type="file" id="ae-doc-file" accept="image/*,application/pdf" style="display:none" onchange="supHandleDocSelect(this)">
                 </label>
-                <label style="display:flex;align-items:center;justify-content:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:12px;cursor:pointer;font-size:13px;color:var(--muted);min-width:120px" id="doc-camera-label">
-                  📷 Take Photo
-                  <input type="file" id="ae-doc-camera" accept="image/*" capture="environment"
-                    style="display:none" onchange="onDocFileChange(this)">
-                </label>
+                <button id="sup-doc-clear" onclick="supClearDoc()" style="display:none;flex-shrink:0;padding:9px 11px;background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.3);border-radius:8px;color:var(--red);font-size:13px;cursor:pointer;line-height:1">✕</button>
               </div>
-              <div id="doc-preview" style="margin-top:8px;font-size:12px;display:none;padding:8px 10px;border-radius:6px;background:rgba(34,197,94,.08);border:1px solid rgba(34,197,94,.2);color:var(--green)"></div>
-              <input type="hidden" id="ae-doc-b64">
-              <input type="hidden" id="ae-doc-name">
-              <div style="margin-top:8px">
-                <input type="url" id="ae-doc-url" placeholder="Or paste Drive / Cloud link (optional)" 
-                  style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:12px;outline:none">
-              </div>
+              <div id="doc-preview" style="font-size:12px;color:var(--accent);margin-top:6px;display:none"></div>
+              <input type="url" id="ae-doc-url" placeholder="Or paste Drive link (optional)"
+                style="width:100%;background:var(--bg);border:1px solid var(--border);color:var(--text);padding:8px 11px;border-radius:8px;font-size:12px;outline:none;margin-top:6px">
             </div>
 
             <button class="btn btn-p" style="width:100%;justify-content:center;margin-top:4px" onclick="submitEntry()">
@@ -667,12 +668,12 @@ function showView(v) {
 // MENUS
 // ═══════════════════════════════════════════════════════════════
 function toggleMenu(id) {
-  ['co-menu','user-menu'].forEach(m => {
+  ['fy-menu','co-menu','user-menu'].forEach(m => {
     if (m !== id) document.getElementById(m).classList.add('hidden');
   });
   document.getElementById(id).classList.toggle('hidden');
 }
-function closeMenus() { ['co-menu','user-menu'].forEach(m => document.getElementById(m).classList.add('hidden')); }
+function closeMenus() { ['fy-menu','co-menu','user-menu'].forEach(m => document.getElementById(m).classList.add('hidden')); }
 document.addEventListener('click', e => {
   if (!e.target.closest('#topbar') && !e.target.closest('[id$="-menu"]')) closeMenus();
 });
@@ -783,12 +784,37 @@ async function loadMasters() {
   fyList.forEach(fy => fySel.add(new Option(fy, fy)));
   fySel.value = curFY;
 
+  // FY pill dropdown
+  const fyList2 = document.getElementById('fy-list');
+  if (fyList2) {
+    fyList2.innerHTML = ['FY2627','FY2526','FY2425'].map(fy =>
+      '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setSupFY(''+fy+'')">' + fy + '</div>'
+    ).join('');
+  }
+
   // Vendor ledger selects — only allowed vendors
   populateVendorLedgerSelects();
 }
 
+function setSupFY(fy) {
+  curFY = fy;
+  const pill = document.getElementById('fy-pill');
+  if (pill) pill.textContent = fy + ' ▾';
+  closeMenus();
+  if (_curView === 'home') renderHome();
+  else if (_curView === 'petty') renderPetty();
+  else if (_curView === 'vendor') renderVendorLedger();
+  try { localStorage.setItem('bd_fy', fy); } catch(e) {}
+}
+
 function setCo(id) {
   curCo = id;
+  // Update entry form company if it's open
+  const coSel = document.getElementById('ae-co');
+  if (coSel) {
+    if (id) { coSel.value = id; coSel.disabled = true; }
+    else { coSel.disabled = false; }
+  }
   const pill = document.getElementById('co-pill');
   if (id) {
     const co = _cos.find(c => c.company_id === id);
@@ -1074,14 +1100,19 @@ function selectEntryType(key) {
     document.getElementById('ae-date').value = new Date().toISOString().slice(0,10);
   }
 
-  // Auto-fill company from topbar selection
+  // Auto-select company from topbar
   const coSel = document.getElementById('ae-co');
   if (curCo) {
     coSel.value = curCo;
-    coSel.closest('.field').querySelector('label').textContent = 'Company (auto-filled from topbar)';
+    coSel.disabled = true;
+    const coLbl = coSel.closest('.field')?.querySelector('label');
+    const coName2 = (_cos||[]).find(c=>c.company_id===curCo)?.company_name||curCo;
+    if (coLbl) coLbl.innerHTML = 'Company <span style="font-size:10px;color:var(--accent)">🔒 ' + coName2 + '</span>';
   } else {
     coSel.value = '';
-    coSel.closest('.field').querySelector('label').textContent = 'Company *';
+    coSel.disabled = false;
+    const coLbl = coSel.closest('.field')?.querySelector('label');
+    if (coLbl) coLbl.textContent = 'Company *';
   }
   document.getElementById('entry-form').classList.remove('hidden');
   document.getElementById('entry-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -1164,6 +1195,15 @@ function resetForm() {
   const prev = document.getElementById('doc-preview');
   if (prev) { prev.style.display = 'none'; prev.textContent = ''; }
   window._pendingDocFile = null;
+  supClearDoc();
+}
+
+
+function buildConfRows(rows) {
+  return rows.map(function(row) {
+    if (!row) return '';
+    return '<div class="conf-row"><span class="conf-label">' + row[0] + '</span><span class="conf-val' + (row[2] ? '" style="color:' + row[2] : '') + '">' + row[1] + '</span></div>';
+  }).join('');
 }
 
 async function submitEntry() {
@@ -1222,25 +1262,23 @@ async function submitEntry() {
     const el = document.getElementById('ep-modal-body');
     const modal = document.getElementById('ep-modal');
     if (el && modal) {
-      el.innerHTML = `
-        <div style="overflow-y:auto;max-height:50dvh;margin-bottom:12px"><div style="background:rgba(79,142,247,.06);border:1px solid rgba(79,142,247,.2);border-radius:10px;padding:14px;margin-bottom:14px">
-          <div style="font-size:15px;font-weight:700;margin-bottom:8px">${_selType.label}</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Date</div><div style="font-weight:600">${fmtDate(date)}</div></div>
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Amount</div><div style="font-weight:600;color:var(--green)">${fmtAmt(amount)}</div></div>
-            <div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Company</div><div>${coName}</div></div>
-            ${vendorName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Vendor</div><div>${vendorName}</div></div>`:''}
-            ${projName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Project</div><div>${projName}</div></div>`:''}
-            ${chName?`<div><div style="font-size:10px;color:var(--muted);text-transform:uppercase">Cost Head</div><div>${chName}</div></div>`:''}
-          </div>
-          ${narration?`<div style="margin-top:8px;font-size:12px;color:var(--muted)">${narration}</div>`:''}
-          ${window._pendingDocFile?`<div style="margin-top:8px;font-size:12px">📎 ${window._pendingDocFile.name}</div>`:''}
-        </div>
-        <div style="font-size:12px;color:var(--muted);margin-bottom:14px">Entry will be sent for admin approval.</div>
-        <div style="display:flex;gap:8px;flex-shrink:0;padding-top:10px;border-top:1px solid var(--border)">
-          <button class="btn btn-p" style="flex:1;justify-content:center" onclick="window._supConfirmed=true;closeEpModal()">Submit for Approval</button>
-          <button class="btn btn-o" onclick="window._supConfirmed=false;closeEpModal()">Cancel</button>
-        </div>`;
+      el.innerHTML =
+        buildConfRows([
+          ['Entry Type', _selType.label],
+          ['Date',       fmtDate(date)],
+          ['Amount',     fmtAmt(amount), 'var(--green)'],
+          ['Company',    coName],
+          vendorName ? ['Vendor',    vendorName] : null,
+          projName   ? ['Project',   projName]   : null,
+          chName     ? ['Cost Head', chName]      : null,
+          narration  ? ['Narration', narration]   : null,
+          window._pendingDocFile ? ['Document', '📎 ' + window._pendingDocFile.name] : null
+        ]) +
+        '<div style="font-size:12px;color:var(--muted);padding-top:10px">Entry will be sent for admin approval.</div>' +
+        '<div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);margin-top:8px">' +
+          '<button class="btn btn-p" style="flex:1;justify-content:center" onclick="window._supConfirmed=true;closeEpModal()">Submit for Approval</button>' +
+          '<button class="btn btn-o" onclick="window._supConfirmed=false;closeEpModal()">Cancel</button>' +
+        '</div>';
       modal.classList.remove('hidden');
       const origClose = closeEpModal;
       window._epOnClose = () => { resolve(!!window._supConfirmed); window._supConfirmed=false; };
@@ -1738,6 +1776,34 @@ function buildDriveFilename(entryType, vendorId, date) {
   return `${d}_${v}_${et}`;
 }
 
+
+// V2-style doc select for supervisor
+function supHandleDocSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  window._pendingDocFile = file;
+  const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  const preview = document.getElementById('doc-preview');
+  const labelEl = document.getElementById('sup-doc-label');
+  const clearBtn = document.getElementById('sup-doc-clear');
+  if (preview) { preview.textContent = '📎 ' + file.name + ' (' + sizeStr + ')'; preview.style.display = 'block'; }
+  if (labelEl) labelEl.style.borderColor = 'var(--accent)';
+  if (clearBtn) clearBtn.style.display = 'flex';
+  addDebug('Doc selected: ' + file.name, 'info');
+}
+
+function supClearDoc() {
+  window._pendingDocFile = null;
+  const fileInput = document.getElementById('ae-doc-file');
+  const preview = document.getElementById('doc-preview');
+  const labelEl = document.getElementById('sup-doc-label');
+  const clearBtn = document.getElementById('sup-doc-clear');
+  if (fileInput) fileInput.value = '';
+  if (preview) { preview.textContent = ''; preview.style.display = 'none'; }
+  if (labelEl) labelEl.style.borderColor = '';
+  if (clearBtn) clearBtn.style.display = 'none';
+}
+
 // Called when user picks a file — store file object, show preview, don't upload yet
 function onDocFileChange(input) {
   const file = input.files[0];
@@ -1802,6 +1868,15 @@ async function uploadFileToDrive(file, companyId, entryType, vendorName, date) {
 
 window.addEventListener('DOMContentLoaded', () => {
   checkSession();
+  // Restore saved FY
+  try {
+    const savedFY = localStorage.getItem('bd_fy');
+    if (savedFY) {
+      curFY = savedFY;
+      const pill = document.getElementById('fy-pill');
+      if (pill) pill.textContent = savedFY + ' ▾';
+    }
+  } catch(e) {}
   const theme = localStorage.getItem('bd_theme') || 'dark';
   const toggle = document.getElementById('theme-toggle');
   if (theme === 'light') {
