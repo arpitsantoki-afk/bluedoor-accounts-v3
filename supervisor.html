@@ -1155,55 +1155,14 @@ function onVbCostHeadChange() {
 }
 
 // Document file handler — read as base64, store locally
-function onDocFileChange(input) {
-  const file = input.files[0];
-  if (!file) return;
-  const preview = document.getElementById('doc-preview');
-  const b64el   = document.getElementById('ae-doc-b64');
-  const nameEl  = document.getElementById('ae-doc-name');
-  preview.style.display = 'block';
-  preview.textContent = '⏳ Reading…';
-  // Clear the other input
-  if (input.id === 'ae-doc-file') {
-    const cam = document.getElementById('ae-doc-camera');
-    if (cam) cam.value = '';
-  } else {
-    const fil = document.getElementById('ae-doc-file');
-    if (fil) fil.value = '';
-  }
-  const reader = new FileReader();
-  reader.onerror = () => {
-    preview.textContent = '✗ Failed to read file';
-    preview.style.background = 'rgba(239,68,68,.08)';
-    preview.style.border = '1px solid rgba(239,68,68,.2)';
-    preview.style.color = 'var(--red)';
-  };
-  reader.onload = e => {
-    b64el.value  = e.target.result;
-    nameEl.value = file.name;
-    preview.style.display = 'block';
-    preview.style.background = 'rgba(34,197,94,.08)';
-    preview.style.border = '1px solid rgba(34,197,94,.2)';
-    preview.style.color = 'var(--green)';
-    const sizeKB = (file.size / 1024).toFixed(1);
-    const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1) + ' MB' : sizeKB + ' KB';
-    preview.textContent = `✓ ${file.name} (${sizeStr}) — attached`;
-    addDebug(`Doc attached: ${file.name} ${sizeStr}`, 'ok');
-    // Highlight the label
-    const lbl = document.getElementById(input.id === 'ae-doc-file' ? 'doc-browse-label' : 'doc-camera-label');
-    if (lbl) lbl.style.borderColor = 'var(--green)';
-  };
-  reader.readAsDataURL(file);
-}
-
+// old onDocFileChange removed
 function resetForm() {
   _selType = null;
   document.getElementById('entry-form').classList.add('hidden');
   document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
   ['ae-amount','ae-narration','ae-doc-url',
    'ae-vendor-inp','ae-vendor-val','ae-proj-inp','ae-proj-val',
-   'ae-vendor-pc-inp','ae-vendor-pc-val','ae-proj-pc-inp','ae-proj-pc-val',
-   'ae-doc-b64','ae-doc-name'].forEach(id => {
+   'ae-vendor-pc-inp','ae-vendor-pc-val','ae-proj-pc-inp','ae-proj-pc-val'].forEach(id => {
     const el = document.getElementById(id);
     if (el) el.value = '';
   });
