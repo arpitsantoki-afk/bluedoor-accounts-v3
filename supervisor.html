@@ -107,6 +107,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 .rsb{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .mt2{margin-top:8px}.mt3{margin-top:12px}
 .hidden{display:none!important}
+.modal-actions{position:sticky;bottom:-20px;background:var(--card);border-top:1px solid var(--border);margin:16px -20px -20px;padding:12px 20px;display:flex;gap:8px}
 .conf-row{display:flex;justify-content:space-between;align-items:flex-start;padding:6px 0;border-bottom:1px solid var(--border);font-size:13px}
 .conf-row:last-child{border-bottom:none}
 .conf-label{color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.4px;flex-shrink:0;padding-top:1px}
@@ -1217,6 +1218,25 @@ function resetForm() {
 }
 
 
+
+function showConfirm(title, bodyHTML, okLabel, okClass) {
+  okLabel = okLabel || 'Confirm';
+  okClass = okClass || 'btn-s';
+  return new Promise(function(resolve) {
+    document.getElementById('confirm-modal-title').textContent = title;
+    document.getElementById('confirm-modal-body').innerHTML = bodyHTML;
+    var okBtn = document.getElementById('confirm-ok-btn');
+    okBtn.textContent = okLabel;
+    okBtn.className = 'btn ' + okClass;
+    okBtn.style.cssText = 'flex:1;justify-content:center';
+    okBtn.onclick = function() { closeConfirmModal(); resolve(true); };
+    document.getElementById('confirm-modal').classList.remove('hidden');
+  });
+}
+function closeConfirmModal() {
+  document.getElementById('confirm-modal').classList.add('hidden');
+}
+
 function buildConfRows(rows) {
   return rows.map(function(row) {
     if (!row) return '';
@@ -1230,9 +1250,8 @@ async function submitEntry() {
   const amount   = parseFloat(document.getElementById('ae-amount').value);
   const narration= document.getElementById('ae-narration').value.trim();
   const co       = document.getElementById('ae-co').value;
-  const docB64   = document.getElementById('ae-doc-b64').value;
-  const docName  = document.getElementById('ae-doc-name').value;
-  const docUrl   = document.getElementById('ae-doc-url').value.trim();
+  // ae-doc-b64 and ae-doc-name removed (new V2-style single-button doc input)
+  const docUrl   = (document.getElementById('ae-doc-url')?.value || '').trim();
 
   if (!date)   { toast('Date required', 'err'); return; }
   if (!amount || amount <= 0) { toast('Valid amount required', 'err'); return; }
@@ -1275,33 +1294,19 @@ async function submitEntry() {
   const projName   = (_projs||[]).find(p=>p.project_id===payload.project_id)?.project_name||'';
   const chName     = (_chs||[]).find(c=>c.ch_id===payload.cost_head_id)?.ch_name||'';
   const coName     = (_cos||[]).find(c=>c.company_id===payload.company_id)?.company_name||payload.company_id||'';
-  const confirmed  = await new Promise(resolve => {
-    // Show confirm modal
-    const el = document.getElementById('ep-modal-body');
-    const modal = document.getElementById('ep-modal');
-    if (el && modal) {
-      el.innerHTML =
-        buildConfRows([
-          ['Entry Type', _selType.label],
-          ['Date',       fmtDate(date)],
-          ['Amount',     fmtAmt(amount), 'var(--green)'],
-          ['Company',    coName],
-          vendorName ? ['Vendor',    vendorName] : null,
-          projName   ? ['Project',   projName]   : null,
-          chName     ? ['Cost Head', chName]      : null,
-          narration  ? ['Narration', narration]   : null,
-          window._pendingDocFile ? ['Document', '📎 ' + window._pendingDocFile.name] : null
-        ]) +
-        '<div style="font-size:12px;color:var(--muted);padding-top:10px">Entry will be sent for admin approval.</div>' +
-        '<div style="display:flex;gap:8px;padding-top:12px;border-top:1px solid var(--border);margin-top:8px">' +
-          '<button class="btn btn-p" style="flex:1;justify-content:center" onclick="window._supConfirmed=true;closeEpModal()">Submit for Approval</button>' +
-          '<button class="btn btn-o" onclick="window._supConfirmed=false;closeEpModal()">Cancel</button>' +
-        '</div>';
-      modal.classList.remove('hidden');
-      const origClose = closeEpModal;
-      window._epOnClose = () => { resolve(!!window._supConfirmed); window._supConfirmed=false; };
-    } else { resolve(true); }
-  });
+  const confirmed = await showConfirm('Confirm Submission',
+    buildConfRows([
+      ['Entry Type', _selType.label],
+      ['Date',       fmtDate(date)],
+      ['Amount',     fmtAmt(amount), 'var(--green)'],
+      ['Company',    coName],
+      vendorName ? ['Vendor',    vendorName] : null,
+      projName   ? ['Project',   projName]   : null,
+      chName     ? ['Cost Head', chName]      : null,
+      narration  ? ['Narration', narration]   : null,
+      window._pendingDocFile ? ['Document', '📎 ' + window._pendingDocFile.name] : null
+    ]) + '<div style="font-size:12px;color:var(--muted);margin-top:10px">Entry will be sent for admin approval.</div>',
+    'Submit for Approval', 'btn-p');
   if (!confirmed) return;
 
   addDebug(`submitEntry: ${_selType.et_key} ₹${amount}`);
