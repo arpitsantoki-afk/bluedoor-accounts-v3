@@ -454,13 +454,16 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 </div>
 
 <!-- Confirm Modal -->
-<div id="confirm-modal" class="modal-bg center hidden">
-  <div class="modal center">
-    <h3 id="confirm-title">Confirm</h3>
-    <p id="confirm-msg" style="font-size:13px;color:var(--muted);margin-bottom:18px"></p>
-    <div class="row" style="justify-content:flex-end;gap:8px">
-      <button class="btn btn-o" onclick="closeConfirm()">Cancel</button>
-      <button class="btn btn-d" id="confirm-ok-btn">Confirm</button>
+<div id="confirm-modal" class="modal-bg hidden">
+  <div class="modal">
+    <div class="rsb" style="margin-bottom:14px">
+      <h3 id="confirm-modal-title" style="font-size:15px;font-weight:700">Confirm Entry</h3>
+      <button style="background:none;border:none;color:var(--muted);font-size:20px;cursor:pointer" onclick="closeConfirmModal()">✕</button>
+    </div>
+    <div id="confirm-modal-body"></div>
+    <div class="modal-actions">
+      <button class="btn btn-o" onclick="closeConfirmModal()">Cancel</button>
+      <button class="btn btn-s" id="confirm-ok-btn" style="flex:1;justify-content:center">Save Entry</button>
     </div>
   </div>
 </div>
@@ -653,12 +656,12 @@ function toast(msg, type='ok') {
   setTimeout(()=>el.remove(), 3000);
 }
 function confirm2(title, msg, onOk) {
-  document.getElementById('confirm-title').textContent = title;
-  document.getElementById('confirm-msg').textContent = msg;
-  document.getElementById('confirm-ok-btn').onclick = () => { closeConfirm(); onOk(); };
-  document.getElementById('confirm-modal').classList.remove('hidden');
+  showConfirm(title,
+    '<div class="conf-row" style="border:none"><span style="font-size:13px;color:var(--muted)">' + msg + '</span></div>',
+    'Confirm', 'btn-d'
+  ).then(function(ok) { if (ok && onOk) onOk(); });
 }
-function closeConfirm() { document.getElementById('confirm-modal').classList.add('hidden'); }
+function closeConfirm() { closeConfirmModal(); }
 function showEditModal(title, bodyHTML, afterRender) {
   document.getElementById('edit-modal-title').textContent = title;
   document.getElementById('edit-modal-body').innerHTML = bodyHTML;
@@ -1158,6 +1161,25 @@ function onLedgerDateRange() {
     if (toISO) { const [y,m,d]=toISO.split('-'); const tt=document.getElementById('lf-to-txt'); if(tt) tt.value=d+'-'+m+'-'+y; }
     renderLedger();
   }
+}
+
+
+function viewDoc(url) {
+  if (!url || !url.startsWith('http')) { toast('No document attached', 'err'); return; }
+  var modal = document.getElementById('doc-viewer-modal');
+  var frame = document.getElementById('doc-viewer-frame');
+  var link  = document.getElementById('doc-viewer-link');
+  if (!modal || !frame) { window.open(url, '_blank'); return; }
+  var m = url.match(/\/file\/d\/([^\/]+)/);
+  frame.src = m ? 'https://drive.google.com/file/d/' + m[1] + '/preview' : url;
+  if (link) link.href = url;
+  modal.classList.remove('hidden');
+}
+function closeDocViewer() {
+  var modal = document.getElementById('doc-viewer-modal');
+  var frame = document.getElementById('doc-viewer-frame');
+  if (frame) frame.src = '';
+  if (modal) modal.classList.add('hidden');
 }
 
 async function renderLedger() {
