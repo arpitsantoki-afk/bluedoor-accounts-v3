@@ -1000,7 +1000,10 @@ async function renderHome() {
           <td><span class="badge bb">${et?.dr||'—'}</span>→<span class="badge bb">${et?.cr||'—'}</span></td>
           <td class="amt dr">${fmtAmt(p.amount)}</td>
           <td style="font-size:11px">${p.submitted_by}</td>
-          <td><button class="btn btn-s btn-xs" onclick="quickApprove('${p.entry_id}')">✓</button></td>
+          <td class="row" style="gap:4px">
+            <button class="btn btn-s btn-xs" onclick="quickApprove('${p.entry_id}')">✓</button>
+            <button class="btn btn-o btn-xs" onclick="adminEditPending('${p.entry_id}')">✏️</button>
+          </td>
         </tr>`}).join('')}
       </tbody></table></div>`:'<div class="empty">No pending entries</div>';
 
@@ -2238,13 +2241,22 @@ function renderBankPreview(){
 
 async function doImportBank(){
   if(!_bankRows.length){toast('No rows','err');return;}
+  // Must have a company selected
+  if(!curCo){
+    toast('Please select a company from the topbar before importing','err');
+    // Show confirm-style error
+    await showConfirm('Company Required',
+      '<p style="color:var(--muted);font-size:13px">Please select a specific company from the top bar before importing bank entries. Currently "All" is selected — we need to know which company these entries belong to.</p>',
+      'OK', 'btn-p');
+    return;
+  }
   const btn=document.getElementById('bank-import-btn');
   btn.disabled=true; btn.textContent='Importing...';
   let imported=0,failed=0;
   for(const row of _bankRows){
     const entry_type=row.deposit>0?'Bank_payment_received':'expense_bank';
     const amount=row.deposit>0?row.deposit:row.withdrawal;
-    const res=await api('submitPending',{date:row.date,fyid:curFY,entry_type,amount,narration:row.narration,company_id:_cos[0]?.company_id||''});
+    const res=await api('submitPending',{date:row.date,fyid:curFY,entry_type,amount,narration:row.narration,company_id:curCo});
     if(res.ok) imported++; else failed++;
   }
   btn.disabled=false; btn.textContent='Import to Pending Entries';
@@ -2787,6 +2799,90 @@ async function renderMore(tab){
 // Pending
 
 // ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
+
+async function adminEditPending(entryId) {
+  const p = window._pendingMap?.[entryId];
+  if (!p) {
+    // Not in map yet, fetch it
+    const res = await api('listPending', {fyid:curFY});
+    window._pendingMap = window._pendingMap || {};
+    (res.pending||[]).forEach(x => window._pendingMap[x.entry_id] = x);
+  }
+  const entry = window._pendingMap?.[entryId];
+  if (!entry) { toast('Entry not found', 'err'); return; }
+
+  const et  = _ets.find(t => t.et_key === entry.entry_type);
+  const hasDoc = entry.drive_file_url && entry.drive_file_url.startsWith('http');
+
+  showEditModal('Edit Pending Entry', `
+    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
+      <div style="font-weight:600">${et?.label||entry.entry_type}</div>
+      <div style="color:var(--muted)">${fmtDate(entry.date)} · ${fmtAmt(entry.amount)} · ${entry.submitted_by}</div>
+    </div>
+    <div class="g2">
+      <div class="field"><label>Date *</label><input type="date" id="ape-date" value="${entry.date}"></div>
+      <div class="field"><label>Amount ₹ *</label><input type="number" id="ape-amt" value="${entry.amount}" step="0.01"></div>
+    </div>
+    <div class="field"><label>Narration</label><textarea id="ape-narr" rows="2">${entry.narration||''}</textarea></div>
+    <div class="field"><label>Document</label>
+      ${hasDoc ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px">
+        <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px">📎 View current document</a>
+        <button class="btn btn-xs btn-d" onclick="document.getElementById('ape-del-doc').value='1';this.closest('div').style.display='none'">🗑</button>
+      </div>` : ''}
+      <input type="hidden" id="ape-del-doc" value="0">
+      <label id="ape-doc-label" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted)">
+        📎 ${hasDoc ? 'Replace Document' : 'Attach Document'}
+        <input type="file" id="ape-doc-file" accept="image/*,application/pdf" style="display:none" onchange="apeDocSelected(this)">
+      </label>
+      <div id="ape-doc-status" style="font-size:12px;color:var(--accent);margin-top:6px"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
+      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveAdminPendingEdit('${entryId}','${entry.drive_file_url||''}','${entry.entry_type||''}','${entry.company_id||''}')">Save Changes</button>
+    </div>`);
+  window._apeNewFile = null;
+}
+
+function apeDocSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  window._apeNewFile = file;
+  const sizeStr = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  const st = document.getElementById('ape-doc-status');
+  if (st) st.textContent = '📎 ' + file.name + ' (' + sizeStr + ')';
+  const lbl = document.getElementById('ape-doc-label');
+  if (lbl) lbl.style.borderColor = 'var(--accent)';
+}
+
+async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId) {
+  const date   = document.getElementById('ape-date')?.value;
+  const amount = parseFloat(document.getElementById('ape-amt')?.value);
+  const narr   = document.getElementById('ape-narr')?.value || '';
+  const delDoc = document.getElementById('ape-del-doc')?.value === '1';
+  if (!date || !amount) { toast('Date and amount required', 'err'); return; }
+
+  let newUrl = delDoc ? '' : oldUrl;
+  if (window._apeNewFile) {
+    const st = document.getElementById('ape-doc-status');
+    if (st) st.textContent = '⬆️ Uploading…';
+    const vendor = (_vendors||[]).find(v => v.vendor_id === window._pendingMap?.[entryId]?.vendor_id);
+    const uploaded = await uploadFileToDrive(window._apeNewFile, companyId, entryType, vendor?.vendor_name||'', date);
+    if (uploaded) { newUrl = uploaded; toast('📎 Document uploaded'); }
+  }
+
+  const r = await api('updatePending', {
+    entry_id: entryId, date, amount, narration: narr,
+    drive_file_url: newUrl, delete_file: delDoc && !window._apeNewFile
+  });
+  if (r.ok) {
+    toast('Pending entry updated ✓');
+    closeEditModal();
+    window._apeNewFile = null;
+    renderPending();
+    renderHome();
+  } else toast(r.error || 'Update failed', 'err');
+}
+
 async function confirmApproveById(entryId) {
   const p = window._pendingMap?.[entryId];
   if (!p) { approvePending(entryId); return; }
