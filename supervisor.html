@@ -1523,47 +1523,106 @@ function populateVendorLedgerSelects() {
 
 
 function exportVendorLedgerXLS() {
-  const d = window._vlData;
+  var d = window._vlData;
   if (!d) { toast('No data to export', 'err'); return; }
-  if (typeof XLSX === 'undefined') { toast('XLSX not loaded', 'err'); return; }
-  const rows = [];
-  // Opening balance
-  rows.push({ Date: '', Narration: 'Opening Balance', Debit: d.openingBalance > 0 ? d.openingBalance : '', Credit: d.openingBalance < 0 ? Math.abs(d.openingBalance) : '' });
-  // AP rows
-  d.apRows.forEach(r => rows.push({ Date: fmtDate(r.date), Narration: r.narration || r.ac_name || '', Debit: r.debit || '', Credit: r.credit || '' }));
-  // Totals
-  rows.push({ Date: '', Narration: 'TOTAL', Debit: d.apTotals.dr, Credit: d.apTotals.cr });
-  // Advances
-  if (d.advRows.length) {
-    rows.push({ Date: '', Narration: '--- Advances ---', Debit: '', Credit: '' });
-    d.advRows.forEach(r => rows.push({ Date: fmtDate(r.date), Narration: r.narration || '', Debit: r.debit || '', Credit: r.credit || '' }));
+  if (typeof XLSX === 'undefined') { toast('XLSX library not loaded', 'err'); return; }
+  var rows = [];
+  rows.push({ Date: '', Narration: 'Opening Balance',
+    'Debit (Paid)': d.openingBalance > 0 ? d.openingBalance : '',
+    'Credit (Bills)': d.openingBalance < 0 ? Math.abs(d.openingBalance) : '' });
+  d.apRows.forEach(function(r) {
+    rows.push({ Date: fmtDate(r.date), Narration: r.narration || r.ac_name || '',
+      'Debit (Paid)': r.debit || '', 'Credit (Bills)': r.credit || '' });
+  });
+  rows.push({ Date: '', Narration: 'TOTAL', 'Debit (Paid)': d.apTotals.dr, 'Credit (Bills)': d.apTotals.cr });
+  if (d.advRows && d.advRows.length) {
+    rows.push({ Date: '', Narration: '--- Advances ---', 'Debit (Paid)': '', 'Credit (Bills)': '' });
+    d.advRows.forEach(function(r) {
+      rows.push({ Date: fmtDate(r.date), Narration: r.narration || '',
+        'Debit (Paid)': r.debit || '', 'Credit (Bills)': r.credit || '' });
+    });
+    if (d.advTotals) rows.push({ Date: '', Narration: 'ADV TOTAL',
+      'Debit (Paid)': d.advTotals.dr, 'Credit (Bills)': d.advTotals.cr });
   }
-  const ws = XLSX.utils.json_to_sheet(rows);
-  const wb = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(wb, ws, d.vendor.vendor_name.substring(0,31));
-  XLSX.writeFile(wb, 'VendorLedger_' + d.vendor.vendor_id + '_' + curFY + '.xlsx');
+  var ws = XLSX.utils.json_to_sheet(rows);
+  var wb = XLSX.utils.book_new();
+  var sheetName = (d.vendor.vendor_name || 'Vendor').substring(0, 31);
+  XLSX.utils.book_append_sheet(wb, ws, sheetName);
+  XLSX.writeFile(wb, 'VendorLedger_' + (d.vendor.vendor_id || '') + '_' + curFY + '.xlsx');
   toast('XLS downloaded');
 }
 
-function printVendorLedgerPDF() {
-  const d = window._vlData;
-  if (!d) { toast('No data to export', 'err'); return; }
-  const rows = d.apRows.map(r => `<tr><td>${fmtDate(r.date)}</td><td>${r.narration||r.ac_name||'—'}</td><td style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td></tr>`).join('');
-  const advRows = d.advRows.map(r => `<tr><td>${fmtDate(r.date)}</td><td>${r.narration||'—'}</td><td style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td><td style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td></tr>`).join('');
-  const w = window.open('','_blank');
-  w.document.write('<html><head><title>Vendor Ledger</title><style>body{font-family:Arial;font-size:11px;margin:20px}table{width:100%;border-collapse:collapse;margin-bottom:16px}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f0f0}h2{margin:0 0 4px}h3{margin:8px 0 4px}</style></head><body>');
-  w.document.write('<h2>' + d.vendor.vendor_name + ' — Vendor Ledger</h2><p>FY: ' + curFY + '</p>');
-  w.document.write('<h3>Account Payable</h3><table><thead><tr><th>Date</th><th>Narration</th><th>Debit (Paid)</th><th>Credit (Bills)</th></tr></thead><tbody>');
-  w.document.write('<tr style="background:#f9f9f9"><td colspan="2"><em>Opening Balance</em></td><td style="text-align:right">' + (d.openingBalance>0?fmtAmt(d.openingBalance):'') + '</td><td style="text-align:right">' + (d.openingBalance<0?fmtAmt(Math.abs(d.openingBalance)):'') + '</td></tr>');
-  w.document.write(rows);
-  w.document.write('<tr style="font-weight:bold;background:#f0f0f0"><td colspan="2">Total</td><td style="text-align:right">' + fmtAmt(d.apTotals.dr) + '</td><td style="text-align:right">' + fmtAmt(d.apTotals.cr) + '</td></tr>');
-  w.document.write('</tbody></table>');
-  if (advRows) {
-    w.document.write('<h3>Advances</h3><table><thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead><tbody>' + advRows + '</tbody></table>');
-  }
-  w.document.write('</body></html>');
+function openPrintWindow(title, headerHtml, bodyHtml) {
+  const w = window.open('', '_blank');
+  if (!w) { toast('Pop-up blocked. Allow pop-ups for this site.', 'err'); return; }
+  w.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>' + title + '</title>'
+    + '<style>'
+    + '*{box-sizing:border-box}'
+    + 'body{font-family:Arial,sans-serif;font-size:11px;margin:0;padding:20px;color:#111}'
+    + '.report-header{text-align:center;border-bottom:2px solid #000;padding-bottom:10px;margin-bottom:16px}'
+    + '.report-header h1{font-size:16px;margin:0 0 3px}'
+    + '.report-header h2{font-size:13px;margin:0 0 2px;font-weight:normal}'
+    + '.report-header p{font-size:11px;color:#555;margin:2px 0}'
+    + 'table{width:100%;border-collapse:collapse;margin-bottom:16px}'
+    + 'th,td{border:1px solid #ccc;padding:5px 7px;vertical-align:top}'
+    + 'th{background:#f0f0f0;font-weight:600;text-align:left}'
+    + 'td.num,td.dr,td.cr{text-align:right}'
+    + 'td.dr{color:#16a34a}td.cr{color:#dc2626}'
+    + '.section-head td{background:#e8e8e8;font-weight:700}'
+    + '.total-row td{border-top:2px solid #000;font-weight:700}'
+    + '.subtotal-row td{font-weight:600;background:#f9f9f9}'
+    + 'h3{font-size:12px;margin:12px 0 4px;border-bottom:1px solid #ccc;padding-bottom:3px}'
+    + '@media print{.no-print{display:none}}'
+    + '</style></head><body>'
+    + '<div class="no-print" style="margin-bottom:12px;text-align:right">'
+    + '<button onclick="window.print()" style="padding:6px 14px;font-size:12px;cursor:pointer">Print / Save as PDF</button>'
+    + '</div>'
+    + '<div class="report-header">' + headerHtml + '</div>'
+    + bodyHtml
+    + '</body></html>');
   w.document.close();
-  w.print();
+}
+function printVendorLedgerPDF() {
+  var d = window._vlData;
+  if (!d) { toast('No data to export', 'err'); return; }
+  var coName = d.vendor.vendor_name || '';
+  var header = '<h1>Vendor Ledger</h1><h2>' + coName + '</h2>'
+    + '<p>FY: ' + curFY + ' &nbsp;|&nbsp; Type: ' + (d.vendor.vendor_type || 'General') + '</p>'
+    + '<p>Generated: ' + new Date().toLocaleString('en-IN') + '</p>';
+
+  var apRows = d.apRows.map(function(r) {
+    return '<tr><td>' + fmtDate(r.date) + '</td><td>' + (r.narration || r.ac_name || '—') + '</td>'
+      + '<td class="dr">' + (r.debit > 0 ? fmtAmt(r.debit) : '') + '</td>'
+      + '<td class="cr">' + (r.credit > 0 ? fmtAmt(r.credit) : '') + '</td></tr>';
+  }).join('');
+
+  var obRow = '<tr style="font-style:italic;color:#555"><td></td><td>Opening Balance</td>'
+    + '<td class="dr">' + (d.openingBalance > 0 ? fmtAmt(d.openingBalance) : '') + '</td>'
+    + '<td class="cr">' + (d.openingBalance < 0 ? fmtAmt(Math.abs(d.openingBalance)) : '') + '</td></tr>';
+
+  var totRow = '<tr class="total-row"><td colspan="2" style="text-align:right">Total</td>'
+    + '<td class="dr">' + fmtAmt(d.apTotals.dr) + '</td>'
+    + '<td class="cr">' + fmtAmt(d.apTotals.cr) + '</td></tr>';
+
+  var body = '<h3>Account Payable</h3>'
+    + '<table><thead><tr><th>Date</th><th>Narration</th><th>Debit (Paid)</th><th>Credit (Bills)</th></tr></thead>'
+    + '<tbody>' + obRow + apRows + '</tbody><tfoot>' + totRow + '</tfoot></table>';
+
+  if (d.advRows && d.advRows.length) {
+    var advRows = d.advRows.map(function(r) {
+      return '<tr><td>' + fmtDate(r.date) + '</td><td>' + (r.narration || '—') + '</td>'
+        + '<td class="dr">' + (r.debit > 0 ? fmtAmt(r.debit) : '') + '</td>'
+        + '<td class="cr">' + (r.credit > 0 ? fmtAmt(r.credit) : '') + '</td></tr>';
+    }).join('');
+    var advTot = '<tr class="total-row"><td colspan="2" style="text-align:right">Total</td>'
+      + '<td class="dr">' + fmtAmt(d.advTotals ? d.advTotals.dr : 0) + '</td>'
+      + '<td class="cr">' + fmtAmt(d.advTotals ? d.advTotals.cr : 0) + '</td></tr>';
+    body += '<h3>Advances</h3>'
+      + '<table><thead><tr><th>Date</th><th>Narration</th><th>Debit</th><th>Credit</th></tr></thead>'
+      + '<tbody>' + advRows + '</tbody><tfoot>' + advTot + '</tfoot></table>';
+  }
+
+  openPrintWindow('Vendor Ledger — ' + coName, header, body);
 }
 
 async function renderVendorLedger() {
