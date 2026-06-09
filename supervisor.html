@@ -791,10 +791,8 @@ async function loadMasters() {
     coList.innerHTML += `<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo('${c.company_id}')">${c.company_name}</div>`;
   });
 
-  // Cost heads
-  const chSel = document.getElementById('ae-ch');
-  while (chSel.options.length > 1) chSel.remove(1);
-  _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
+  // Cost heads — populated when entry type is selected (ae-ch-vb / ae-ch-pc)
+  // No generic ae-ch select in current HTML
 
   // FY selector
   const fyList = ['FY2627','FY2526','FY2425','FY2324'];
