@@ -1263,7 +1263,7 @@ async function submitEntry() {
   const payload = {
     date, fyid: curFY, entry_type: _selType.et_key,
     amount, narration, company_id: co,
-    drive_file_url: docUrl || docName || ''
+    drive_file_url: docUrl || ''
   };
 
   if (_selType.et_key === 'vendor_bill') {
