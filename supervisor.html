@@ -598,6 +598,7 @@ let _allowedVendors = []; // vendors whose ledger admin has enabled for supervis
 // API HELPER
 // ═══════════════════════════════════════════════════════════════
 async function api(action, params = {}) {
+  if (window._loggingOut) return { ok: false, error: 'logging out' };
   try {
     const r = await fetch(API, {
       method: 'POST',
@@ -605,8 +606,15 @@ async function api(action, params = {}) {
       body: JSON.stringify({ action, ...params })
     });
     const data = await r.json();
-    if (!data.ok) addDebug(`${action}: ${data.error || 'failed'}`, 'err');
-    else addDebug(`${action}: ok`, 'ok');
+    if (!data.ok) {
+      addDebug(`${action}: ${data.error || 'failed'}`, 'err');
+      // Redirect to login on 401 (session expired) but not during logout
+      if (data.error === 'Unauthorized' && action !== 'logout' && !window._loggingOut) {
+        localStorage.removeItem('bd_token');
+        localStorage.removeItem('bd_user');
+        window.location.href = '/bluedoor-accounts-v3/index.html';
+      }
+    } else addDebug(`${action}: ok`, 'ok');
     return data;
   } catch(e) {
     addDebug(`${action} network: ${e.message}`, 'err');
@@ -706,27 +714,28 @@ document.addEventListener('click', e => {
 // AUTH
 // ═══════════════════════════════════════════════════════════════
 async function doLogout() {
+  window._loggingOut = true;
   await api('logout').catch(() => {});
   localStorage.removeItem('bd_token');
   localStorage.removeItem('bd_user');
-  window.location.replace('index.html');
+  window.location.href = '/bluedoor-accounts-v3/index.html?logout=1';
 }
 
 function checkSession() {
   const token = localStorage.getItem('bd_token');
-  if (!token) { window.location.replace('index.html'); return; }
+  if (!token) { if (!window._loggingOut) window.location.href = '/bluedoor-accounts-v3/index.html'; return; }
   fetch(API, {
     method:'POST', headers:{'Content-Type':'application/json','X-Session-Token':token},
     body: JSON.stringify({action:'getMe'})
   }).then(r=>r.json()).then(data => {
     if (!data.ok || !data.user) {
       localStorage.removeItem('bd_token'); localStorage.removeItem('bd_user');
-      window.location.replace('index.html'); return;
+      if (!window._loggingOut) window.location.href = '/bluedoor-accounts-v3/index.html'; return;
     }
     const user = data.user;
     // Role guard — only Supervisor (or Admin visiting) allowed here
     if (user.role !== 'Supervisor' && user.role !== 'Admin') {
-      window.location.replace('index.html'); return;
+      if (!window._loggingOut) window.location.href = '/bluedoor-accounts-v3/index.html'; return;
     }
     S.token=token; S.user=user;
     initApp();
@@ -734,10 +743,10 @@ function checkSession() {
     const userRaw = localStorage.getItem('bd_user');
     try {
       const user = JSON.parse(userRaw);
-      if (!user) { window.location.replace('index.html'); return; }
+      if (!user) { if (!window._loggingOut) window.location.href = '/bluedoor-accounts-v3/index.html'; return; }
       S.token=token; S.user=user;
       initApp();
-    } catch(e) { window.location.replace('index.html'); }
+    } catch(e) { if (!window._loggingOut) window.location.href = '/bluedoor-accounts-v3/index.html'; }
   });
 }
 
