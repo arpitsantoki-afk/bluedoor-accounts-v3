@@ -242,12 +242,17 @@ async function handleListCompanies(env) {
   const rows = await env.DB.prepare('SELECT * FROM companies ORDER BY company_name').all();
   return ok({ companies: rows.results });
 }
-async function handleAddCompany({ company_name, drive_folder = '' }, sess, env) {
+async function handleAddCompany({ company_id, company_name, drive_folder = '' }, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
   if (!company_name) return err('company_name required');
-  const cid = `CO${Date.now()}`;
-  await env.DB.prepare('INSERT INTO companies (company_id, company_name, drive_folder, active) VALUES (?,?,?,1)').bind(cid, company_name, drive_folder).run();
-  return ok({ company_id: cid });
+  if (!company_id) return err('company_id required');
+  // Validate: alphanumeric + underscores only, 2-20 chars
+  if (!/^[A-Z0-9_]{2,20}$/.test(company_id)) return err('Company ID must be 2-20 uppercase letters, numbers or underscores (e.g. BDD, TPG_2)');
+  // Check uniqueness
+  const existing = await env.DB.prepare('SELECT company_id FROM companies WHERE company_id = ?').bind(company_id).first();
+  if (existing) return err('Company ID "' + company_id + '" already exists — choose a different ID');
+  await env.DB.prepare('INSERT INTO companies (company_id, company_name, drive_folder, active) VALUES (?,?,?,1)').bind(company_id, company_name, drive_folder).run();
+  return ok({ company_id });
 }
 async function handleUpdateCompany({ company_id, company_name, drive_folder, active }, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
