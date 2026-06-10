@@ -989,8 +989,9 @@ async function renderHome() {
           <td class="amt dr">${fmtAmt(p.amount)}</td>
           <td style="font-size:11px">${p.submitted_by}</td>
           <td class="row" style="gap:4px">
-            <button class="btn btn-s btn-xs" onclick="quickApprove('${p.entry_id}')">✓</button>
-            <button class="btn btn-o btn-xs" onclick="adminEditPending('${p.entry_id}')">✏️</button>
+            <button class="btn btn-s btn-xs" onclick="confirmApproveById('${p.entry_id}')" title="Approve">✓</button>
+            <button class="btn btn-o btn-xs" onclick="adminEditPending('${p.entry_id}')" title="Edit">✏️</button>
+            <button class="btn btn-d btn-xs" onclick="confirmRejectById('${p.entry_id}')" title="Reject">✗</button>
           </td>
         </tr>`}).join('')}
       </tbody></table></div>`:'<div class="empty">No pending entries</div>';
@@ -2971,32 +2972,41 @@ async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId, isBan
 }
 
 async function confirmApproveById(entryId) {
+  // Ensure entry is in map
+  if (!window._pendingMap?.[entryId]) {
+    const res = await api('listPending', { fyid: curFY });
+    window._pendingMap = window._pendingMap || {};
+    (res.pending || []).forEach(x => window._pendingMap[x.entry_id] = x);
+  }
   const p = window._pendingMap?.[entryId];
   if (!p) { approvePending(entryId); return; }
+
   const entryEt = _ets.find(t => t.et_key === p.entry_type);
-  const vendor  = _vendors.find(v => v.vendor_id === p.vendor_id);
-  const proj    = _projs.find(pr => pr.project_id === p.project_id);
-  const ch      = _chs.find(c => c.ch_id === p.cost_head_id);
-  const coObj   = _cos.find(c => c.company_id === p.company_id);
+  const vendor  = (_vendors || []).find(v => v.vendor_id === p.vendor_id);
+  const proj    = (_projs   || []).find(pr => pr.project_id === p.project_id);
+  const ch      = (_chs     || []).find(c => c.ch_id === p.cost_head_id);
+  const coObj   = (_cos     || []).find(c => c.company_id === p.company_id);
   const hasDoc  = p.drive_file_url && p.drive_file_url.startsWith('http');
-  const ok = await showConfirm('Confirm Approval',
-    buildConfRows([
-      ['Entry Type',    entryEt?.label||p.entry_type],
-      ['Date',          fmtDate(p.date)],
-      ['Amount',        fmtAmt(p.amount), 'var(--green)'],
-      ['Company',       coObj?.company_name||p.company_id||'—'],
-      ['Submitted by',  p.submitted_by||'—'],
-      vendor  ? ['Vendor',    vendor.vendor_name] : null,
-      proj    ? ['Project',   proj.project_name] : null,
-      ch      ? ['Cost Head', ch.ch_name] : null,
-      p.narration ? ['Narration', p.narration] : null,
-      ['DR Account', entryEt?.dr||'—', 'var(--green)'],
-      ['CR Account', entryEt?.cr||'—', 'var(--red)'],
-      hasDoc  ? ['Document', '📎 Attached — click to view'] : null
-    ]),
-    '✓ Approve', 'btn-s');
+
+  const rows = [
+    ['Entry Type',   entryEt?.label || p.entry_type],
+    ['Date',         fmtDate(p.date)],
+    ['Amount',       fmtAmt(p.amount), 'var(--green)'],
+    ['Company',      coObj?.company_name || p.company_id || '—'],
+    ['Submitted by', p.submitted_by || '—'],
+    vendor  ? ['Vendor',    vendor.vendor_name]  : null,
+    proj    ? ['Project',   proj.project_name]   : null,
+    ch      ? ['Cost Head', ch.ch_name]          : null,
+    p.narration ? ['Narration', p.narration]     : null,
+    ['DR Account',   entryEt?.dr || '—', 'var(--green)'],
+    ['CR Account',   entryEt?.cr || '—', 'var(--red)'],
+    hasDoc ? ['Document', '<a href="' + p.drive_file_url + '" target="_blank" style="color:var(--accent)">📎 View attached document</a>'] : null
+  ].filter(Boolean);
+
+  const ok = await showConfirm('Confirm Approval', buildConfRows(rows), '✓ Approve', 'btn-s');
   if (ok) approvePending(entryId);
 }
+
 
 
 async function renderDocs() {
@@ -3156,30 +3166,51 @@ async function renderPending(){
       </div>
       ${isPending?`<div class="row mt2" style="gap:6px">
         <button class="btn btn-s btn-sm" onclick="confirmApproveById('${p.entry_id}')">✓ Approve</button>
-        <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
+        <button class="btn btn-o btn-sm" onclick="adminEditPending('${p.entry_id}')">✏️ Edit</button>
+        <button class="btn btn-d btn-sm" onclick="confirmRejectById('${p.entry_id}')">✗ Reject</button>
         <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
       </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
     </div></div>`;}).join('');
 }
 async function confirmRejectById(entryId) {
+  if (!window._pendingMap?.[entryId]) {
+    const res = await api('listPending', { fyid: curFY });
+    window._pendingMap = window._pendingMap || {};
+    (res.pending || []).forEach(x => window._pendingMap[x.entry_id] = x);
+  }
   const p = window._pendingMap?.[entryId];
   const entryEt = p ? _ets.find(t => t.et_key === p.entry_type) : null;
-  const ok = await showConfirm('Reject Entry',
-    buildConfRows([
-      ['Entry Type', entryEt?.label || (p?.entry_type||'')],
-      ['Date',       p ? fmtDate(p.date) : ''],
-      ['Amount',     p ? fmtAmt(p.amount) : '', 'var(--red)'],
-      p?.narration ? ['Narration', p.narration] : null
-    ].filter(Boolean)),
-    'Reject', 'btn-d');
+  const vendor  = p ? (_vendors || []).find(v => v.vendor_id === p.vendor_id) : null;
+  const proj    = p ? (_projs   || []).find(pr => pr.project_id === p.project_id) : null;
+  const coObj   = p ? (_cos     || []).find(c => c.company_id === p.company_id) : null;
+
+  const rows = [
+    ['Entry Type',   entryEt?.label || (p?.entry_type || '')],
+    ['Date',         p ? fmtDate(p.date) : ''],
+    ['Amount',       p ? fmtAmt(p.amount) : '', 'var(--red)'],
+    ['Company',      coObj?.company_name || p?.company_id || '—'],
+    ['Submitted by', p?.submitted_by || '—'],
+    vendor ? ['Vendor',  vendor.vendor_name] : null,
+    proj   ? ['Project', proj.project_name]  : null,
+    p?.narration ? ['Narration', p.narration] : null
+  ].filter(Boolean);
+
+  const body = buildConfRows(rows)
+    + '<div class="field" style="margin-top:12px"><label style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px">Reject Reason <span style="color:var(--muted);font-size:10px">(optional)</span></label>'
+    + '<input id="reject-reason-input" placeholder="e.g. Missing document, wrong amount…" style="width:100%;padding:9px 11px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;margin-top:4px"></div>';
+
+  const ok = await showConfirm('Reject Entry', body, '✗ Reject', 'btn-d');
   if (!ok) return;
-  const r = await api('rejectPending', { entry_id: entryId });
+
+  const reason = document.getElementById('reject-reason-input')?.value?.trim() || '';
+  const r = await api('rejectPending', { entry_id: entryId, reject_reason: reason });
   if (r.ok) {
     toast('Entry rejected');
     renderHome();
     renderPending();
   } else toast(r.error || 'Reject failed', 'err');
 }
+
 
 async function approvePending(entryId) {
   const p = window._pendingMap?.[entryId];
