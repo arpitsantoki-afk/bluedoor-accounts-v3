@@ -62,6 +62,7 @@ async function route(action, params, req, env, ctx) {
   if (resp) return resp;
   switch (action) {
     case 'getMe': return ok({ user: sess });
+    case 'getMyProfile': return handleGetMyProfile(params, sess, env);
     case 'listUsers': return handleListUsers(params, sess, env);
     case 'addUser': return handleAddUser(params, sess, env);
     case 'updateUser': return handleUpdateUser(params, sess, env);
@@ -194,6 +195,14 @@ async function handleLogout({ token }, req, env) {
 }
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ USERS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
+async function handleGetMyProfile(params, sess, env) {
+  const user = await env.DB.prepare('SELECT user_id, username, role, companies, google_email, allowed_vendors FROM users WHERE user_id = ?').bind(sess.user_id).first();
+  if (!user) return err('User not found', 404);
+  let companies = []; try { companies = JSON.parse(user.companies || '[]'); } catch(e) {}
+  let allowed_vendors = []; try { allowed_vendors = JSON.parse(user.allowed_vendors || '[]'); } catch(e) {}
+  return ok({ user: { ...user, companies, allowed_vendors } });
+}
+
 async function handleListUsers(params, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
   const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies, google_email, allowed_vendors FROM users ORDER BY username').all();
