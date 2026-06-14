@@ -1575,16 +1575,18 @@ function populateVendorLedgerSelects() {
   const curVal = sel.value;
   while (sel.options.length > 1) sel.remove(1);
 
-  // Only show vendors that admin has enabled for this supervisor
-  // Convention: if _allowedVendors is empty, show none (strict). Admin must explicitly allow.
-  // The allowed vendors list comes from S.user.allowed_vendors (set by admin via updateUser)
-  const allowed = S.user?.allowed_vendors || [];
+  // Use _allowedVendors — refreshed from DB on every loadMasters (not stale session)
+  // Parse if string (fallback for old sessions)
+  let allowed = _allowedVendors;
+  if (!Array.isArray(allowed)) {
+    try { allowed = JSON.parse(allowed || '[]'); } catch(e) { allowed = []; }
+  }
   const visibleVendors = allowed.length > 0
     ? _vendors.filter(v => allowed.includes(v.vendor_id))
     : [];
 
   if (visibleVendors.length === 0) {
-    sel.innerHTML = '<option value="">No vendors enabled — contact admin</option>';
+    sel.innerHTML = '<option value="">— No vendor ledgers assigned —</option>';
     document.getElementById('vl-content').innerHTML = '<div class="empty">No vendor ledgers have been enabled for your account.<br>Ask an admin to enable access.</div>';
     return;
   }
