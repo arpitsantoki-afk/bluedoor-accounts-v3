@@ -762,28 +762,37 @@ async function initApp() {
 }
 
 async function loadMasters() {
-  const [cos, vendors, chs, ets, projs, coa] = await Promise.all([
+  const [cos, vendors, chs, ets, projs, coa, profileRes] = await Promise.all([
     api('listCompanies'),
     api('listVendors'),
     api('listCostHeads'),
     api('listEntryTypes'),
     api('listProjects', { fyid: curFY }),
-    api('listAccounts')
+    api('listAccounts'),
+    api('getMyProfile')   // fresh from DB — picks up admin changes without re-login
   ]);
-  _cos = cos.companies || [];
+  _cos     = cos.companies   || [];
   _vendors = vendors.vendors || [];
-  _chs = chs.cost_heads || [];
-  _ets = ets.entry_types || [];
-  _projs = projs.projects || [];
-  _coa = coa.accounts || [] || [];
+  _chs     = chs.cost_heads  || [];
+  _ets     = ets.entry_types || [];
+  _projs   = projs.projects  || [];
+  _coa     = coa.accounts    || [];
 
-  // Load allowed vendors from user detail (stored in companies field as workaround,
-  // or via a convention: vendor IDs whose ledger is visible stored as KV in supervisor profile)
-  // For now, load all vendors — admin controls visibility via a separate flag in vendor details
-  // We'll read allowed vendors from the user's companies array as a special field
-  // Convention: admin sets supervisor companies array; we also check a special "allowed_vendors" 
-  // field that admin can populate via the admin panel update user flow
-  _allowedVendors = S.user?.allowed_vendors || [];
+  // Refresh allowed_vendors from DB (not stale session)
+  if (profileRes.ok && profileRes.user) {
+    const fresh = profileRes.user.allowed_vendors;
+    _allowedVendors = Array.isArray(fresh) ? fresh : [];
+    // Also patch S.user so rest of app sees updated values
+    if (S.user) S.user.allowed_vendors = _allowedVendors;
+  } else {
+    // Fallback to session value — parse if string
+    const raw = S.user?.allowed_vendors;
+    if (Array.isArray(raw)) {
+      _allowedVendors = raw;
+    } else {
+      try { _allowedVendors = JSON.parse(raw || '[]'); } catch(e) { _allowedVendors = []; }
+    }
+  }
 
   // Populate company dropdowns
   const coSel = ['ae-co', 'pc-co', 'vl-co'];
@@ -801,32 +810,26 @@ async function loadMasters() {
 
   // Co pill dropdown
   const coList = document.getElementById('co-list');
-  coList.innerHTML = '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo(\'\')">All Companies</div>';
-  _cos.forEach(c => {
-    coList.innerHTML += `<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo('${c.company_id}')">${c.company_name}</div>`;
-  });
-
-  // Cost heads — populated when entry type is selected (ae-ch-vb / ae-ch-pc)
-  // No generic ae-ch select in current HTML
-
-  // FY selector
-  const fyList = ['FY2627','FY2526','FY2425','FY2324'];
-  const fySel = document.getElementById('vl-fy');
-  fySel.innerHTML = '';
-  fyList.forEach(fy => fySel.add(new Option(fy, fy)));
-  fySel.value = curFY;
-
-  // FY pill dropdown
-  const fyList2 = document.getElementById('fy-list');
-  if (fyList2) {
-    fyList2.innerHTML = ['FY2627','FY2526','FY2425'].map(function(fy) {
-        return '<div style="padding:8px 14px;font-size:13px;cursor:pointer" data-fy="'+fy+'" onclick="setSupFY(this.dataset.fy)">' + fy + '</div>';
-      }).join('');
+  if (coList) {
+    coList.innerHTML = '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo(\'\')">All Companies</div>';
+    _cos.forEach(c => {
+      coList.innerHTML += '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setCo(\'' + c.company_id + '\')">' + c.company_name + '</div>';
+    });
   }
 
-  // Vendor ledger selects — only allowed vendors
-  populateVendorLedgerSelects();
+  // FY selector
+  const fyList = document.getElementById('fy-list');
+  if (fyList) {
+    const fys = ['FY2627','FY2526','FY2425'];
+    fyList.innerHTML = fys.map(fy =>
+      '<div style="padding:8px 14px;font-size:13px;cursor:pointer" onclick="setFY(\'' + fy + '\')">' + fy + '</div>'
+    ).join('');
+  }
+
+  // Populate vendor dropdown for ledger — only allowed vendors
+  populateVendorLedgerDropdown();
 }
+
 
 function setSupFY(fy) {
   curFY = fy;
