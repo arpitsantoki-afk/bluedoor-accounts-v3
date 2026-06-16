@@ -1038,10 +1038,10 @@ async function showEditEntry(entryId) {
           <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>
           <button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑 Remove</button>
         </div>` : `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>`}
-      <div id="ee-doc-new" style="${hasDoc?'display:none':''}">
+      <div id="ee-doc-new">
         <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">
-          📎 Attach new document
-          <input type="file" id="ee-doc-file" accept="image/*,application/pdf" style="display:none" onchange="eeDocSelected(this)">
+          📎 ${hasDoc ? 'Replace document' : 'Attach document'}
+          <input type="file" id="ee-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="eeDocSelected(this)">
         </label>
         <div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
       </div>
@@ -1063,11 +1063,14 @@ function eeDeleteDoc() {
 function eeDocSelected(input) {
   const file = input.files[0];
   if (!file) return;
+  window._eeNewFile = file;
   const s = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
   const st = document.getElementById('ee-doc-status');
-  if (st) { st.textContent = `📎 ${file.name} (${s}) — will upload on save`; st.style.color = 'var(--accent)'; }
-  window._eeNewFile = file;
+  if (st) { st.textContent = '📎 ' + file.name + ' (' + s + ') — ready to upload'; st.style.color = 'var(--accent)'; }
+  const lbl = input.closest('label');
+  if (lbl) lbl.style.borderColor = 'var(--accent)';
 }
+
 
 async function saveEditEntry(entryId, oldUrl) {
   const narration = document.getElementById('ee-narr')?.value || '';
@@ -2939,6 +2942,17 @@ async function adminEditPending(entryId) {
 
   showEditModal('Edit Pending Entry', body);
   window._apeNewFile = null;
+}
+
+function apeDocSelected(input) {
+  const file = input.files[0];
+  if (!file) return;
+  window._apeNewFile = file;
+  const s = file.size > 1048576 ? (file.size/1048576).toFixed(1)+' MB' : (file.size/1024).toFixed(1)+' KB';
+  const st = document.getElementById('ape-doc-status');
+  if (st) { st.textContent = '📎 ' + file.name + ' (' + s + ') — will upload on save'; st.style.color = 'var(--accent)'; }
+  const lbl = document.getElementById('ape-doc-label');
+  if (lbl) lbl.style.borderColor = 'var(--accent)';
 }
 
 async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId, isBankImport) {
