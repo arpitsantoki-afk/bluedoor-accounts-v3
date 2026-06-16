@@ -592,7 +592,7 @@ async function handleDeletePending({ entry_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ LEDGER & REPORTS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleGetLedger({ fyid, ac_code, company_id, date_from, date_to }, sess, env) {
-  let q = 'SELECT l.id, l.entry_id, l.date, l.fyid, l.ac_code, l.ac_name, l.dr_cr, l.debit, l.credit, l.project_id, l.cost_head_id, l.vendor_id, l.narration, l.created_by, l.created_at, l.company_id, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE 1=1';
+  let q = 'SELECT l.*, e.drive_file_url AS doc_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE 1=1';
   const vals = [];
   if (fyid)       { q += ' AND l.fyid = ?';       vals.push(fyid); }
   if (ac_code)    { q += ' AND l.ac_code = ?';    vals.push(ac_code); }
@@ -684,7 +684,7 @@ async function handleGetVendorReport({ vendor_id, fyid, company_id }, sess, env)
   const entries = await env.DB.prepare(q + ' ORDER BY date ASC').bind(...vals).all();
 
   // Get ledger rows for this vendor (DR and CR sides)
-  let lq = 'SELECT l.id, l.entry_id, l.date, l.fyid, l.ac_code, l.ac_name, l.dr_cr, l.debit, l.credit, l.project_id, l.cost_head_id, l.vendor_id, l.narration, l.created_by, l.created_at, l.company_id, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE l.vendor_id = ?'; const lvals = [vendor_id];
+  let lq = 'SELECT l.*, e.drive_file_url AS doc_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE l.vendor_id = ?'; const lvals = [vendor_id];
   if (fyid) { lq += ' AND fyid = ?'; lvals.push(fyid); }
   if (company_id) { lq += ' AND company_id = ?'; lvals.push(company_id); }
   const ledger = await env.DB.prepare(lq + ' ORDER BY date ASC').bind(...lvals).all();
