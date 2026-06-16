@@ -460,7 +460,7 @@ async function handleAddEntry(params, sess, env) {
   });
 }
 async function handleUpdateEntry(params, sess, env) {
-  const { entry_id, date, project_id, cost_head_id, vendor_id, amount, narration } = params;
+  const { entry_id, date, project_id, cost_head_id, vendor_id, amount, narration, drive_file_url, delete_file } = params;
   if (!entry_id) return err('entry_id required');
   const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
   if (!existing) return err('Entry not found', 404);
@@ -472,6 +472,7 @@ async function handleUpdateEntry(params, sess, env) {
   if (vendor_id !== undefined) { fields.push('vendor_id = ?'); vals.push(vendor_id); }
   if (amount !== undefined) { fields.push('amount = ?'); vals.push(amount); }
   if (narration !== undefined) { fields.push('narration = ?'); vals.push(narration); }
+  if (drive_file_url !== undefined) { fields.push('drive_file_url = ?'); vals.push(drive_file_url); }
   if (!fields.length) return err('Nothing to update');
   vals.push(entry_id);
   await env.DB.prepare(`UPDATE entries SET ${fields.join(', ')} WHERE entry_id = ?`).bind(...vals).run();
@@ -522,6 +523,7 @@ async function handleUpdatePending({ entry_id, date, amount, narration, cost_hea
   if (date !== undefined) { fields.push('date = ?'); vals.push(date); }
   if (amount !== undefined) { fields.push('amount = ?'); vals.push(amount); }
   if (narration !== undefined) { fields.push('narration = ?'); vals.push(narration); }
+  if (drive_file_url !== undefined) { fields.push('drive_file_url = ?'); vals.push(drive_file_url); }
   if (cost_head_id !== undefined) { fields.push('cost_head_id = ?'); vals.push(cost_head_id); }
   if (project_id !== undefined) { fields.push('project_id = ?'); vals.push(project_id); }
   if (vendor_id !== undefined) { fields.push('vendor_id = ?'); vals.push(vendor_id); }
