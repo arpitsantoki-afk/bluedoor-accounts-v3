@@ -1200,6 +1200,11 @@ async function deleteEntry(entryId, narr, amt) {
   else toast(r.error || 'Delete failed', 'err');
 }
 
+function viewDocBtn(entryId, rowDocUrl) {
+  const url = rowDocUrl || (window._entryDocMap && window._entryDocMap[entryId]) || '';
+  if (!url.startsWith('http')) return '';
+  return '<button class="btn btn-o btn-xs" onclick="viewDoc(\''+url+'\')">&#128206;</button>';
+}
 async function renderLedger() {
   const tbody=document.getElementById('ledger-body');
   tbody.innerHTML='<tr><td colspan="6" class="empty"><span class="spin"></span></td></tr>';
@@ -1252,7 +1257,7 @@ async function renderLedger() {
       <td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.narration||'—'}</td>
       <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
       <td class="amt cr" style="text-align:right">${r.credit>0?fmtAmt(r.credit):''}</td>
-      <td style="white-space:nowrap;min-width:58px">${isFirst?((r.drive_file_url||window._entryDocMap?.[r.entry_id]||'').startsWith('http'))?('<button class="btn btn-o btn-xs" onclick="viewDoc(\'' + (r.drive_file_url||window._entryDocMap?.[r.entry_id]) + '\')">📎</button>'):''}
+      <td style="white-space:nowrap;min-width:58px">${isFirst?viewDocBtn(r.entry_id,r.drive_file_url):''
         <button class="btn btn-o btn-xs" onclick="showEditEntry('${r.entry_id}')" title="Edit">
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M11 4H4a2 2 0 00-2 2v14a2 2 0 002 2h14a2 2 0 002-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 013 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
         </button>
