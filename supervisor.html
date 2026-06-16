@@ -479,11 +479,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="chd"><h3>Add Vendor</h3></div>
         <div class="cbd">
           <div class="g2">
-            <div class="field">
-              <label>Vendor ID *</label>
-              <input id="nv-id" placeholder="e.g. V001" oninput="this.value=this.value.toUpperCase()">
-            </div>
-            <div class="field">
+                        <div class="field">
               <label>Type</label>
               <select id="nv-type">
                 <option value="">General</option>
@@ -1768,7 +1764,7 @@ async function renderVendorLedger() {
           running = running + cr - dr;
           return `<tr>
             <td style="white-space:nowrap">${fmtDate(l.date)}</td>
-            <td style="font-size:11px;color:var(--muted)">${l.narration||l.ac_name||'—'}</td>
+            <td style="font-size:11px;color:var(--muted)">${(l.narration||l.ac_name||'—') + (l.drive_file_url&&l.drive_file_url.startsWith('http') ? ' <a href="'+l.drive_file_url+'" target="_blank" style="color:var(--accent);font-size:10px">📎</a>' : '')}</td>
             <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
             <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
             <td class="amt" style="color:${running>=0?'var(--red)':'var(--green)'}">
@@ -1872,26 +1868,22 @@ async function renderVendorLedger() {
 // ADD VENDOR
 // ═══════════════════════════════════════════════════════════════
 async function addVendor() {
-  const vid = document.getElementById('nv-id').value.trim();
-  const name = document.getElementById('nv-name').value.trim();
-  const type = document.getElementById('nv-type').value;
-  const contact = document.getElementById('nv-contact').value.trim();
-  const gstin = document.getElementById('nv-gstin').value.trim();
-  const details = document.getElementById('nv-details').value.trim();
-
-  if (!vid || !name) { toast('ID and Name required', 'err'); return; }
-
-  const r = await api('addVendor', { vendor_id: vid, vendor_name: name, vendor_type: type, contact, gstin, details });
+  const name    = document.getElementById('nv-name')?.value.trim() || '';
+  const type    = document.getElementById('nv-type')?.value || '';
+  const contact = document.getElementById('nv-contact')?.value.trim() || '';
+  const gstin   = document.getElementById('nv-gstin')?.value.trim() || '';
+  const details = document.getElementById('nv-details')?.value.trim() || '';
+  if (!name) { toast('Vendor name is required', 'err'); return; }
+  const r = await api('addVendor', { vendor_name: name, vendor_type: type, contact, gstin, details });
   if (r.ok) {
-    toast('Vendor added ✓');
-    ['nv-id','nv-name','nv-contact','nv-gstin','nv-details'].forEach(id => document.getElementById(id).value = '');
-    document.getElementById('nv-type').value = '';
+    toast('Vendor added');
+    ['nv-name','nv-contact','nv-gstin','nv-details'].forEach(id => { const el = document.getElementById(id); if (el) el.value = ''; });
+    const t = document.getElementById('nv-type'); if (t) t.value = '';
     await loadMasters();
     loadVendorList();
-  } else {
-    toast(r.error || 'Error adding vendor', 'err');
-  }
+  } else toast(r.error || 'Error adding vendor', 'err');
 }
+
 
 async function loadVendorList() {
   const out = document.getElementById('vendor-list');
