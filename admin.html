@@ -1015,43 +1015,83 @@ async function renderHome() {
 async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
 
 async function showEditEntry(entryId) {
-  const res = await api('listEntries', {fyid:curFY, limit:1000});
-  const entry = (res.entries||[]).find(e=>e.entry_id===entryId);
-  if (!entry) { toast('Entry not found','err'); return; }
-  const et = _ets.find(t=>t.et_key===entry.entry_type);
-  const hasDoc = entry.drive_file_url && entry.drive_file_url.startsWith('http');
+  const res = await api('listEntries', { fyid: curFY, limit: 1000 });
+  const entry = (res.entries || []).find(e => e.entry_id === entryId);
+  if (!entry) { toast('Entry not found', 'err'); return; }
 
-  showEditModal('Edit Entry', `
-    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
-      <div style="font-weight:600">${et?.label||entry.entry_type}</div>
-      <div style="color:var(--muted);margin-top:2px">${fmtDate(entry.date)} · ${fmtAmt(entry.amount)}</div>
-      <div style="color:var(--muted);margin-top:2px">
-        <span class="badge bb" style="font-size:10px">DR: ${et?.dr||'—'}</span>&nbsp;
-        <span class="badge br" style="font-size:10px">CR: ${et?.cr||'—'}</span>
-      </div>
-    </div>
-    <div class="field"><label>Narration</label>
-      <textarea id="ee-narr" rows="2">${entry.narration||''}</textarea>
-    </div>
-    <div class="field"><label>Document / Bill</label>
-      ${hasDoc ? `
-        <div id="ee-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">
-          <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>
-          <button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑 Remove</button>
-        </div>` : `<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>`}
-      <div id="ee-doc-new">
-        <label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">
-          📎 ${hasDoc ? 'Replace document' : 'Attach document'}
-          <input type="file" id="ee-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="eeDocSelected(this)">
-        </label>
-        <div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>
-      </div>
-    </div>
-    <div class="row mt3">
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry('${entry.entry_id}','${entry.drive_file_url||''}')">Save</button>
-      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
-    </div>`, () => { window._eeDeleteDoc = false; });
+  const et     = _ets.find(t => t.et_key === entry.entry_type);
+  const rules  = FIELD_RULES[entry.entry_type] || {};
+  const isBankImport = entry.entry_type === 'Bank_payment_received' || entry.entry_type === 'expense_bank';
+  const hasDoc = (entry.drive_file_url || '').startsWith('http');
+
+  // Build dropdown options helpers
+  function sel(id, opts, curVal, label, rule) {
+    if (rule === 'hidden') return '<input type="hidden" id="' + id + '" value="' + (curVal || '') + '">';
+    const req = rule === 'required'
+      ? ' <span style="color:var(--red)">*</span>'
+      : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    const style = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+    return '<div class="field"><label>' + label + req + '</label>'
+      + '<select id="' + id + '" style="' + style + '">'
+      + '<option value="">— select —</option>'
+      + opts.map(function(o) {
+          return '<option value="' + o.val + '"' + (o.val === curVal ? ' selected' : '') + '>' + o.lbl + '</option>';
+        }).join('')
+      + '</select></div>';
+  }
+
+  const vendorOpts = (_vendors||[]).map(function(v) { return { val: v.vendor_id, lbl: v.vendor_name }; });
+  const projOpts   = (_projs||[]).map(function(p) { return { val: p.project_id, lbl: p.project_name }; });
+  const chOpts     = (_chs||[]).map(function(c) { return { val: c.ch_id, lbl: c.ch_name }; });
+
+  const lockStyle = 'opacity:.5;pointer-events:none';
+  const bankNote = isBankImport
+    ? '<div style="padding:7px 10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;margin-bottom:10px;font-size:12px;color:var(--muted)">ℹ️ Bank-imported entry — narration is locked.</div>'
+    : '';
+
+  const body = ''
+    // Info header — date, amount, entry type (read-only)
+    + '<div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">'
+    +   '<div style="font-weight:600">' + (et?.label || entry.entry_type) + '</div>'
+    +   '<div style="color:var(--muted);margin-top:2px">' + fmtDate(entry.date) + ' · ' + fmtAmt(entry.amount) + '</div>'
+    +   (et ? '<div style="margin-top:4px"><span class="badge bb" style="font-size:10px">DR: ' + (et.dr||'—') + '</span>&nbsp;<span class="badge br" style="font-size:10px">CR: ' + (et.cr||'—') + '</span></div>' : '')
+    + '</div>'
+    + bankNote
+    // Narration
+    + '<div class="field"><label>Narration' + (isBankImport ? ' <span style="font-size:10px;color:var(--muted)">(locked)</span>' : '') + '</label>'
+    +   '<textarea id="ee-narr" rows="2"' + (isBankImport ? ' disabled style="' + lockStyle + '"' : '') + '>' + (entry.narration || '') + '</textarea></div>'
+    // Vendor, Project, Cost Head driven by FIELD_RULES
+    + sel('ee-vendor', vendorOpts, entry.vendor_id || '', 'Vendor', rules.vendor || 'hidden')
+    + sel('ee-proj',   projOpts,   entry.project_id || '', 'Project', rules.project || 'hidden')
+    + sel('ee-ch',     chOpts,     entry.cost_head_id || '', 'Cost Head', rules.cost_head || 'hidden')
+    // Document
+    + (rules.doc !== 'hidden' ? (''
+      + '<div class="field"><label>Document / Bill</label>'
+      + (hasDoc
+          ? '<div id="ee-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+          +   '<a href="' + entry.drive_file_url + '" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>'
+          +   '<button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑</button>'
+          + '</div>'
+          : '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>')
+      + '<div id="ee-doc-new">'
+      +   '<label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">'
+      +     '📎 ' + (hasDoc ? 'Replace document' : 'Attach document')
+      +     '<input type="file" id="ee-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="eeDocSelected(this)">'
+      +   '</label>'
+      +   '<div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>'
+      + '</div></div>'
+      ) : '')
+    // Buttons
+    + '<div class="modal-actions">'
+    +   '<button class="btn btn-o" onclick="closeEditModal()">Cancel</button>'
+    +   '<button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry(\'' + entry.entry_id + '\',\'' + (entry.drive_file_url || '') + '\',\'' + entry.entry_type + '\')">Save Changes</button>'
+    + '</div>';
+
+  window._eeDeleteDoc = false;
+  window._eeNewFile = null;
+  showEditModal('Edit Entry', body);
 }
+
 
 function eeDeleteDoc() {
   window._eeDeleteDoc = true;
@@ -1073,41 +1113,55 @@ function eeDocSelected(input) {
 }
 
 
-async function saveEditEntry(entryId, oldUrl) {
-  const narration = document.getElementById('ee-narr')?.value || '';
-  const deleteFile = window._eeDeleteDoc || false;
-  let newUrl = deleteFile ? '' : oldUrl;
+async function saveEditEntry(entryId, oldUrl, entryType) {
+  const isBankImport = entryType === 'Bank_payment_received' || entryType === 'expense_bank';
+  const rules = FIELD_RULES[entryType] || {};
 
+  // Read fields
+  const narration   = isBankImport ? null : (document.getElementById('ee-narr')?.value || '');
+  const vendor_id   = document.getElementById('ee-vendor')?.value || '';
+  const project_id  = document.getElementById('ee-proj')?.value || '';
+  const cost_head_id = document.getElementById('ee-ch')?.value || '';
+  const deleteFile  = window._eeDeleteDoc || false;
+
+  // Required field validation
+  if (rules.vendor === 'required' && !vendor_id)     { toast('Vendor is required', 'err'); return; }
+  if (rules.project === 'required' && !project_id)   { toast('Project is required', 'err'); return; }
+  if (rules.cost_head === 'required' && !cost_head_id){ toast('Cost Head is required', 'err'); return; }
+
+  let newUrl = deleteFile ? '' : oldUrl;
   const newFile = window._eeNewFile;
   if (newFile) {
     const st = document.getElementById('ee-doc-status');
     if (st) { st.textContent = 'Uploading...'; st.style.color = 'var(--amber)'; }
-    const entryRes = await api('listEntries', {fyid:curFY, limit:1000});
-    const entry = (entryRes.entries||[]).find(e=>e.entry_id===entryId);
-    const vendor = (_vendors||[]).find(v=>v.vendor_id===entry?.vendor_id);
-    const uploaded = await uploadFileToDrive(newFile, entry?.company_id||'', entry?.entry_type||'', vendor?.vendor_name||'', entry?.date||'');
+    const vendor = (_vendors||[]).find(v => v.vendor_id === vendor_id);
+    const res2 = await api('listEntries', { fyid: curFY, limit: 1000 });
+    const entry = (res2.entries||[]).find(e => e.entry_id === entryId);
+    const uploaded = await uploadFileToDrive(newFile, entry?.company_id || '', entryType, vendor?.vendor_name || '', entry?.date || '');
     if (uploaded) { newUrl = uploaded; toast('Document uploaded'); }
-    else { toast('Upload failed — entry saved without document', 'err'); }
+    else { toast('Upload failed — saving without document change', 'err'); newUrl = oldUrl; }
   }
 
-  const r = await api('updateEntry', {
-    entry_id: entryId,
-    narration,
+  const payload = {
+    entry_id:    entryId,
+    vendor_id,
+    project_id,
+    cost_head_id,
     drive_file_url: newUrl,
     delete_file: deleteFile && !newFile
-  });
+  };
+  if (!isBankImport && narration !== null) payload.narration = narration;
 
+  const r = await api('updateEntry', payload);
   if (r.ok) {
     toast('Entry updated');
     closeEditModal();
     window._eeDeleteDoc = false;
     window._eeNewFile = null;
-    // Always refresh ledger so doc button appears immediately
     renderLedger();
-  } else {
-    toast(r.error||'Update failed', 'err');
-  }
+  } else toast(r.error || 'Update failed', 'err');
 }
+
 
 
 
@@ -3032,32 +3086,41 @@ async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId, isBan
 }
 
 async function confirmApproveById(entryId) {
+  // Always fetch fresh pending data — map may not be populated yet
+  if (!window._pendingMap?.[entryId]) {
+    const res = await api('listPending', { fyid: curFY });
+    window._pendingMap = window._pendingMap || {};
+    (res.pending || []).forEach(x => { window._pendingMap[x.entry_id] = x; });
+  }
   const p = window._pendingMap?.[entryId];
-  if (!p) { approvePending(entryId); return; }
+  if (!p) { toast('Entry not found', 'err'); return; }
+
   const entryEt = _ets.find(t => t.et_key === p.entry_type);
-  const vendor  = _vendors.find(v => v.vendor_id === p.vendor_id);
-  const proj    = _projs.find(pr => pr.project_id === p.project_id);
-  const ch      = _chs.find(c => c.ch_id === p.cost_head_id);
-  const coObj   = _cos.find(c => c.company_id === p.company_id);
+  const vendor  = (_vendors||[]).find(v => v.vendor_id === p.vendor_id);
+  const proj    = (_projs||[]).find(pr => pr.project_id === p.project_id);
+  const ch      = (_chs||[]).find(c => c.ch_id === p.cost_head_id);
+  const coObj   = (_cos||[]).find(c => c.company_id === p.company_id);
   const hasDoc  = p.drive_file_url && p.drive_file_url.startsWith('http');
-  const ok = await showConfirm('Confirm Approval',
-    buildConfRows([
-      ['Entry Type',    entryEt?.label||p.entry_type],
-      ['Date',          fmtDate(p.date)],
-      ['Amount',        fmtAmt(p.amount), 'var(--green)'],
-      ['Company',       coObj?.company_name||p.company_id||'—'],
-      ['Submitted by',  p.submitted_by||'—'],
-      vendor  ? ['Vendor',    vendor.vendor_name] : null,
-      proj    ? ['Project',   proj.project_name] : null,
-      ch      ? ['Cost Head', ch.ch_name] : null,
-      p.narration ? ['Narration', p.narration] : null,
-      ['DR Account', entryEt?.dr||'—', 'var(--green)'],
-      ['CR Account', entryEt?.cr||'—', 'var(--red)'],
-      hasDoc  ? ['Document', '📎 Attached — click to view'] : null
-    ]),
-    '✓ Approve', 'btn-s');
+
+  const rows = [
+    ['Entry Type',   entryEt?.label || p.entry_type],
+    ['Date',         fmtDate(p.date)],
+    ['Amount',       fmtAmt(p.amount), 'var(--green)'],
+    ['Company',      coObj?.company_name || p.company_id || '—'],
+    ['Submitted by', p.submitted_by || '—'],
+    vendor      ? ['Vendor',    vendor.vendor_name]  : null,
+    proj        ? ['Project',   proj.project_name]   : null,
+    ch          ? ['Cost Head', ch.ch_name]           : null,
+    p.narration ? ['Narration', p.narration]          : null,
+    entryEt?.dr ? ['DR Account', entryEt.dr, 'var(--green)'] : null,
+    entryEt?.cr ? ['CR Account', entryEt.cr, 'var(--red)']   : null,
+    hasDoc      ? ['Document',  '<a href="' + p.drive_file_url + '" target="_blank" style="color:var(--accent)">📎 View attached document</a>'] : null
+  ].filter(Boolean);
+
+  const ok = await showConfirm('Confirm Approval', buildConfRows(rows), '✓ Approve', 'btn-s');
   if (ok) approvePending(entryId);
 }
+
 
 
 async function renderDocs() {
