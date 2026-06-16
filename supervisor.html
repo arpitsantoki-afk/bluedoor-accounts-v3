@@ -456,10 +456,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
             </select>
           </div>
           <div class="g2">
-            <div class="field">
-              <label>FY</label>
-              <select id="vl-fy" onchange="renderVendorLedger()"></select>
-            </div>
+
             <div class="field">
               <label>Company</label>
               <select id="vl-co" onchange="renderVendorLedger()">
@@ -1695,9 +1692,35 @@ function printVendorLedgerPDF() {
   openPrintWindow('Vendor Ledger — ' + coName, header, body);
 }
 
+function populateVendorLedgerDropdown() {
+  const sel = document.getElementById('vl-vendor');
+  if (!sel) return;
+  const curVal = sel.value;
+  while (sel.options.length > 1) sel.remove(1);
+
+  let allowed = _allowedVendors;
+  if (!Array.isArray(allowed)) {
+    try { allowed = JSON.parse(allowed || '[]'); } catch(e) { allowed = []; }
+  }
+
+  if (!allowed.length) {
+    sel.innerHTML = '<option value="">— No vendor ledgers assigned —</option>';
+    const out = document.getElementById('vl-content');
+    if (out) out.innerHTML = '<div class="empty" style="color:var(--amber)">No vendor ledgers assigned. Contact your admin.</div>';
+    return;
+  }
+
+  const visible = _vendors.filter(function(v) { return allowed.includes(v.vendor_id); });
+  visible.forEach(function(v) { sel.add(new Option(v.vendor_name, v.vendor_id)); });
+
+  if (curVal && visible.find(function(v){ return v.vendor_id === curVal; })) {
+    sel.value = curVal;
+  }
+}
+
 async function renderVendorLedger() {
   const vid = document.getElementById('vl-vendor').value;
-  const fy  = document.getElementById('vl-fy').value;
+  const fy  = curFY; // use FY from topbar selector
   const co  = document.getElementById('vl-co').value;
   const out = document.getElementById('vl-content');
 
@@ -1931,18 +1954,19 @@ function addDebug(msg, type='info') {
 // ── SYNC ──────────────────────────────────────────────────────────────────────
 async function doSync() {
   const btn = document.getElementById('sync-btn');
-  if (btn) btn.style.opacity = '0.5';
-  addDebug('Syncing data…');
+  if (btn) { btn.style.opacity = '0.5'; btn.style.transform = 'rotate(0deg)'; btn.style.transition = 'transform 0.6s linear'; requestAnimationFrame(function(){ btn.style.transform = 'rotate(360deg)'; }); }
+  addDebug('Syncing data...');
   await loadMasters();
   const v = _curView;
   if (v === 'home') renderHome();
   else if (v === 'petty') renderPetty();
   else if (v === 'vendor') renderVendorLedger();
   else if (v === 'vendors') loadVendorList();
-  toast('Synced ✓');
+  toast('Synced');
   addDebug('Sync complete', 'ok');
-  if (btn) btn.style.opacity = '1';
+  if (btn) { btn.style.opacity = '1'; btn.style.transform = ''; btn.style.transition = ''; }
 }
+
 
 
 // ── Drive filename helper ─────────────────────────────────────────────────────
