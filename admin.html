@@ -1252,7 +1252,7 @@ async function renderLedger() {
     if(isFirst) seenIds.add(r.entry_id);
     const amt=r.debit>0?r.debit:r.credit;
     const narr=(r.narration||r.ac_name||'').replace(/['"<>]/g,'');
-    const _du=r.drive_file_url||(window._entryDocMap&&window._entryDocMap[r.entry_id])||'';
+    const _du=r.doc_url||r.drive_file_url||(window._entryDocMap&&window._entryDocMap[r.entry_id])||'';
     const docBtn=_du.startsWith('http')?'<button class="btn btn-o btn-xs" onclick="viewDoc(\''+_du+'\')" title="View Doc">&#128206;</button>':'';
     return`<tr style="${!isFirst?'background:rgba(255,255,255,.015)':''}">
       <td style="white-space:nowrap;font-size:12px">${isFirst?fmtDate(r.date):'↳'}</td>
@@ -2548,7 +2548,7 @@ async function loadVendorRpt(vid) {
       const dr = parseFloat(l.debit || 0);
       const cr = parseFloat(l.credit || 0);
       running = running + cr - dr;
-      const docLink = l.drive_file_url && l.drive_file_url.startsWith('http')
+      const docLink = (l.doc_url||l.drive_file_url||'').startsWith('http')
         ? ' <a href="' + l.drive_file_url + '" target="_blank" style="color:var(--accent);font-size:10px">📎</a>' : '';
       return '<tr>'
         + '<td style="white-space:nowrap;font-size:12px">' + fmtDate(l.date) + '</td>'
