@@ -1077,37 +1077,37 @@ async function saveEditEntry(entryId, oldUrl) {
   const deleteFile = window._eeDeleteDoc || false;
   let newUrl = deleteFile ? '' : oldUrl;
 
-  // Upload new file if selected
   const newFile = window._eeNewFile;
   if (newFile) {
     const st = document.getElementById('ee-doc-status');
-    if (st) { st.textContent = '⬆️ Uploading…'; st.style.color = 'var(--amber)'; }
-    // Get company from entry — need to fetch it
+    if (st) { st.textContent = 'Uploading...'; st.style.color = 'var(--amber)'; }
     const entryRes = await api('listEntries', {fyid:curFY, limit:1000});
     const entry = (entryRes.entries||[]).find(e=>e.entry_id===entryId);
     const vendor = (_vendors||[]).find(v=>v.vendor_id===entry?.vendor_id);
     const uploaded = await uploadFileToDrive(newFile, entry?.company_id||'', entry?.entry_type||'', vendor?.vendor_name||'', entry?.date||'');
-    if (uploaded) { newUrl = uploaded; toast('📎 Document uploaded'); }
+    if (uploaded) { newUrl = uploaded; toast('Document uploaded'); }
+    else { toast('Upload failed — entry saved without document', 'err'); }
   }
 
   const r = await api('updateEntry', {
     entry_id: entryId,
     narration,
     drive_file_url: newUrl,
-    delete_file: deleteFile && !newFile // only delete if not replacing
+    delete_file: deleteFile && !newFile
   });
 
   if (r.ok) {
-    toast('Entry updated ✓');
+    toast('Entry updated');
     closeEditModal();
     window._eeDeleteDoc = false;
     window._eeNewFile = null;
-    renderHome();
-    if (_curView === 'ledger') renderLedger?.();
+    // Always refresh ledger so doc button appears immediately
+    renderLedger();
   } else {
     toast(r.error||'Update failed', 'err');
   }
 }
+
 
 
 function smartDateInput(inp, hiddenId) {
