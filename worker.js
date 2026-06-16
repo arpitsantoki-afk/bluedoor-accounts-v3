@@ -323,6 +323,13 @@ async function handleAddVendor({ vendor_id, vendor_name, vendor_type = '', conta
 }
 async function handleUpdateVendor({ vendor_id, vendor_name, vendor_type, contact, gstin, details }, sess, env) {
   if (!vendor_id) return err('vendor_id required');
+  // Supervisor access check — only allowed vendors
+  if (sess.role === 'Supervisor') {
+    const allowed = Array.isArray(sess.allowed_vendors) ? sess.allowed_vendors : [];
+    if (allowed.length > 0 && !allowed.includes(vendor_id)) {
+      return err('Access denied — this vendor is not in your allowed list', 403);
+    }
+  }
   const fields = [], vals = [];
   if (vendor_name !== undefined) { fields.push('vendor_name = ?'); vals.push(vendor_name); }
   if (vendor_type !== undefined) { fields.push('vendor_type = ?'); vals.push(vendor_type); }
