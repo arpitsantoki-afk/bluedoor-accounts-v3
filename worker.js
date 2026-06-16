@@ -314,9 +314,12 @@ async function handleListVendors({ vendor_type } = {}, env) {
   return ok({ vendors: (await env.DB.prepare(q).bind(...vals).all()).results });
 }
 async function handleAddVendor({ vendor_id, vendor_name, vendor_type = '', contact = '', gstin = '', details = '' }, sess, env) {
-  if (!vendor_id || !vendor_name) return err('vendor_id and vendor_name required');
-  await env.DB.prepare('INSERT INTO vendors (vendor_id, vendor_name, vendor_type, contact, gstin, details) VALUES (?,?,?,?,?,?)').bind(vendor_id, vendor_name, vendor_type, contact, gstin, details).run();
-  return ok({ vendor_id });
+  if (!vendor_name) return err('vendor_name required');
+  const vid = vendor_id ? vendor_id.trim().toUpperCase() : ('V' + Date.now());
+  const existing = await env.DB.prepare('SELECT vendor_id FROM vendors WHERE vendor_id = ?').bind(vid).first();
+  if (existing) return err('Vendor ID "' + vid + '" already exists');
+  await env.DB.prepare('INSERT INTO vendors (vendor_id, vendor_name, vendor_type, contact, gstin, details) VALUES (?,?,?,?,?,?)').bind(vid, vendor_name, vendor_type, contact, gstin, details).run();
+  return ok({ vendor_id: vid });
 }
 async function handleUpdateVendor({ vendor_id, vendor_name, vendor_type, contact, gstin, details }, sess, env) {
   if (!vendor_id) return err('vendor_id required');
@@ -606,13 +609,14 @@ async function handleDeletePending({ entry_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ LEDGER & REPORTS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleGetLedger({ fyid, ac_code, company_id, date_from, date_to }, sess, env) {
-  let q = 'SELECT * FROM ledger WHERE 1=1'; const vals = [];
-  if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
-  if (ac_code) { q += ' AND ac_code = ?'; vals.push(ac_code); }
-  if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
-  if (date_from) { q += ' AND date >= ?'; vals.push(date_from); }
-  if (date_to) { q += ' AND date <= ?'; vals.push(date_to); }
-  q += ' ORDER BY date ASC, id ASC';
+  let q = 'SELECT l.*, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE 1=1';
+  const vals = [];
+  if (fyid)       { q += ' AND l.fyid = ?';       vals.push(fyid); }
+  if (ac_code)    { q += ' AND l.ac_code = ?';    vals.push(ac_code); }
+  if (company_id) { q += ' AND l.company_id = ?'; vals.push(company_id); }
+  if (date_from)  { q += ' AND l.date >= ?';      vals.push(date_from); }
+  if (date_to)    { q += ' AND l.date <= ?';      vals.push(date_to); }
+  q += ' ORDER BY l.date ASC, l.id ASC';
   return ok({ ledger: (await env.DB.prepare(q).bind(...vals).all()).results });
 }
 async function handleGetTrialBalance({ fyid, company_id }, sess, env) {
