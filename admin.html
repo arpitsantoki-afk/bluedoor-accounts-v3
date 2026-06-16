@@ -1267,7 +1267,6 @@ async function renderLedger() {
         </button>
       </td>
       </tr>`;}).filter(r=>r).join('')}
-      </tbody></table></div>`;
 
   // Vendor balances: OB + vendor ledger activity = Closing
   document.getElementById('ob-vendors').innerHTML=`
@@ -1295,7 +1294,6 @@ async function renderLedger() {
           <td><span class="amt ${closeDrCr==='DR'?'dr':'cr'}">${fmtAmt(closeAmt)} ${closeDrCr}</span></td>
           <td><button class="btn btn-o btn-xs" onclick="editVOB('${v.vendor_id}','${v.vendor_name}','${(ob.dr_cr||'CR').toUpperCase()}','${ob.amount||0}','${ob.company_id||curCo||''}')">✏️</button></td>
         </tr>`;}).filter(r=>r).join('')}
-      </tbody></table></div>`;
 }
 
 function editOB(acKey,acName,drCr,amount,coId){
