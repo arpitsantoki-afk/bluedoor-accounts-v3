@@ -459,32 +459,6 @@ async function handleAddEntry(params, sess, env) {
     amount
   });
 }
-async function handleUpdateEntry(params, sess, env) {
-  const { entry_id, date, project_id, cost_head_id, vendor_id, amount, narration, drive_file_url, delete_file } = params;
-  if (!entry_id) return err('entry_id required');
-  const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
-  if (!existing) return err('Entry not found', 404);
-  if ((sess.role !== 'Admin' && sess.role !== 'Supervisor') && existing.created_by !== sess.username) return err('Forbidden', 403);
-  const fields = [], vals = [];
-  if (date !== undefined) { fields.push('date = ?'); vals.push(date); }
-  if (project_id !== undefined) { fields.push('project_id = ?'); vals.push(project_id); }
-  if (cost_head_id !== undefined) { fields.push('cost_head_id = ?'); vals.push(cost_head_id); }
-  if (vendor_id !== undefined) { fields.push('vendor_id = ?'); vals.push(vendor_id); }
-  if (amount !== undefined) { fields.push('amount = ?'); vals.push(amount); }
-  if (narration !== undefined) { fields.push('narration = ?'); vals.push(narration); }
-  if (drive_file_url !== undefined) { fields.push('drive_file_url = ?'); vals.push(drive_file_url); }
-  if (!fields.length) return err('Nothing to update');
-  vals.push(entry_id);
-  await env.DB.prepare(`UPDATE entries SET ${fields.join(', ')} WHERE entry_id = ?`).bind(...vals).run();
-  if (amount !== undefined) await env.DB.prepare("UPDATE ledger SET debit = CASE WHEN dr_cr='DR' THEN ? ELSE 0 END, credit = CASE WHEN dr_cr='CR' THEN ? ELSE 0 END WHERE entry_id = ?").bind(amount, amount, entry_id).run();
-  const lf = [], lv = [];
-  if (date !== undefined) { lf.push('date = ?'); lv.push(date); }
-  if (narration !== undefined) { lf.push('narration = ?'); lv.push(narration); }
-  if (project_id !== undefined) { lf.push('project_id = ?'); lv.push(project_id); }
-  if (lf.length) { lv.push(entry_id); await env.DB.prepare(`UPDATE ledger SET ${lf.join(', ')} WHERE entry_id = ?`).bind(...lv).run(); }
-  return ok();
-}
-
 // ── UPDATE ENTRY ─────────────────────────────────────────────────────────────
 async function handleUpdateEntry({ entry_id, narration, drive_file_url, delete_file }, sess, env) {
   if (!entry_id) return err('entry_id required');
@@ -611,7 +585,7 @@ async function handleDeletePending({ entry_id }, sess, env) {
 
 // ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ LEDGER & REPORTS ÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂÃÂ¢ÃÂÃÂ
 async function handleGetLedger({ fyid, ac_code, company_id, date_from, date_to }, sess, env) {
-  let q = 'SELECT l.*, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE 1=1';
+  let q = 'SELECT l.id, l.entry_id, l.date, l.fyid, l.ac_code, l.ac_name, l.dr_cr, l.debit, l.credit, l.project_id, l.cost_head_id, l.vendor_id, l.narration, l.created_by, l.created_at, l.company_id, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE 1=1';
   const vals = [];
   if (fyid)       { q += ' AND l.fyid = ?';       vals.push(fyid); }
   if (ac_code)    { q += ' AND l.ac_code = ?';    vals.push(ac_code); }
@@ -703,7 +677,7 @@ async function handleGetVendorReport({ vendor_id, fyid, company_id }, sess, env)
   const entries = await env.DB.prepare(q + ' ORDER BY date ASC').bind(...vals).all();
 
   // Get ledger rows for this vendor (DR and CR sides)
-  let lq = 'SELECT * FROM ledger WHERE vendor_id = ?'; const lvals = [vendor_id];
+  let lq = 'SELECT l.id, l.entry_id, l.date, l.fyid, l.ac_code, l.ac_name, l.dr_cr, l.debit, l.credit, l.project_id, l.cost_head_id, l.vendor_id, l.narration, l.created_by, l.created_at, l.company_id, e.drive_file_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE l.vendor_id = ?'; const lvals = [vendor_id];
   if (fyid) { lq += ' AND fyid = ?'; lvals.push(fyid); }
   if (company_id) { lq += ' AND company_id = ?'; lvals.push(company_id); }
   const ledger = await env.DB.prepare(lq + ' ORDER BY date ASC').bind(...lvals).all();
