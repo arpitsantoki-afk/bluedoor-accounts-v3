@@ -785,12 +785,13 @@ async function addCompany() {
 
 async function doSync() {
   const btn = document.getElementById('sync-btn');
-  if (btn) { btn.style.animation = 'spin .6s linear 2'; btn.textContent = '🔄'; }
+  if (btn) { btn.style.opacity = '0.5'; btn.style.transform = 'rotate(0deg)'; btn.style.transition = 'transform 0.6s linear'; requestAnimationFrame(function(){ btn.style.transform = 'rotate(360deg)'; }); }
   await loadMasters();
   refreshView();
-  toast('Data refreshed ✓');
-  if (btn) setTimeout(()=>{ btn.style.animation=''; }, 1200);
+  toast('Data refreshed');
+  if (btn) { btn.style.opacity = '1'; btn.style.transform = ''; btn.style.transition = ''; }
 }
+
 
 async function doLogout() {
   await api('logout').catch(()=>{});
