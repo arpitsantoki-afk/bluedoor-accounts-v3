@@ -1764,7 +1764,7 @@ async function renderVendorLedger() {
           running = running + cr - dr;
           return `<tr>
             <td style="white-space:nowrap">${fmtDate(l.date)}</td>
-            <td style="font-size:11px;color:var(--muted)">${(l.narration||l.ac_name||'—') + (l.drive_file_url&&l.drive_file_url.startsWith('http') ? ' <a href="'+l.drive_file_url+'" target="_blank" style="color:var(--accent);font-size:10px">📎</a>' : '')}</td>
+            <td style="font-size:11px;color:var(--muted)">${(l.narration||l.ac_name||'—') + ((l.doc_url||l.drive_file_url||'').startsWith('http') ? ' <a href="'+(l.doc_url||l.drive_file_url)+'" target="_blank" style="color:var(--accent);font-size:10px">📎</a>' : '')}</td>
             <td class="amt dr">${dr > 0 ? fmtAmt(dr) : '—'}</td>
             <td class="amt cr">${cr > 0 ? fmtAmt(cr) : '—'}</td>
             <td class="amt" style="color:${running>=0?'var(--red)':'var(--green)'}">
