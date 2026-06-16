@@ -673,35 +673,44 @@ async function handleGetProjectReport({ project_id, fyid }, sess, env) {
   return ok({ project, entries: entries.results, total: entries.results.reduce((s, e) => s + (e.amount || 0), 0) });
 }
 async function handleGetVendorReport({ vendor_id, fyid, company_id }, sess, env) {
-  if (!vendor_id) return err('vendor_id required');
-  const vendor = await env.DB.prepare('SELECT * FROM vendors WHERE vendor_id = ?').bind(vendor_id).first();
-  if (!vendor) return err('Vendor not found', 404);
+  try {
+    if (!vendor_id) return err('vendor_id required');
+    const vendor = await env.DB.prepare('SELECT * FROM vendors WHERE vendor_id = ?').bind(vendor_id).first();
+    if (!vendor) return err('Vendor not found', 404);
 
-  // Get entries for this vendor
-  let q = 'SELECT * FROM entries WHERE vendor_id = ?'; const vals = [vendor_id];
-  if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
-  if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
-  const entries = await env.DB.prepare(q + ' ORDER BY date ASC').bind(...vals).all();
+    // Get entries for this vendor
+    let q = 'SELECT * FROM entries WHERE vendor_id = ?'; const vals = [vendor_id];
+    if (fyid) { q += ' AND fyid = ?'; vals.push(fyid); }
+    if (company_id) { q += ' AND company_id = ?'; vals.push(company_id); }
+    const entries = await env.DB.prepare(q + ' ORDER BY date ASC').bind(...vals).all();
 
-  // Get ledger rows for this vendor (DR and CR sides)
-  let lq = 'SELECT l.*, e.drive_file_url AS doc_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE l.vendor_id = ?'; const lvals = [vendor_id];
-  if (fyid) { lq += ' AND fyid = ?'; lvals.push(fyid); }
-  if (company_id) { lq += ' AND company_id = ?'; lvals.push(company_id); }
-  const ledger = await env.DB.prepare(lq + ' ORDER BY date ASC').bind(...lvals).all();
+    // Get ledger rows — use subquery alias to avoid column name conflict
+    let lq = 'SELECT l.*, e.drive_file_url AS doc_url FROM ledger l LEFT JOIN entries e ON l.entry_id = e.entry_id WHERE l.vendor_id = ?';
+    const lvals = [vendor_id];
+    if (fyid) { lq += ' AND l.fyid = ?'; lvals.push(fyid); }
+    if (company_id) { lq += ' AND l.company_id = ?'; lvals.push(company_id); }
+    const ledger = await env.DB.prepare(lq + ' ORDER BY l.date ASC').bind(...lvals).all();
 
-  // Get opening balance — try with company filter first, then without
-  let ob = null;
-  if (company_id) {
-    ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ? AND company_id = ?').bind(vendor_id, fyid || 'FY2627', company_id).first();
+    // Get opening balance — wrapped in try in case table doesn't exist
+    let ob = null;
+    try {
+      if (company_id) {
+        ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ? AND company_id = ?').bind(vendor_id, fyid || 'FY2627', company_id).first();
+      }
+      if (!ob) {
+        ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ?').bind(vendor_id, fyid || 'FY2627').first();
+      }
+    } catch(obErr) {
+      // vendor_opening_balances table may not exist yet
+      ob = null;
+    }
+
+    const total = entries.results.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
+    if (ob) ob = {...ob, dr_cr: (ob.dr_cr || 'CR').toUpperCase()};
+    return ok({ vendor, entries: entries.results, ledger: ledger.results, opening_balance: ob || null, total });
+  } catch(e) {
+    return err('getVendorReport error: ' + e.message, 500);
   }
-  if (!ob) {
-    ob = await env.DB.prepare('SELECT * FROM vendor_opening_balances WHERE vendor_id = ? AND fyid = ?').bind(vendor_id, fyid || 'FY2627').first();
-  }
-
-  const total = entries.results.reduce((s, e) => s + (parseFloat(e.amount) || 0), 0);
-  // Normalize dr_cr to uppercase
-  if (ob) ob = {...ob, dr_cr: (ob.dr_cr||'CR').toUpperCase()};
-  return ok({ vendor, entries: entries.results, ledger: ledger.results, opening_balance: ob || null, total });
 }
 async function handleGetDashboard({ fyid, company_id }, sess, env) {
   const vals = []; let where = '1=1';
