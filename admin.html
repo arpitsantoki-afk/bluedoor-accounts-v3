@@ -2491,83 +2491,121 @@ function renderVendorRptPicker(el){
   el.innerHTML=`<div class="field"><label>Select Vendor</label><div class="ss-wrap" id="rpt-v-wrap"></div></div><div id="vendor-rpt-out"></div>`;
   createSS('rpt-v-wrap',_vendors.map(v=>({value:v.vendor_id,label:v.vendor_name})),'— Select Vendor —',loadVendorRpt);
 }
-async function loadVendorRpt(vid){
-  if(!vid) return;
-  const el=document.getElementById('vendor-rpt-out');
-  el.innerHTML='<span class="spin"></span>';
-  // getVendorReport now returns opening_balance directly
-  const res=await api('getVendorReport',{vendor_id:vid,fyid:curFY,company_id:curCo});
-  const v=res.vendor||{}; const es=res.entries||[];
-  // Use opening_balance from response (already tries with/without company filter)
-  const ob=res.opening_balance||null;
-  const obAmt=ob?parseFloat(ob.amount||0):0; const obDrCr=((ob?.dr_cr||'CR').toUpperCase()).toUpperCase();
-  dbg(`Vendor ${v.vendor_name}: OB=${obAmt} ${obDrCr}, entries=${es.length}`);
-  let runDr=obDrCr==='DR'?obAmt:0, runCr=obDrCr==='CR'?obAmt:0;
-  // Build running balance for vendor ledger
-  // OB CR means we owe vendor (liability), OB DR means vendor owes us
-  let runBal = obDrCr==='CR' ? -obAmt : obAmt; // negative = we owe vendor
-  let totalDr=0, totalCr=0;
-  const ledgerRows = es.map(e=>{
-    const et=_ets.find(t=>t.et_key===e.entry_type);
-    // For vendor: payments = DR (reduces liability), bills = CR (increases liability)
-    const isCr = et?.cr==='PAYABLE' || et?.cr==='ADV_PAID' || e.entry_type?.includes('bill') || e.entry_type?.includes('advance_paid');
-    const isDr = !isCr;
-    const dr = isDr ? parseFloat(e.amount||0) : 0;
-    const cr = isCr ? parseFloat(e.amount||0) : 0;
-    totalDr += dr; totalCr += cr;
-    runBal += dr - cr;
-    const balDrCr = runBal>=0?'DR':'CR';
-    return {date:e.date, narration:e.narration||et?.label||e.entry_type, dr, cr, balance:Math.abs(runBal), balDrCr};
-  });
-  const finalBal = obDrCr==='CR' ? -obAmt : obAmt;
-  const finalBalNet = finalBal + totalDr - totalCr;
-  const finalDrCr = finalBalNet>=0?'DR':'CR';
+async function loadVendorRpt(vid) {
+  if (!vid) return;
+  const el = document.getElementById('vendor-rpt-out');
+  el.innerHTML = '<div class="empty"><span class="spin"></span></div>';
 
-  el.innerHTML=`
-    <div class="rsb" style="margin-bottom:8px">
-      <span style="font-weight:600">${v.vendor_name||vid}</span>
-      <div class="row" style="gap:5px">
-        <button class="btn btn-o btn-xs" onclick="exportVendorXLS('${vid}')">⬇ XLS</button>
-        <button class="btn btn-o btn-xs" onclick="printVendorRpt()">🖨 Print</button>
-      </div>
-    </div>
-    <div class="tw"><table style="min-width:420px;table-layout:fixed;width:100%">
-      <colgroup><col style="width:90px"><col><col style="width:120px"><col style="width:120px"></colgroup>
-      <thead><tr>
-        <th>Date</th>
-        <th>Narration</th>
-        <th style="text-align:right">DR — Paid ₹</th>
-        <th style="text-align:right">CR — Bills ₹</th>
-      </tr></thead>
-      <tbody>
-        <tr style="background:rgba(79,142,247,.06)">
-          <td style="color:var(--muted);font-style:italic;white-space:nowrap;font-size:11px">Opening Bal</td>
-          <td style="font-style:italic;color:var(--muted);font-size:11px">${ob?ob.company_id:'not set'}</td>
-          <td class="amt dr" style="text-align:right">${obAmt>0&&obDrCr==='DR'?fmtAmt(obAmt):'—'}</td>
-          <td class="amt cr" style="text-align:right">${obAmt>0&&obDrCr==='CR'?fmtAmt(obAmt):'—'}</td>
-        </tr>
-        ${ledgerRows.map(r=>`<tr>
-          <td style="white-space:nowrap;font-size:12px">${fmtDate(r.date)}</td>
-          <td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.narration}</td>
-          <td class="amt dr" style="text-align:right">${r.dr>0?fmtAmt(r.dr):''}</td>
-          <td class="amt cr" style="text-align:right">${r.cr>0?fmtAmt(r.cr):''}</td>
-        </tr>`).join('')}
-      </tbody>
-      <tfoot>
-        <tr style="border-top:1px solid var(--border);font-weight:600;background:rgba(255,255,255,.03)">
-          <td colspan="2" style="font-size:12px">Totals</td>
-          <td class="amt dr" style="text-align:right">${fmtAmt(totalDr)}</td>
-          <td class="amt cr" style="text-align:right">${fmtAmt(totalCr)}</td>
-        </tr>
-        <tr style="background:rgba(34,197,94,.06);font-weight:700;border-top:2px solid var(--border)">
-          <td colspan="2">Closing Balance</td>
-          <td class="amt ${finalDrCr==='DR'?'dr':'cr'}" style="text-align:right">${finalDrCr==='DR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
-          <td class="amt ${finalDrCr==='CR'?'cr':'dr'}" style="text-align:right">${finalDrCr==='CR'?fmtAmt(Math.abs(finalBalNet)):''}</td>
-        </tr>
-      </tfoot>
-    </table></div>`;
-  window._vendorRptData={vendor:v,entries:es,ob,ledgerRows};
+  const res = await api('getVendorReport', { vendor_id: vid, fyid: curFY, company_id: curCo });
+  if (!res.ok) { el.innerHTML = '<div class="empty">' + (res.error||'Error') + '</div>'; return; }
+
+  const vendor = res.vendor || {};
+  const allRows = res.ledger || [];
+  const ob = res.opening_balance || null;
+  const obAmt  = ob ? parseFloat(ob.amount || 0) : 0;
+  const obDrCr = ob ? (ob.dr_cr || 'CR').toUpperCase() : 'CR';
+
+  // Split ledger rows into Account Payable and Advances
+  const apRows  = allRows.filter(l =>
+    l.ac_name?.toLowerCase().includes('payable') ||
+    l.ac_code?.toLowerCase().includes('payable') ||
+    l.ac_code?.toLowerCase().includes('ap_')
+  );
+  const advRows = allRows.filter(l =>
+    l.ac_name?.toLowerCase().includes('advance') ||
+    l.ac_code?.toLowerCase().includes('advance') ||
+    l.ac_code?.toLowerCase().includes('adv_')
+  );
+
+  // Calculate totals with opening balance
+  const apObDr = obDrCr === 'DR' ? obAmt : 0;
+  const apObCr = obDrCr === 'CR' ? obAmt : 0;
+
+  function calcTotals(rows, obDr, obCr) {
+    let dr = obDr, cr = obCr;
+    rows.forEach(l => { dr += parseFloat(l.debit||0); cr += parseFloat(l.credit||0); });
+    return { dr, cr, net: cr - dr }; // net > 0 = payable (owe vendor)
+  }
+  const apTotals  = calcTotals(apRows, apObDr, apObCr);
+  const advTotals = calcTotals(advRows, 0, 0);
+
+  // Build a ledger table with running balance
+  function ledgerTable(rows, obDr, obCr) {
+    if (!rows.length && obDr === 0 && obCr === 0) {
+      return '<div class="empty">No entries</div>';
+    }
+    let running = obCr - obDr; // positive = payable (CR balance)
+    const obRow = '<tr style="background:rgba(79,142,247,.06)">'
+      + '<td style="color:var(--muted);font-size:11px;white-space:nowrap">Opening</td>'
+      + '<td style="color:var(--muted);font-size:11px">' + (ob ? ob.company_id || '' : 'Not set') + '</td>'
+      + '<td class="amt dr" style="text-align:right">' + (obDr > 0 ? fmtAmt(obDr) : '—') + '</td>'
+      + '<td class="amt cr" style="text-align:right">' + (obCr > 0 ? fmtAmt(obCr) : '—') + '</td>'
+      + '<td class="amt" style="text-align:right;color:var(--accent);font-weight:700">'
+      + fmtAmt(Math.abs(running)) + ' <span style="font-size:9px">' + (running >= 0 ? 'CR' : 'DR') + '</span></td>'
+      + '</tr>';
+
+    const bodyRows = rows.map(function(l) {
+      const dr = parseFloat(l.debit || 0);
+      const cr = parseFloat(l.credit || 0);
+      running = running + cr - dr;
+      const docLink = l.drive_file_url && l.drive_file_url.startsWith('http')
+        ? ' <a href="' + l.drive_file_url + '" target="_blank" style="color:var(--accent);font-size:10px">📎</a>' : '';
+      return '<tr>'
+        + '<td style="white-space:nowrap;font-size:12px">' + fmtDate(l.date) + '</td>'
+        + '<td style="font-size:11px;overflow:hidden;text-overflow:ellipsis;max-width:160px">' + (l.narration || l.ac_name || '—') + docLink + '</td>'
+        + '<td class="amt dr" style="text-align:right">' + (dr > 0 ? fmtAmt(dr) : '—') + '</td>'
+        + '<td class="amt cr" style="text-align:right">' + (cr > 0 ? fmtAmt(cr) : '—') + '</td>'
+        + '<td class="amt" style="text-align:right;color:' + (running >= 0 ? 'var(--red)' : 'var(--green)') + '">'
+        + fmtAmt(Math.abs(running)) + ' <span style="font-size:9px">' + (running >= 0 ? 'CR' : 'DR') + '</span></td>'
+        + '</tr>';
+    }).join('');
+
+    const closeRow = '<tr style="background:rgba(34,197,94,.06);font-weight:700;border-top:2px solid var(--border)">'
+      + '<td colspan="4" style="font-size:12px">Closing Balance</td>'
+      + '<td class="amt" style="text-align:right;color:' + (running >= 0 ? 'var(--red)' : 'var(--green)') + ';font-weight:700">'
+      + fmtAmt(Math.abs(running)) + ' ' + (running >= 0 ? 'CR (Payable)' : 'DR (Receivable)') + '</td>'
+      + '</tr>';
+
+    return '<div class="tw"><table style="min-width:420px;table-layout:fixed;width:100%">'
+      + '<colgroup><col style="width:88px"><col><col style="width:100px"><col style="width:100px"><col style="width:110px"></colgroup>'
+      + '<thead><tr><th>Date</th><th>Narration</th><th style="text-align:right">Debit (DR)</th><th style="text-align:right">Credit (CR)</th><th style="text-align:right">Balance</th></tr></thead>'
+      + '<tbody>' + obRow + bodyRows + '</tbody>'
+      + '<tfoot>' + closeRow + '</tfoot>'
+      + '</table></div>';
+  }
+
+  // Store for export
+  window._vendorRptData = { vendor, apRows, advRows, apTotals, advTotals, ob, obAmt, obDrCr };
+  window._vlData = { vendor, apRows, advRows, apTotals, advTotals, openingBalance: obDrCr==='CR'?obAmt:-obAmt, totalDebit: apTotals.dr+advTotals.dr, totalCredit: apTotals.cr+advTotals.cr };
+
+  const coName = curCo ? ((_cos||[]).find(c=>c.company_id===curCo)||{}).company_name || curCo : 'All Companies';
+
+  el.innerHTML = ''
+    // Header
+    + '<div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:8px;margin-bottom:12px">'
+    + '<div><div style="font-weight:700;font-size:15px">' + (vendor.vendor_name || vid) + '</div>'
+    + '<div style="font-size:11px;color:var(--muted)">' + (vendor.vendor_type||'General') + ' · ' + coName + ' · ' + curFY + '</div></div>'
+    + '<div class="row" style="gap:6px">'
+    + '<button class="btn btn-o btn-xs" onclick="exportVendorXLS(\'' + vid + '\')">⬇ XLS</button>'
+    + '<button class="btn btn-o btn-xs" onclick="printVendorRpt()">🖨 PDF</button>'
+    + '</div></div>'
+    // Summary stats
+    + '<div class="g2" style="margin-bottom:12px">'
+    + '<div class="card" style="padding:10px 14px"><div style="font-size:11px;color:var(--muted)">AP Balance</div>'
+    + '<div style="font-size:16px;font-weight:700;color:' + (apTotals.net>=0?'var(--red)':'var(--green)') + '">' + fmtAmt(Math.abs(apTotals.net)) + '</div>'
+    + '<div style="font-size:10px;color:var(--muted)">' + (apTotals.net>=0?'Payable':'Receivable') + '</div></div>'
+    + '<div class="card" style="padding:10px 14px"><div style="font-size:11px;color:var(--muted)">Advance Balance</div>'
+    + '<div style="font-size:16px;font-weight:700;color:' + (advTotals.dr>advTotals.cr?'var(--green)':'var(--muted)') + '">' + fmtAmt(Math.abs(advTotals.dr-advTotals.cr)) + '</div>'
+    + '<div style="font-size:10px;color:var(--muted)">' + (advTotals.dr>advTotals.cr?'Advance Given':'Adjusted') + '</div></div>'
+    + '</div>'
+    // AP Ledger
+    + '<div style="font-weight:600;font-size:13px;margin-bottom:6px">Account Payable Ledger</div>'
+    + ledgerTable(apRows, apObDr, apObCr)
+    // Advances
+    + '<div style="font-weight:600;font-size:13px;margin:14px 0 6px">Advances</div>'
+    + (advRows.length ? ledgerTable(advRows, 0, 0) : '<div class="empty" style="margin-bottom:12px">No advance entries</div>');
 }
+
 function printVendorRpt(){
   const w=window.open('','_blank');
   w.document.write('<html><head><title>Vendor Report</title><style>body{font-family:Arial;font-size:11px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:5px}</style></head><body><h2>Vendor Ledger</h2>'+document.getElementById('vendor-rpt-out').innerHTML+'</body></html>');
