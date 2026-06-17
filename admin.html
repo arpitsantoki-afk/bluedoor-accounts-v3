@@ -1374,7 +1374,7 @@ function printLedgerPDF() {
       <div class="ac-section">
         <div class="ac-title">${ac.name} (${ac.code})</div>
         <table>
-          <thead><tr><th>Date</th><th>Particulars</th><th>Vch Type</th><th>Vch No.</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th></tr></thead>
+          <thead><tr><th>Date</th><th>Co.</th><th>Project</th><th>Account</th><th>Narration</th><th style="text-align:right">Debit</th><th style="text-align:right">Credit</th><th></th></tr></thead>
           <tbody>
             ${ac.rows.map(r=>`<tr>
               <td>${fmtDate(r.date)}</td>
