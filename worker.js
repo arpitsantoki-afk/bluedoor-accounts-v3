@@ -487,7 +487,7 @@ async function handleUpdateEntry({ entry_id, narration, drive_file_url, delete_f
 }
 
 // ── UPDATE PENDING ────────────────────────────────────────────────────────────
-async function handleUpdatePending({ entry_id, date, amount, narration, cost_head_id, project_id, vendor_id, drive_file_url, delete_file }, sess, env) {
+async function handleUpdatePending({ entry_id, entry_type, date, amount, narration, cost_head_id, project_id, vendor_id, drive_file_url, delete_file }, sess, env) {
   if (!entry_id) return err('entry_id required');
   const existing = await env.DB.prepare('SELECT * FROM pending_entries WHERE entry_id = ?').bind(entry_id).first();
   if (!existing) return err('Pending entry not found', 404);
@@ -507,6 +507,7 @@ async function handleUpdatePending({ entry_id, date, amount, narration, cost_hea
   if (drive_file_url !== undefined) { fields.push('drive_file_url = ?'); vals.push(drive_file_url); }
   if (cost_head_id !== undefined) { fields.push('cost_head_id = ?'); vals.push(cost_head_id); }
   if (project_id !== undefined) { fields.push('project_id = ?'); vals.push(project_id); }
+  if (entry_type !== undefined) { fields.push('entry_type = ?'); vals.push(entry_type); }
   if (vendor_id !== undefined) { fields.push('vendor_id = ?'); vals.push(vendor_id); }
   fields.push('drive_file_url = ?'); vals.push(newUrl);
   fields.push('status = ?'); vals.push('Pending'); // reset to pending on edit
