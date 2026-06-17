@@ -1021,68 +1021,71 @@ async function showEditEntry(entryId) {
   if (!entry) { toast('Entry not found', 'err'); return; }
 
   const et     = _ets.find(t => t.et_key === entry.entry_type);
-  const rules  = FIELD_RULES[entry.entry_type] || {};
+  const rules  = (window.FIELD_RULES && window.FIELD_RULES[entry.entry_type]) || {};
   const isBankImport = entry.entry_type === 'Bank_payment_received' || entry.entry_type === 'expense_bank';
   const hasDoc = (entry.drive_file_url || '').startsWith('http');
 
-  // Build dropdown options helpers
-  function sel(id, opts, curVal, label, rule) {
+  // Initial project visibility based on existing cost head's ac_key
+  const existingCH = entry.cost_head_id ? (_chs||[]).find(c => c.ch_id === entry.cost_head_id) : null;
+  const initProjVisible = existingCH && existingCH.ac_key === 'EXP_DIRECT';
+
+  const selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+
+  function mkSel(id, opts, curVal, label, rule, onch) {
     if (rule === 'hidden') return '<input type="hidden" id="' + id + '" value="' + (curVal || '') + '">';
     const req = rule === 'required'
       ? ' <span style="color:var(--red)">*</span>'
       : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
-    const style = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+    const onchange = onch ? ' onchange="' + onch + '"' : '';
     return '<div class="field"><label>' + label + req + '</label>'
-      + '<select id="' + id + '" style="' + style + '">'
+      + '<select id="' + id + '" style="' + selStyle + '"' + onchange + '>'
       + '<option value="">— select —</option>'
-      + opts.map(function(o) {
-          return '<option value="' + o.val + '"' + (o.val === curVal ? ' selected' : '') + '>' + o.lbl + '</option>';
-        }).join('')
-      + '</select></div>';
+      + opts + '</select></div>';
   }
 
-  const vendorOpts = (_vendors||[]).map(function(v) { return { val: v.vendor_id, lbl: v.vendor_name }; });
-  const projOpts   = (_projs||[]).map(function(p) { return { val: p.project_id, lbl: p.project_name }; });
-  const chOpts     = (_chs||[]).map(function(c) { return { val: c.ch_id, lbl: c.ch_name }; });
+  const vOpts = (_vendors||[]).map(v => '<option value="'+v.vendor_id+'"'+(v.vendor_id===entry.vendor_id?' selected':'')+'>'+v.vendor_name+'</option>').join('');
+  const pOpts = (_projs||[]).map(p => '<option value="'+p.project_id+'"'+(p.project_id===entry.project_id?' selected':'')+'>'+p.project_name+'</option>').join('');
+  const cOpts = (_chs||[]).map(c => '<option value="'+c.ch_id+'"'+(c.ch_id===entry.cost_head_id?' selected':'')+'>'+c.ch_name+'</option>').join('');
 
   const lockStyle = 'opacity:.5;pointer-events:none';
   const bankNote = isBankImport
     ? '<div style="padding:7px 10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;margin-bottom:10px;font-size:12px;color:var(--muted)">ℹ️ Bank-imported entry — narration is locked.</div>'
     : '';
 
+  // Cost head field — with onchange to drive project visibility
+  const chField = rules.cost_head !== 'hidden'
+    ? mkSel('ee-ch', cOpts, entry.cost_head_id||'', 'Cost Head', rules.cost_head||'hidden', 'eeCHChanged()')
+    : '<input type="hidden" id="ee-ch" value="'+(entry.cost_head_id||'')+'">';
+
+  // Project field — wrapped for show/hide; visible only if existing CH is EXP_DIRECT
+  const projField = (rules.project && rules.project !== 'hidden') ?
+    ('<div id="ee-proj-wrap" style="display:' + (initProjVisible ? 'block' : 'none') + '">'
+      + '<div class="field"><label>Project'+(initProjVisible?' <span style="color:var(--red)">*</span>':'')+'</label>'
+      + '<select id="ee-proj" style="'+selStyle+'"><option value="">— select project —</option>'+pOpts+'</select></div></div>')
+    : '<input type="hidden" id="ee-proj" value="'+(entry.project_id||'')+'">';
+
   const body = ''
-    // Info header — date, amount, entry type (read-only)
     + '<div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">'
     +   '<div style="font-weight:600">' + (et?.label || entry.entry_type) + '</div>'
     +   '<div style="color:var(--muted);margin-top:2px">' + fmtDate(entry.date) + ' · ' + fmtAmt(entry.amount) + '</div>'
-    +   (et ? '<div style="margin-top:4px"><span class="badge bb" style="font-size:10px">DR: ' + (et.dr||'—') + '</span>&nbsp;<span class="badge br" style="font-size:10px">CR: ' + (et.cr||'—') + '</span></div>' : '')
+    +   (et ? '<div style="margin-top:4px"><span class="badge bb" style="font-size:10px">DR: '+(et.dr||'—')+'</span>&nbsp;<span class="badge br" style="font-size:10px">CR: '+(et.cr||'—')+'</span></div>' : '')
     + '</div>'
     + bankNote
-    // Narration
     + '<div class="field"><label>Narration' + (isBankImport ? ' <span style="font-size:10px;color:var(--muted)">(locked)</span>' : '') + '</label>'
-    +   '<textarea id="ee-narr" rows="2"' + (isBankImport ? ' disabled style="' + lockStyle + '"' : '') + '>' + (entry.narration || '') + '</textarea></div>'
-    // Vendor, Project, Cost Head driven by FIELD_RULES
-    + sel('ee-vendor', vendorOpts, entry.vendor_id || '', 'Vendor', rules.vendor || 'hidden')
-    + sel('ee-proj',   projOpts,   entry.project_id || '', 'Project', rules.project || 'hidden')
-    + sel('ee-ch',     chOpts,     entry.cost_head_id || '', 'Cost Head', rules.cost_head || 'hidden')
-    // Document
+    +   '<textarea id="ee-narr" rows="2"' + (isBankImport ? ' disabled style="'+lockStyle+'"' : '') + '>' + (entry.narration || '') + '</textarea></div>'
+    + mkSel('ee-vendor', vOpts, entry.vendor_id||'', 'Vendor', rules.vendor||'hidden')
+    + chField
+    + projField
     + (rules.doc !== 'hidden' ? (''
       + '<div class="field"><label>Document / Bill</label>'
-      + (hasDoc
-          ? '<div id="ee-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
-          +   '<a href="' + entry.drive_file_url + '" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>'
-          +   '<button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑</button>'
-          + '</div>'
-          : '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>')
-      + '<div id="ee-doc-new">'
-      +   '<label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">'
-      +     '📎 ' + (hasDoc ? 'Replace document' : 'Attach document')
-      +     '<input type="file" id="ee-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="eeDocSelected(this)">'
-      +   '</label>'
-      +   '<div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div>'
-      + '</div></div>'
-      ) : '')
-    // Buttons
+      + (hasDoc ? '<div id="ee-current-doc" style="padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px;display:flex;align-items:center;justify-content:space-between;gap:8px">'
+          + '<a href="' + entry.drive_file_url + '" target="_blank" style="color:var(--green);font-size:12px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">📎 View current document</a>'
+          + '<button class="btn btn-xs" onclick="eeDeleteDoc()" style="background:rgba(239,68,68,.12);color:var(--red);border:1px solid rgba(239,68,68,.2);flex-shrink:0">🗑</button></div>'
+        : '<div style="font-size:12px;color:var(--muted);margin-bottom:8px">No document attached</div>')
+      + '<div id="ee-doc-new"><label style="display:flex;align-items:center;gap:6px;background:var(--bg);border:2px dashed var(--border);border-radius:8px;padding:10px;cursor:pointer;font-size:13px;color:var(--muted)">'
+      + '📎 ' + (hasDoc ? 'Replace document' : 'Attach document')
+      + '<input type="file" id="ee-doc-file" accept="image/*,application/pdf" capture="environment" style="display:none" onchange="eeDocSelected(this)"></label>'
+      + '<div id="ee-doc-status" style="font-size:11px;color:var(--muted);margin-top:4px"></div></div></div>') : '')
     + '<div class="modal-actions">'
     +   '<button class="btn btn-o" onclick="closeEditModal()">Cancel</button>'
     +   '<button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveEditEntry(\'' + entry.entry_id + '\',\'' + (entry.drive_file_url || '') + '\',\'' + entry.entry_type + '\')">Save Changes</button>'
@@ -1092,6 +1095,7 @@ async function showEditEntry(entryId) {
   window._eeNewFile = null;
   showEditModal('Edit Entry', body);
 }
+
 
 
 function eeDeleteDoc() {
@@ -1121,7 +1125,9 @@ async function saveEditEntry(entryId, oldUrl, entryType) {
   // Read fields
   const narration   = isBankImport ? null : (document.getElementById('ee-narr')?.value || '');
   const vendor_id   = document.getElementById('ee-vendor')?.value || '';
-  const project_id  = document.getElementById('ee-proj')?.value || '';
+  const _eeProjWrap = document.getElementById('ee-proj-wrap');
+  const project_id = (_eeProjWrap && _eeProjWrap.style.display !== 'none')
+    ? (document.getElementById('ee-proj')?.value || '') : '';
   const cost_head_id = document.getElementById('ee-ch')?.value || '';
   const deleteFile  = window._eeDeleteDoc || false;
 
@@ -2938,60 +2944,90 @@ async function renderMore(tab){
 // ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
 
 function apeEtChanged() {
-  const etSel = document.getElementById('ape-et');
-  const etKey = etSel ? etSel.value : (window._apeEntryType || '');
-  const rules = FIELD_RULES[etKey] || {};
-  const entry = window._apeEntry || {};
-  const selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
-  const container = document.getElementById('ape-dynamic-fields');
+  var etSel = document.getElementById('ape-et');
+  var etKey = etSel ? etSel.value : (window._apeEntryType || '');
+  var rules = (window.FIELD_RULES && window.FIELD_RULES[etKey]) || {};
+  var entry = window._apeEntry || {};
+  var selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+  var container = document.getElementById('ape-dynamic-fields');
   if (!container) return;
-
-  let html = '';
+  var html = '';
 
   // Vendor
   if (rules.vendor && rules.vendor !== 'hidden') {
-    const req = rules.vendor === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
-    html += '<div class="field"><label>Vendor' + req + '</label>'
-      + '<select id="ape-vendor" style="' + selStyle + '">'
-      + '<option value="">— select vendor —</option>'
-      + (_vendors||[]).map(function(v) {
-          return '<option value="' + v.vendor_id + '"' + (v.vendor_id===entry.vendor_id?' selected':'') + '>' + v.vendor_name + '</option>';
-        }).join('')
+    var vReq = rules.vendor==='required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    html += '<div class="field"><label>Vendor'+vReq+'</label><select id="ape-vendor" style="'+selStyle+'"><option value="">-- select --</option>'
+      + (_vendors||[]).map(function(v){ return '<option value="'+v.vendor_id+'"'+(v.vendor_id===entry.vendor_id?' selected':'')+'>'+v.vendor_name+'</option>'; }).join('')
       + '</select></div>';
   } else {
-    html += '<input type="hidden" id="ape-vendor" value="' + (entry.vendor_id||'') + '">';
+    html += '<input type="hidden" id="ape-vendor" value="'+(entry.vendor_id||'')+'">'; 
   }
 
-  // Project
-  if (rules.project && rules.project !== 'hidden') {
-    const req = rules.project === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
-    html += '<div class="field"><label>Project' + req + '</label>'
-      + '<select id="ape-proj" style="' + selStyle + '">'
-      + '<option value="">— select project —</option>'
-      + (_projs||[]).map(function(p) {
-          return '<option value="' + p.project_id + '"' + (p.project_id===entry.project_id?' selected':'') + '>' + p.project_name + '</option>';
-        }).join('')
-      + '</select></div>';
-  } else {
-    html += '<input type="hidden" id="ape-proj" value="' + (entry.project_id||'') + '">';
-  }
-
-  // Cost Head
+  // Cost Head — with onchange to drive project visibility
   if (rules.cost_head && rules.cost_head !== 'hidden') {
-    const req = rules.cost_head === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
-    html += '<div class="field"><label>Cost Head' + req + '</label>'
-      + '<select id="ape-ch" style="' + selStyle + '">'
-      + '<option value="">— select cost head —</option>'
-      + (_chs||[]).map(function(c) {
-          return '<option value="' + c.ch_id + '"' + (c.ch_id===entry.cost_head_id?' selected':'') + '>' + c.ch_name + '</option>';
-        }).join('')
+    var cReq = rules.cost_head==='required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    html += '<div class="field"><label>Cost Head'+cReq+'</label>'
+      + '<select id="ape-ch" style="'+selStyle+'" onchange="apeCHChanged()"><option value="">-- select --</option>'
+      + (_chs||[]).map(function(c){ return '<option value="'+c.ch_id+'"'+(c.ch_id===entry.cost_head_id?' selected':'')+'>'+c.ch_name+'</option>'; }).join('')
       + '</select></div>';
   } else {
-    html += '<input type="hidden" id="ape-ch" value="' + (entry.cost_head_id||'') + '">';
+    html += '<input type="hidden" id="ape-ch" value="'+(entry.cost_head_id||'')+'">'; 
+  }
+
+  // Project — shown only when cost head is EXP_DIRECT; hidden initially, apeCHChanged drives it
+  if (rules.project && rules.project !== 'hidden') {
+    var existingCH = entry.cost_head_id ? (_chs||[]).find(function(c){ return c.ch_id===entry.cost_head_id; }) : null;
+    var initVisible = existingCH && existingCH.ac_key === 'EXP_DIRECT';
+    html += '<div id="ape-proj-wrap" style="display:'+(initVisible?'block':'none')+'">'
+      + '<div class="field"><label>Project'+(initVisible?' <span style="color:var(--red)">*</span>':'')+'</label>'
+      + '<select id="ape-proj" style="'+selStyle+'"><option value="">-- select project --</option>'
+      + (_projs||[]).map(function(p){ return '<option value="'+p.project_id+'"'+(p.project_id===entry.project_id?' selected':'')+'>'+p.project_name+'</option>'; }).join('')
+      + '</select></div></div>';
+  } else {
+    html += '<input type="hidden" id="ape-proj" value="'+(entry.project_id||'')+'">'; 
   }
 
   container.innerHTML = html;
+  // Re-run CH change after render to set correct project state
+  if (entry.cost_head_id) setTimeout(function(){ apeCHChanged(); }, 10);
 }
+
+function apeCHChanged() {
+  var chSel = document.getElementById('ape-ch');
+  var chId = chSel ? chSel.value : '';
+  var ch = chId ? (_chs||[]).find(function(c){ return c.ch_id===chId; }) : null;
+  var acKey = ch ? (ch.ac_key||'') : '';
+  var projWrap = document.getElementById('ape-proj-wrap');
+  if (!projWrap) return;
+  var isDirect = acKey === 'EXP_DIRECT';
+  projWrap.style.display = isDirect ? 'block' : 'none';
+  var lbl = projWrap.querySelector('label');
+  if (lbl) {
+    Array.from(lbl.querySelectorAll('span')).forEach(function(s){ s.remove(); });
+    if (isDirect) { var star=document.createElement('span'); star.style.color='var(--red)'; star.textContent=' *'; lbl.appendChild(star); }
+  }
+  if (!isDirect) { var ps=document.getElementById('ape-proj'); if (ps) ps.value=''; }
+}
+
+function eeCHChanged() {
+  var chSel = document.getElementById('ee-ch');
+  var chId = chSel ? chSel.value : '';
+  var ch = chId ? (_chs||[]).find(function(c){ return c.ch_id===chId; }) : null;
+  var acKey = ch ? (ch.ac_key||'') : '';
+  var projWrap = document.getElementById('ee-proj-wrap');
+  if (!projWrap) return;
+  var isDirect = acKey === 'EXP_DIRECT';
+  projWrap.style.display = isDirect ? 'block' : 'none';
+  var lbl = projWrap.querySelector('label');
+  if (lbl) {
+    Array.from(lbl.querySelectorAll('span')).forEach(function(s){ s.remove(); });
+    if (isDirect) { var star=document.createElement('span'); star.style.color='var(--red)'; star.textContent=' *'; lbl.appendChild(star); }
+  }
+  if (!isDirect) { var ps=document.getElementById('ee-proj'); if (ps) ps.value=''; }
+}
+
+
+
 
 async function adminEditPending(entryId) {
   var entry = window._pendingMap && window._pendingMap[entryId];
@@ -3076,7 +3112,9 @@ async function saveAdminPendingEdit(entryId, oldUrl, companyId) {
   var amount = isBankImport ? entry.amount : (parseFloat((document.getElementById('ape-amt')||{}).value) || entry.amount);
   var narr   = isBankImport ? (entry.narration||'') : ((document.getElementById('ape-narr')||{}).value || '');
   var vendor_id    = (document.getElementById('ape-vendor')||{}).value || '';
-  var project_id   = (document.getElementById('ape-proj')  ||{}).value || '';
+  var _projWrap = document.getElementById('ape-proj-wrap');
+  var project_id = (_projWrap && _projWrap.style.display !== 'none')
+    ? ((document.getElementById('ape-proj')||{}).value || '') : '';
   var cost_head_id = (document.getElementById('ape-ch')    ||{}).value || '';
   var delDoc = (document.getElementById('ape-del-doc')||{}).value === '1';
   if (!date || !amount) { toast('Date and amount required', 'err'); return; }
