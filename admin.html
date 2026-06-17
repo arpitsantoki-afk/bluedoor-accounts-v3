@@ -4107,28 +4107,7 @@ window.BANK_ET_OPTIONS = {
   ]
 };
 
-function apeEtChanged() {
-  var etSel = document.getElementById('ape-et');
-  var etKey = etSel ? etSel.value : (window._apeEntryType || '');
-  var rules = (window.FIELD_RULES && window.FIELD_RULES[etKey]) || {};
-  var entry = window._apeEntry || {};
-  var selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
-  var container = document.getElementById('ape-dynamic-fields');
-  if (!container) return;
-  var html = '';
-  function mkSel(id, opts, curVal, label, rule) {
-    if (!rule || rule === 'hidden') return '<input type="hidden" id="'+id+'" value="'+(curVal||'')+ '">';
-    var req = rule==='required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
-    return '<div class="field"><label>'+label+req+'</label><select id="'+id+'" style="'+selStyle+'"><option value="">-- select --</option>'+opts+'</select></div>';
-  }
-  var vOpts = (_vendors||[]).map(function(v){ return '<option value="'+v.vendor_id+'"'+(v.vendor_id===entry.vendor_id?' selected':'')+'>'+v.vendor_name+'</option>'; }).join('');
-  var pOpts = (_projs||[]).map(function(p){ return '<option value="'+p.project_id+'"'+(p.project_id===entry.project_id?' selected':'')+'>'+p.project_name+'</option>'; }).join('');
-  var cOpts = (_chs||[]).map(function(c){ return '<option value="'+c.ch_id+'"'+(c.ch_id===entry.cost_head_id?' selected':'')+'>'+c.ch_name+'</option>'; }).join('');
-  html += mkSel('ape-vendor', vOpts, entry.vendor_id||'', 'Vendor', rules.vendor);
-  html += mkSel('ape-proj',   pOpts, entry.project_id||'', 'Project', rules.project);
-  html += mkSel('ape-ch',     cOpts, entry.cost_head_id||'', 'Cost Head', rules.cost_head);
-  container.innerHTML = html;
-}
+
 </script>
 
 
