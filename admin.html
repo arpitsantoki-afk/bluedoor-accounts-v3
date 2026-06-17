@@ -2937,6 +2937,21 @@ async function renderMore(tab){
 
 // ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
 
+// Bank import entry type reassignment options
+window.BANK_ET_OPTIONS = {
+  withdrawal: [
+    { group: 'Vendor',   key: 'vendor_paid_bank',  label: 'Bank Payment against Bill' },
+    { group: 'Vendor',   key: 'advance_bank',       label: 'Advance via Bank' },
+    { group: 'Expense',  key: 'expense_bank',       label: 'Paid Via Bank' },
+    { group: 'Withdraw', key: 'drawings_bank',      label: 'Withdraw from Bank' }
+  ],
+  deposit: [
+    { group: 'Client',   key: 'Bank_payment_received', label: 'Bank Payment against Invoice' },
+    { group: 'Client',   key: 'advance_received_bank', label: 'Advance Received via Bank' },
+    { group: 'Transfer', key: 'transfer_cash_to_bank', label: 'Cash to Bank Transfer' }
+  ]
+};
+
 function apeEtChanged() {
   const etSel = document.getElementById('ape-et');
   const etKey = etSel ? etSel.value : (window._apeEntryType || '');
