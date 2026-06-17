@@ -3299,7 +3299,8 @@ async function renderPending(){
       </div>
       ${isPending?`<div class="row mt2" style="gap:6px">
         <button class="btn btn-s btn-sm" onclick="confirmApproveById('${p.entry_id}')">✓ Approve</button>
-        <button class="btn btn-d btn-sm" onclick="rejectPending('${p.entry_id}')">✗ Reject</button>
+        <button class="btn btn-o btn-sm" onclick="adminEditPending('${p.entry_id}')">✏️ Edit</button>
+        <button class="btn btn-d btn-sm" onclick="confirmRejectById('${p.entry_id}')">✗ Reject</button>
         <button class="btn btn-o btn-sm" onclick="deletePending('${p.entry_id}')">🗑</button>
       </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
     </div></div>`;}).join('');
