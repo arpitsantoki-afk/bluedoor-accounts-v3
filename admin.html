@@ -1012,7 +1012,8 @@ async function renderHome() {
         </tr>`}).join('')}
       </tbody></table></div>`:'<div class="empty">No entries yet — import data first</div>';
 }
-async function quickApprove(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderHome();}else toast(r.error,'err');}
+async function quickApprove(id){ await confirmApproveById(id); }
+
 
 async function showEditEntry(entryId) {
   const res = await api('listEntries', { fyid: curFY, limit: 1000 });
@@ -1312,6 +1313,7 @@ async function renderLedger() {
     return`<tr style="${!isFirst?'background:rgba(255,255,255,.015)':''}">
       <td style="white-space:nowrap;font-size:12px">${isFirst?fmtDate(r.date):'↳'}</td>
       <td style="font-size:11px">${r.company_id}</td>
+      <td style="font-size:11px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${(()=>{const p=_projs.find(x=>x.project_id===r.project_id);return p?p.project_name:'-';})()}</td>
       <td><strong style="font-size:12px">${r.ac_name}</strong><br><code>${r.ac_code}</code></td>
       <td style="font-size:11px;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${r.narration||'—'}</td>
       <td class="amt dr" style="text-align:right">${r.debit>0?fmtAmt(r.debit):''}</td>
@@ -2935,6 +2937,62 @@ async function renderMore(tab){
 
 // ── CONFIRM APPROVE PENDING ───────────────────────────────────────────────────
 
+function apeEtChanged() {
+  const etSel = document.getElementById('ape-et');
+  const etKey = etSel ? etSel.value : (window._apeEntryType || '');
+  const rules = FIELD_RULES[etKey] || {};
+  const entry = window._apeEntry || {};
+  const selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+  const container = document.getElementById('ape-dynamic-fields');
+  if (!container) return;
+
+  let html = '';
+
+  // Vendor
+  if (rules.vendor && rules.vendor !== 'hidden') {
+    const req = rules.vendor === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    html += '<div class="field"><label>Vendor' + req + '</label>'
+      + '<select id="ape-vendor" style="' + selStyle + '">'
+      + '<option value="">— select vendor —</option>'
+      + (_vendors||[]).map(function(v) {
+          return '<option value="' + v.vendor_id + '"' + (v.vendor_id===entry.vendor_id?' selected':'') + '>' + v.vendor_name + '</option>';
+        }).join('')
+      + '</select></div>';
+  } else {
+    html += '<input type="hidden" id="ape-vendor" value="' + (entry.vendor_id||'') + '">';
+  }
+
+  // Project
+  if (rules.project && rules.project !== 'hidden') {
+    const req = rules.project === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    html += '<div class="field"><label>Project' + req + '</label>'
+      + '<select id="ape-proj" style="' + selStyle + '">'
+      + '<option value="">— select project —</option>'
+      + (_projs||[]).map(function(p) {
+          return '<option value="' + p.project_id + '"' + (p.project_id===entry.project_id?' selected':'') + '>' + p.project_name + '</option>';
+        }).join('')
+      + '</select></div>';
+  } else {
+    html += '<input type="hidden" id="ape-proj" value="' + (entry.project_id||'') + '">';
+  }
+
+  // Cost Head
+  if (rules.cost_head && rules.cost_head !== 'hidden') {
+    const req = rules.cost_head === 'required' ? ' <span style="color:var(--red)">*</span>' : ' <span style="font-size:10px;color:var(--muted)">(optional)</span>';
+    html += '<div class="field"><label>Cost Head' + req + '</label>'
+      + '<select id="ape-ch" style="' + selStyle + '">'
+      + '<option value="">— select cost head —</option>'
+      + (_chs||[]).map(function(c) {
+          return '<option value="' + c.ch_id + '"' + (c.ch_id===entry.cost_head_id?' selected':'') + '>' + c.ch_name + '</option>';
+        }).join('')
+      + '</select></div>';
+  } else {
+    html += '<input type="hidden" id="ape-ch" value="' + (entry.cost_head_id||'') + '">';
+  }
+
+  container.innerHTML = html;
+}
+
 async function adminEditPending(entryId) {
   let entry = window._pendingMap?.[entryId];
   if (!entry) {
@@ -2945,97 +3003,110 @@ async function adminEditPending(entryId) {
   }
   if (!entry) { toast('Entry not found', 'err'); return; }
 
-  const et   = _ets.find(t => t.et_key === entry.entry_type);
-  const rules = FIELD_RULES[entry.entry_type] || {};
   const isBankImport = entry.entry_type === 'Bank_payment_received' || entry.entry_type === 'expense_bank';
+  const isWithdrawal = entry.entry_type === 'expense_bank';
+  const et    = _ets.find(t => t.et_key === entry.entry_type);
+
+  // For bank imports, selected et may change — use a reactive approach
+  // We store the initial entry type and let the dropdown update field visibility
+  window._apeEntryType = entry.entry_type;
+  window._apeIsBankImport = isBankImport;
+  window._apeEntry = entry;
+  window._apeNewFile = null;
+
+  const selStyle = 'width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px';
+
+  // Vendor options
+  const vendorOpts = '<option value="">— select vendor —</option>' + (_vendors||[]).map(function(v) {
+    return '<option value="' + v.vendor_id + '"' + (v.vendor_id===entry.vendor_id?' selected':'') + '>' + v.vendor_name + '</option>';
+  }).join('');
+  // Project options
+  const projOpts = '<option value="">— select project —</option>' + (_projs||[]).map(function(p) {
+    return '<option value="' + p.project_id + '"' + (p.project_id===entry.project_id?' selected':'') + '>' + p.project_name + '</option>';
+  }).join('');
+  // Cost head options
+  const chOpts = '<option value="">— select cost head —</option>' + (_chs||[]).map(function(c) {
+    return '<option value="' + c.ch_id + '"' + (c.ch_id===entry.cost_head_id?' selected':'') + '>' + c.ch_name + '</option>';
+  }).join('');
+
+  // Build bank ET options grouped by direction
+  function buildBankEtOpts(currentEtKey) {
+    const opts = BANK_ET_OPTIONS[isWithdrawal ? 'withdrawal' : 'deposit'];
+    let lastGroup = '';
+    let html = '';
+    opts.forEach(function(o) {
+      if (o.group !== lastGroup) {
+        if (lastGroup) html += '</optgroup>';
+        html += '<optgroup label="' + o.group + '">';
+        lastGroup = o.group;
+      }
+      html += '<option value="' + o.key + '"' + (o.key === currentEtKey ? ' selected' : '') + '>' + o.label + '</option>';
+    });
+    if (lastGroup) html += '</optgroup>';
+    return html;
+  }
+
   const hasDoc = entry.drive_file_url && entry.drive_file_url.startsWith('http');
 
-  // Build vendor options
-  const vendorOpts = (_vendors||[]).map(v =>
-    `<option value="${v.vendor_id}" ${v.vendor_id===entry.vendor_id?'selected':''}>${v.vendor_name}</option>`
-  ).join('');
+  let body = ''
+    // Info header
+    + '<div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">'
+    +   '<div style="font-weight:600">' + (et?.label || entry.entry_type) + '</div>'
+    +   '<div style="color:var(--muted)">' + fmtDate(entry.date) + ' · ' + fmtAmt(entry.amount) + ' · ' + (entry.submitted_by||'') + '</div>'
+    + '</div>';
 
-  // Build project options
-  const projOpts = (_projs||[]).map(p =>
-    `<option value="${p.project_id}" ${p.project_id===entry.project_id?'selected':''}>${p.project_name}</option>`
-  ).join('');
+  if (isBankImport) {
+    body += '<div style="padding:7px 10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;margin-bottom:10px;font-size:12px;color:var(--muted)">'
+      + 'ℹ️ Bank-imported entry — date, amount and narration are locked. You can reassign the entry type.'
+      + '</div>';
+    // Entry type selector for bank imports
+    body += '<div class="field"><label>Entry Type <span style="color:var(--red)">*</span></label>'
+      + '<select id="ape-et" style="' + selStyle + '" onchange="apeEtChanged()">'
+      + buildBankEtOpts(entry.entry_type)
+      + '</select></div>';
+    // Locked fields
+    body += '<div class="g2">'
+      + '<div class="field"><label>Date</label><input type="date" value="' + entry.date + '" disabled style="opacity:.5"></div>'
+      + '<div class="field"><label>Amount ₹</label><input type="number" value="' + entry.amount + '" disabled style="opacity:.5"></div>'
+      + '</div>'
+      + '<div class="field"><label>Narration</label><input value="' + (entry.narration||'').replace(/"/g,'&quot;') + '" disabled style="opacity:.5"></div>';
+  } else {
+    body += '<input type="hidden" id="ape-et" value="' + entry.entry_type + '">'
+      + '<div class="g2">'
+      + '<div class="field"><label>Date *</label><input type="date" id="ape-date" value="' + entry.date + '"></div>'
+      + '<div class="field"><label>Amount ₹ *</label><input type="number" id="ape-amt" value="' + entry.amount + '" step="0.01"></div>'
+      + '</div>'
+      + '<div class="field"><label>Narration</label><input id="ape-narr" value="' + (entry.narration||'').replace(/"/g,'&quot;') + '"></div>';
+  }
 
-  // Build cost head options
-  const chOpts = (_chs||[]).map(c =>
-    `<option value="${c.ch_id}" ${c.ch_id===entry.cost_head_id?'selected':''}>${c.ch_name}</option>`
-  ).join('');
+  // Dynamic fields container — populated by apeEtChanged() or initial render
+  body += '<div id="ape-dynamic-fields"></div>';
 
-  const bankNote = isBankImport
-    ? `<div style="padding:7px 10px;background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:7px;margin-bottom:10px;font-size:12px;color:var(--muted)">
-        ℹ️ Bank-imported entry — date, amount and narration are locked.
-      </div>` : '';
-
-  const body = `
-    <div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">
-      <div style="font-weight:600">${et?.label||entry.entry_type}</div>
-      <div style="color:var(--muted)">${fmtDate(entry.date)} · ${fmtAmt(entry.amount)} · ${entry.submitted_by}</div>
-    </div>
-    ${bankNote}
-    <div class="g2">
-      <div class="field">
-        <label>Date *</label>
-        <input type="date" id="ape-date" value="${entry.date}" ${isBankImport?'disabled style="opacity:.5"':''}>
-      </div>
-      <div class="field">
-        <label>Amount ₹ *</label>
-        <input type="number" id="ape-amt" value="${entry.amount}" step="0.01" ${isBankImport?'disabled style="opacity:.5"':''}>
-      </div>
-    </div>
-    <div class="field">
-      <label>Narration</label>
-      <input id="ape-narr" value="${(entry.narration||'').replace(/"/g,'&quot;')}" ${isBankImport?'disabled style="opacity:.5"':''}>
-    </div>
-    ${rules.vendor && rules.vendor!=='hidden' ? `
-    <div class="field">
-      <label>Vendor${rules.vendor==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
-      <select id="ape-vendor" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
-        <option value="">— select vendor —</option>
-        ${vendorOpts}
-      </select>
-    </div>` : '<input type="hidden" id="ape-vendor" value="">'}
-    ${rules.project && rules.project!=='hidden' ? `
-    <div class="field">
-      <label>Project${rules.project==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
-      <select id="ape-proj" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
-        <option value="">— select project —</option>
-        ${projOpts}
-      </select>
-    </div>` : '<input type="hidden" id="ape-proj" value="">'}
-    ${rules.cost_head && rules.cost_head!=='hidden' ? `
-    <div class="field">
-      <label>Cost Head${rules.cost_head==='required'?' <span style="color:var(--red)">*</span>':' <span style="color:var(--muted);font-size:10px">(optional)</span>'}</label>
-      <select id="ape-ch" style="width:100%;padding:10px;background:var(--bg);border:1px solid var(--border);border-radius:9px;color:var(--text);font-size:13px">
-        <option value="">— select cost head —</option>
-        ${chOpts}
-      </select>
-    </div>` : '<input type="hidden" id="ape-ch" value="">'}
-    ${rules.doc && rules.doc!=='hidden' ? `
-    <div class="field">
-      <label>Document</label>
-      ${hasDoc ? `<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px">
-        <a href="${entry.drive_file_url}" target="_blank" style="color:var(--green);font-size:12px">📎 View current document</a>
-        <button class="btn btn-xs btn-d" onclick="document.getElementById('ape-del-doc').value='1';this.closest('div').style.display='none'">🗑</button>
-      </div>` : ''}
-      <input type="hidden" id="ape-del-doc" value="0">
-      <label id="ape-doc-label" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted)">
-        📎 ${hasDoc ? 'Replace Document' : 'Attach Document'}
-        <input type="file" id="ape-doc-file" accept="image/*,application/pdf" style="display:none" onchange="apeDocSelected(this)">
-      </label>
-      <div id="ape-doc-status" style="font-size:12px;color:var(--accent);margin-top:6px"></div>
-    </div>` : '<input type="hidden" id="ape-del-doc" value="0"><div id="ape-doc-status"></div>'}
-    <div class="modal-actions">
-      <button class="btn btn-o" onclick="closeEditModal()">Cancel</button>
-      <button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveAdminPendingEdit('${entryId}','${entry.drive_file_url||''}','${entry.entry_type||''}','${entry.company_id||''}','${isBankImport}')">Save Changes</button>
-    </div>`;
+  // Doc section
+  body += '<div class="field"><label>Document</label>'
+    + (hasDoc
+      ? '<div style="display:flex;align-items:center;justify-content:space-between;padding:8px 10px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:7px;margin-bottom:8px">'
+      +   '<a href="' + entry.drive_file_url + '" target="_blank" style="color:var(--green);font-size:12px">📎 View document</a>'
+      +   '<button class="btn btn-xs btn-d" onclick="document.getElementById(\'ape-del-doc\').value=\'1\';this.closest(\'div\').style.display=\'none\'">🗑</button>'
+      + '</div>' : '')
+    + '<input type="hidden" id="ape-del-doc" value="0">'
+    + '<label id="ape-doc-label" style="display:flex;align-items:center;justify-content:center;gap:7px;padding:10px 13px;background:var(--bg);border:2px dashed var(--border);border-radius:9px;cursor:pointer;font-size:13px;color:var(--muted)">'
+    +   '📎 ' + (hasDoc ? 'Replace Document' : 'Attach Document')
+    +   '<input type="file" id="ape-doc-file" accept="image/*,application/pdf" style="display:none" onchange="apeDocSelected(this)">'
+    + '</label>'
+    + '<div id="ape-doc-status" style="font-size:12px;color:var(--accent);margin-top:6px"></div></div>'
+    // Buttons
+    + '<div class="modal-actions">'
+    +   '<button class="btn btn-o" onclick="closeEditModal()">Cancel</button>'
+    +   '<button class="btn btn-p" style="flex:1;justify-content:center" onclick="saveAdminPendingEdit(\'' + entryId + '\',\'' + (entry.drive_file_url||'') + '\',\'' + (entry.company_id||'') + '\')">Save Changes</button>'
+    + '</div>';
 
   showEditModal('Edit Pending Entry', body);
-  window._apeNewFile = null;
+
+  // Populate dynamic fields after modal renders
+  setTimeout(function() { apeEtChanged(); }, 0);
 }
+
 
 function apeDocSelected(input) {
   const file = input.files[0];
@@ -3048,42 +3119,55 @@ function apeDocSelected(input) {
   if (lbl) lbl.style.borderColor = 'var(--accent)';
 }
 
-async function saveAdminPendingEdit(entryId, oldUrl, entryType, companyId, isBankImport) {
-  isBankImport = isBankImport === 'true' || isBankImport === true;
-  const entry = window._pendingMap?.[entryId] || {};
+async function saveAdminPendingEdit(entryId, oldUrl, companyId) {
+  const entry = window._apeEntry || window._pendingMap?.[entryId] || {};
+  const isBankImport = window._apeIsBankImport || false;
 
-  const date   = isBankImport ? entry.date   : (document.getElementById('ape-date')?.value || entry.date);
+  const newEt  = document.getElementById('ape-et')?.value || entry.entry_type;
+  const date   = isBankImport ? entry.date   : (document.getElementById('ape-date')?.value  || entry.date);
   const amount = isBankImport ? entry.amount : (parseFloat(document.getElementById('ape-amt')?.value) || entry.amount);
   const narr   = isBankImport ? (entry.narration||'') : (document.getElementById('ape-narr')?.value || '');
-  const vendor_id   = document.getElementById('ape-vendor')?.value || '';
-  const project_id  = document.getElementById('ape-proj')?.value || '';
-  const cost_head_id = document.getElementById('ape-ch')?.value || '';
+  const vendor_id    = document.getElementById('ape-vendor')?.value || '';
+  const project_id   = document.getElementById('ape-proj')?.value   || '';
+  const cost_head_id = document.getElementById('ape-ch')?.value     || '';
   const delDoc = document.getElementById('ape-del-doc')?.value === '1';
 
   if (!date || !amount) { toast('Date and amount required', 'err'); return; }
 
+  // Required field check for new entry type
+  const rules = FIELD_RULES[newEt] || {};
+  if (rules.vendor    === 'required' && !vendor_id)    { toast('Vendor is required for this entry type', 'err'); return; }
+  if (rules.cost_head === 'required' && !cost_head_id) { toast('Cost Head is required for this entry type', 'err'); return; }
+  if (rules.project   === 'required' && !project_id)   { toast('Project is required for this entry type', 'err'); return; }
+
   let newUrl = delDoc ? '' : oldUrl;
   if (window._apeNewFile) {
     const st = document.getElementById('ape-doc-status');
-    if (st) st.textContent = '⬆️ Uploading…';
-    const vendor = (_vendors||[]).find(v => v.vendor_id === vendor_id);
-    const uploaded = await uploadFileToDrive(window._apeNewFile, companyId, entryType, vendor?.vendor_name||'', date);
-    if (uploaded) { newUrl = uploaded; toast('📎 Document uploaded'); }
+    if (st) st.textContent = 'Uploading...';
+    const vendor = (_vendors||[]).find(function(v){ return v.vendor_id === vendor_id; });
+    const uploaded = await uploadFileToDrive(window._apeNewFile, companyId, newEt, vendor?.vendor_name||'', date);
+    if (uploaded) { newUrl = uploaded; toast('Document uploaded'); }
   }
 
   const r = await api('updatePending', {
-    entry_id: entryId, date, amount, narration: narr,
+    entry_id: entryId,
+    entry_type: newEt,
+    date, amount, narration: narr,
     vendor_id, project_id, cost_head_id,
-    drive_file_url: newUrl, delete_file: delDoc && !window._apeNewFile
+    drive_file_url: newUrl,
+    delete_file: delDoc && !window._apeNewFile
   });
+
   if (r.ok) {
-    toast('Pending entry updated ✓');
+    toast('Pending entry updated');
     closeEditModal();
     window._apeNewFile = null;
+    window._apeEntry = null;
     renderPending();
     renderHome();
   } else toast(r.error || 'Update failed', 'err');
 }
+
 
 async function confirmApproveById(entryId) {
   // Always fetch fresh pending data — map may not be populated yet
@@ -3285,7 +3369,15 @@ async function renderPending(){
       </div>`:`<div class="row mt2"><button class="btn btn-o btn-xs" onclick="deletePending('${p.entry_id}')">🗑 Remove</button></div>`}
     </div></div>`;}).join('');
 }
-async function approvePending(id){const r=await api('approvePending',{entry_id:id});if(r.ok){toast('Approved ✓');renderPending();}else toast(r.error,'err');}
+async function approvePending(entryId) {
+  const r = await api('approvePending', { entry_id: entryId });
+  if (r.ok) {
+    toast('Entry approved');
+    if (window._pendingMap) delete window._pendingMap[entryId];
+    renderHome();
+    renderPending();
+  } else toast(r.error || 'Approve failed', 'err');
+}
 async function rejectPending(id){const reason=prompt('Reason (optional):')||'';const r=await api('rejectPending',{entry_id:id,reject_reason:reason});if(r.ok){toast('Rejected');renderPending();}else toast(r.error,'err');}
 async function deletePending(id){confirm2('Delete','Delete this pending entry?',async()=>{const r=await api('deletePending',{entry_id:id});if(r.ok){toast('Deleted');renderPending();}else toast(r.error,'err');});}
 
