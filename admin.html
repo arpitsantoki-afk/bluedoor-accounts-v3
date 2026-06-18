@@ -1134,7 +1134,7 @@ async function saveEditEntry(entryId, oldUrl, entryType) {
   // Required field validation
   if (rules.vendor === 'required' && !vendor_id)     { toast('Vendor is required', 'err'); return; }
   var _eeProjWrapVisible = _eeProjWrap && _eeProjWrap.style.display !== 'none';
-  if (rules.project === 'required' && _eeProjWrapVisible && !project_id) { toast('Project is required', 'err'); return; }
+  if (_eeProjWrapVisible && !project_id) { toast('Project required for direct expense', 'err'); return; }
   if (rules.cost_head === 'required' && !cost_head_id){ toast('Cost Head is required', 'err'); return; }
 
   let newUrl = deleteFile ? '' : oldUrl;
@@ -3123,7 +3123,7 @@ async function saveAdminPendingEdit(entryId, oldUrl, companyId) {
   if (rules.vendor    === 'required' && !vendor_id)    { toast('Vendor required', 'err'); return; }
   if (rules.cost_head === 'required' && !cost_head_id) { toast('Cost Head required', 'err'); return; }
   var _projWrapVisible = _projWrap && _projWrap.style.display !== 'none';
-  if (rules.project === 'required' && _projWrapVisible && !project_id) { toast('Project required', 'err'); return; }
+  if (_projWrapVisible && !project_id) { toast('Project required for direct expense', 'err'); return; }
   var newUrl = delDoc ? '' : oldUrl;
   if (window._apeNewFile) {
     var st = document.getElementById('ape-doc-status');
