@@ -3317,7 +3317,10 @@ async function renderPending(){
   const el=document.getElementById('more-out');
   el.innerHTML='<div class="empty"><span class="spin"></span></div>';
   const res=await api('listPending',{fyid:curFY,company_id:curCo});
-  const rows=res.pending||[];
+  const rows=(res.pending||[]).slice().sort(function(a,b){
+    if (b.date !== a.date) return b.date > a.date ? 1 : -1;
+    return b.entry_id > a.entry_id ? 1 : -1; // tiebreak by id desc
+  });
   window._pendingMap={}; rows.forEach(p=>window._pendingMap[p.entry_id]=p);
   // Note: bank imports go to pending — don't show all entries as pending, only actual pending_entries
   if(!rows.length){el.innerHTML='<div class="empty">No pending entries</div>';return;}
