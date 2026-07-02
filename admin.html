@@ -2863,10 +2863,6 @@ async function loadProjectRpt(pid){
             }).join('')}
             <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
           </div>
-          ${section('(f) Paid — Cash', paidCash, totalPaidCash, 'cr')}
-          ${section('(g) Paid — Petty Cash', paidPetty, totalPaidPetty, 'cr')}
-          ${section('(h) Paid — Bank', paidBank, totalPaidBank, 'cr')}
-          ${section('(j) Vendor Advances Paid', advPaid, totalAdvPaid, 'cr')}
         </div>
       </div>
     </div>
@@ -2878,11 +2874,9 @@ async function loadProjectRpt(pid){
         <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(a) Total Income / Invoiced</span><span class="amt dr">${fmtAmt(totalIncome)}</span></div>
         <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(d) Advances Received</span><span class="amt dr">${fmtAmt(totalAdvances)}</span></div>
         <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(e) Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
-        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(i) Outstanding Payable <span style="font-size:10px;color:var(--muted)">(e−paid)</span></span><span class="amt cr">${fmtAmt(Math.max(0,payable))}</span></div>
-        <div class="rsb" style="padding:5px 0;border-bottom:1px solid var(--border)"><span>(j) Vendor Advances Paid</span><span class="amt cr">${fmtAmt(totalAdvPaid)}</span></div>
         <div class="rsb" style="padding:6px 0;font-weight:700;font-size:13px;border-top:2px solid var(--border)">
-          <span>(k) Net Cash Flow <span style="font-size:10px;color:var(--muted)">(a+d−e−j)</span></span>
-          <span class="amt ${cashFlow>=0?'dr':'cr'}">${fmtAmt(Math.abs(cashFlow))} ${cashFlow>=0?'surplus':'deficit'}</span>
+          <span>Gross Margin <span style="font-size:10px;color:var(--muted)">(a−e)</span></span>
+          <span class="amt ${(totalIncome-totalDirectExp)>=0?'dr':'cr'}">${fmtAmt(Math.abs(totalIncome-totalDirectExp))} ${(totalIncome-totalDirectExp)>=0?'surplus':'deficit'}</span>
         </div>
       </div>
     </div>`;
