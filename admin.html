@@ -2763,12 +2763,38 @@ async function loadProjectRpt(pid){
   // k. Net Cash Flow = Income + Advances received − Direct Expenses − Vendor Advances
   const cashFlow = totalIncome + totalAdvances - totalDirectExp - totalAdvPaid;
 
-  const section = (label, rows, total, cls='dr') => rows.length===0?'':`
-    <div style="margin-bottom:6px">
-      <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">${label}</div>
-      ${rows.map(e=>{const et=_ets.find(t=>t.et_key===e.entry_type); return`<div class="rsb" style="padding:3px 0;font-size:12px"><span>${fmtDate(e.date)} · ${e.narration||et?.label||e.entry_type}</span><span class="amt ${cls}">${fmtAmt(e.amount)}</span></div>`;}).join('')}
-      <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Subtotal</span><span class="amt ${cls}">${fmtAmt(total)}</span></div>
-    </div>`;
+    let _secIdx = 0;
+  const section = (label, rows, total, cls) => {
+    if (!rows.length) return '';
+    const sid = 'sec-' + (_secIdx++);
+    const rowsHtml = rows.map(function(e) {
+      const et = _ets.find(function(t){ return t.et_key===e.entry_type; });
+      const vn = (_vendors||[]).find(function(v){ return v.vendor_id===e.vendor_id; });
+      return '<tr style="border-bottom:1px solid rgba(255,255,255,.04)">'
+        + '<td style="font-size:11px;padding:4px 0;white-space:nowrap;padding-right:8px">' + fmtDate(e.date) + '</td>'
+        + '<td style="font-size:11px;padding:4px 0;color:var(--muted);padding-right:8px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (vn ? vn.vendor_name : '\u2014') + '</td>'
+        + '<td style="font-size:11px;padding:4px 0;padding-right:8px">' + (e.narration || (et ? et.label : e.entry_type)) + '</td>'
+        + '<td class="amt ' + (cls||'dr') + '" style="font-size:11px;padding:4px 0;text-align:right;white-space:nowrap">' + fmtAmt(e.amount) + '</td>'
+        + '</tr>';
+    }).join('');
+    return '<div style="margin:4px 0;border:1px solid var(--border);border-radius:7px;overflow:hidden">'
+      + '<div onclick="var el=document.getElementById(\'' + sid + '\');el.style.display=el.style.display===\'none\'?\'block\':\'none\';this.querySelector(\'.sec-arrow\').textContent=el.style.display===\'none\'?\'\u25b6\':\'\u25bc\';"'
+      + ' style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--card);cursor:pointer;user-select:none">'
+      + '<span style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase"><span class="sec-arrow" style="font-size:9px;margin-right:5px">\u25b6</span>' + label + '</span>'
+      + '<span class="amt ' + (cls||'dr') + '" style="font-size:12px">' + fmtAmt(total) + '</span>'
+      + '</div>'
+      + '<div id="' + sid + '" style="display:none;padding:0 10px 6px">'
+      + '<table style="width:100%;border-collapse:collapse;margin-top:4px">'
+      + '<thead><tr style="border-bottom:1px solid var(--border)">'
+      + '<th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Date</th>'
+      + '<th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Vendor</th>'
+      + '<th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Narration</th>'
+      + '<th style="text-align:right;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Amount</th>'
+      + '</tr></thead><tbody>' + rowsHtml + '</tbody>'
+      + '<tfoot><tr><td colspan="3" style="font-size:11px;font-weight:600;padding:4px 0;border-top:1px solid var(--border)">Subtotal</td>'
+      + '<td class="amt ' + (cls||'dr') + '" style="font-size:11px;font-weight:600;padding:4px 0;border-top:1px solid var(--border);text-align:right;white-space:nowrap">' + fmtAmt(total) + '</td>'
+      + '</tr></tfoot></table></div></div>';
+  }
 
   el.innerHTML=`
     <div class="rsb" style="margin-bottom:10px">
