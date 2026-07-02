@@ -2800,15 +2800,41 @@ async function loadProjectRpt(pid){
           <!-- (e) Direct Expenses grouped by cost head -->
           <div style="margin-bottom:6px">
             <div style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;padding:3px 0;border-bottom:1px solid var(--border)">(E) Direct Expenses — by Cost Head</div>
-            ${Object.values(expByCH).sort((a,b)=>b.total-a.total).map(ch=>`
-              <div style="margin:5px 0 3px;font-size:11px;font-weight:600;color:var(--text);padding:2px 0;border-bottom:1px dashed var(--border)">${ch.name}</div>
-              ${ch.entries.map(e=>`<div class="rsb" style="padding:2px 0;font-size:12px;padding-left:8px">
-                <span>${fmtDate(e.date)} · ${e.narration||getET(e)?.label||e.entry_type}</span>
-                <span class="amt cr">${fmtAmt(e.amount)}</span>
-              </div>`).join('')}
-              <div class="rsb" style="padding:2px 0 4px 8px;font-size:11px;color:var(--muted)">
-                <span>Subtotal</span><span class="amt cr">${fmtAmt(ch.total)}</span>
-              </div>`).join('')}
+            ${Object.values(expByCH).sort((a,b)=>b.total-a.total).map((ch,chIdx)=>{
+              const chId='ch-exp-'+chIdx;
+              return `<div style="margin:4px 0;border:1px solid var(--border);border-radius:7px;overflow:hidden">
+                <div onclick="var el=document.getElementById('${chId}');el.style.display=el.style.display==='none'?'block':'none';this.querySelector('.ch-arrow').textContent=el.style.display==='none'?'▶':'▼';"
+                  style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;background:var(--card);cursor:pointer;user-select:none">
+                  <span style="font-size:11px;font-weight:600;color:var(--text)">
+                    <span class='ch-arrow' style='font-size:9px;color:var(--muted);margin-right:5px'>▶</span>${ch.name}
+                  </span>
+                  <span class="amt cr" style="font-size:12px">${fmtAmt(ch.total)}</span>
+                </div>
+                <div id="${chId}" style="display:none;padding:0 10px 6px">
+                  <table style="width:100%;border-collapse:collapse;margin-top:4px">
+                    <thead><tr style="border-bottom:1px solid var(--border)">
+                      <th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Date</th>
+                      <th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Vendor</th>
+                      <th style="text-align:left;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Narration</th>
+                      <th style="text-align:right;font-size:10px;color:var(--muted);padding:3px 0;font-weight:600">Amount</th>
+                    </tr></thead>
+                    <tbody>${ch.entries.map(e=>{
+                      const vn=(_vendors||[]).find(v=>v.vendor_id===e.vendor_id);
+                      return `<tr style="border-bottom:1px solid rgba(255,255,255,.04)">
+                        <td style="font-size:11px;padding:4px 0;white-space:nowrap;padding-right:8px">${fmtDate(e.date)}</td>
+                        <td style="font-size:11px;padding:4px 0;color:var(--muted);padding-right:8px;max-width:90px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${vn?vn.vendor_name:'—'}</td>
+                        <td style="font-size:11px;padding:4px 0;padding-right:8px">${e.narration||getET(e)?.label||e.entry_type}</td>
+                        <td class="amt cr" style="font-size:11px;padding:4px 0;text-align:right;white-space:nowrap">${fmtAmt(e.amount)}</td>
+                      </tr>`;
+                    }).join('')}</tbody>
+                    <tfoot><tr>
+                      <td colspan="3" style="font-size:11px;font-weight:600;padding:4px 0;border-top:1px solid var(--border)">Subtotal</td>
+                      <td class="amt cr" style="font-size:11px;font-weight:600;padding:4px 0;border-top:1px solid var(--border);text-align:right;white-space:nowrap">${fmtAmt(ch.total)}</td>
+                    </tr></tfoot>
+                  </table>
+                </div>
+              </div>`;
+            }).join('')}
             <div class="rsb" style="padding:3px 0;font-weight:600;border-top:1px solid var(--border);font-size:12px"><span>Total Direct Expense</span><span class="amt cr">${fmtAmt(totalDirectExp)}</span></div>
           </div>
           ${section('(f) Paid — Cash', paidCash, totalPaidCash, 'cr')}
