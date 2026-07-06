@@ -921,6 +921,143 @@ async function handleMigrate(request, env) {
     return ok({ probes });
   }
 
+
+  // ── preview_doc_migration: show proposed matches, no DB changes ─────────────
+  if (body.step === 'preview_doc_migration') {
+    // Find pending entries that have a drive_file_url and are Approved
+    const pending = await env.DB.prepare(
+      "SELECT entry_id, date, entry_type, amount, vendor_id, company_id, narration, drive_file_url, submitted_by " +
+      "FROM pending_entries WHERE status='Approved' AND drive_file_url IS NOT NULL AND drive_file_url != '' AND drive_file_url LIKE 'http%'"
+    ).all();
+
+    const matches = [];
+    const noMatch = [];
+
+    for (const pe of pending.results) {
+      // Find entries that match on date + entry_type + amount + company_id
+      // and have empty drive_file_url
+      const candidates = await env.DB.prepare(
+        "SELECT entry_id, date, entry_type, amount, vendor_id, company_id, narration, drive_file_url " +
+        "FROM entries WHERE date=? AND entry_type=? AND amount=? AND company_id=? " +
+        "AND (drive_file_url IS NULL OR drive_file_url='')"
+      ).bind(pe.date, pe.entry_type, pe.amount, pe.company_id).all();
+
+      if (candidates.results.length === 1) {
+        // Exactly one match — safe
+        matches.push({
+          confidence: 'HIGH',
+          pending_id: pe.entry_id,
+          entry_id: candidates.results[0].entry_id,
+          date: pe.date,
+          entry_type: pe.entry_type,
+          amount: pe.amount,
+          company_id: pe.company_id,
+          vendor_id: pe.vendor_id || '',
+          narration: pe.narration || '',
+          submitted_by: pe.submitted_by || '',
+          doc_url: pe.drive_file_url
+        });
+      } else if (candidates.results.length > 1) {
+        // Multiple candidates — also try matching vendor_id
+        const vendorMatches = candidates.results.filter(e => e.vendor_id === pe.vendor_id);
+        if (vendorMatches.length === 1) {
+          matches.push({
+            confidence: 'MEDIUM',
+            pending_id: pe.entry_id,
+            entry_id: vendorMatches[0].entry_id,
+            date: pe.date,
+            entry_type: pe.entry_type,
+            amount: pe.amount,
+            company_id: pe.company_id,
+            vendor_id: pe.vendor_id || '',
+            narration: pe.narration || '',
+            submitted_by: pe.submitted_by || '',
+            doc_url: pe.drive_file_url,
+            note: candidates.results.length + ' candidates, matched by vendor'
+          });
+        } else {
+          noMatch.push({
+            reason: 'AMBIGUOUS — ' + candidates.results.length + ' candidates, ' + vendorMatches.length + ' vendor matches',
+            pending_id: pe.entry_id,
+            date: pe.date,
+            entry_type: pe.entry_type,
+            amount: pe.amount,
+            company_id: pe.company_id,
+            vendor_id: pe.vendor_id || '',
+            narration: pe.narration || '',
+            doc_url: pe.drive_file_url
+          });
+        }
+      } else {
+        noMatch.push({
+          reason: 'NO_ENTRY_FOUND',
+          pending_id: pe.entry_id,
+          date: pe.date,
+          entry_type: pe.entry_type,
+          amount: pe.amount,
+          company_id: pe.company_id,
+          vendor_id: pe.vendor_id || '',
+          narration: pe.narration || '',
+          doc_url: pe.drive_file_url
+        });
+      }
+    }
+
+    return ok({
+      summary: {
+        total_pending_with_docs: pending.results.length,
+        matched: matches.length,
+        unmatched: noMatch.length
+      },
+      matches,
+      unmatched: noMatch
+    });
+  }
+
+  // ── apply_doc_migration: apply matches (only HIGH+MEDIUM confidence) ─────────
+  if (body.step === 'apply_doc_migration') {
+    // Re-run the same matching logic and apply
+    const pending = await env.DB.prepare(
+      "SELECT entry_id, date, entry_type, amount, vendor_id, company_id, narration, drive_file_url, submitted_by " +
+      "FROM pending_entries WHERE status='Approved' AND drive_file_url IS NOT NULL AND drive_file_url != '' AND drive_file_url LIKE 'http%'"
+    ).all();
+
+    let updated = 0, skipped = 0;
+    const log = [];
+
+    for (const pe of pending.results) {
+      const candidates = await env.DB.prepare(
+        "SELECT entry_id, vendor_id FROM entries WHERE date=? AND entry_type=? AND amount=? AND company_id=? " +
+        "AND (drive_file_url IS NULL OR drive_file_url='')"
+      ).bind(pe.date, pe.entry_type, pe.amount, pe.company_id).all();
+
+      let targetId = null;
+      let confidence = '';
+
+      if (candidates.results.length === 1) {
+        targetId = candidates.results[0].entry_id;
+        confidence = 'HIGH';
+      } else if (candidates.results.length > 1) {
+        const vendorMatch = candidates.results.filter(e => e.vendor_id === pe.vendor_id);
+        if (vendorMatch.length === 1) {
+          targetId = vendorMatch[0].entry_id;
+          confidence = 'MEDIUM';
+        }
+      }
+
+      if (targetId) {
+        await env.DB.prepare("UPDATE entries SET drive_file_url=? WHERE entry_id=?")
+          .bind(pe.drive_file_url, targetId).run();
+        updated++;
+        log.push({ entry_id: targetId, pending_id: pe.entry_id, confidence, doc_url: pe.drive_file_url });
+      } else {
+        skipped++;
+      }
+    }
+
+    return ok({ updated, skipped, log });
+  }
+
   // seed_user: insert Arpit supervisor
   if (body.step === 'seed_user') {
     // seed_user is deprecated — use addUser action via admin UI instead
