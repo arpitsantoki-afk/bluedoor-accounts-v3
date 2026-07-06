@@ -3007,7 +3007,12 @@ async function runDocMigration(step) {
   out.innerHTML = '<div class="empty"><span class="spin"></span> Running ' + step + '...</div>';
   if (previewBtn) previewBtn.disabled = true;
 
-  const r = await api('migrate', { secret: 'migrate_bluedoor_2024', step: step + '_doc_migration' });
+  const _migrateRes = await fetch('https://bluedoor-accounts.info-unikraft.workers.dev/migrate', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ secret: 'migrate_bluedoor_2024', step: step + '_doc_migration' })
+  });
+  const r = await _migrateRes.json();
 
   if (previewBtn) previewBtn.disabled = false;
 
