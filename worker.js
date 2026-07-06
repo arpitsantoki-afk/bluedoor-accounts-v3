@@ -578,7 +578,7 @@ async function handleApprovePending({ entry_id }, sess, env) {
   if (pe.status !== 'Pending') return err('Entry is not in Pending status');
   const now = new Date().toISOString();
   await env.DB.prepare("UPDATE pending_entries SET status='Approved', reviewed_by=?, reviewed_at=? WHERE entry_id=?").bind(sess.username, now, entry_id).run();
-  return await handleAddEntry({ date: pe.date, fyid: pe.fyid, project_id: pe.project_id, cost_head_id: pe.cost_head_id, vendor_id: pe.vendor_id, entry_type: pe.entry_type, amount: pe.amount, narration: pe.narration, company_id: pe.company_id }, { ...sess, username: pe.submitted_by }, env);
+  return await handleAddEntry({ date: pe.date, fyid: pe.fyid, project_id: pe.project_id, cost_head_id: pe.cost_head_id, vendor_id: pe.vendor_id, entry_type: pe.entry_type, amount: pe.amount, narration: pe.narration, company_id: pe.company_id, drive_file_url: pe.drive_file_url || '' }, { ...sess, username: pe.submitted_by }, env);
 }
 async function handleRejectPending({ entry_id, reject_reason = '' }, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
