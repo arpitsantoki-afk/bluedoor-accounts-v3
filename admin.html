@@ -428,6 +428,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="ctab" onclick="setMore('masters',this)">Masters</div>
         <div class="ctab" onclick="setMore('rawdata',this)">Raw Data</div>
         <div class="ctab" onclick="setMore('import',this)">Import</div>
+        <div class="ctab" onclick="setMore('tools',this)">🔧 Tools</div>
       </div>
       <div id="more-out"></div>
     </div>
@@ -2978,6 +2979,142 @@ function setMore(tab,el){
   if(el) el.classList.add('active');
   renderMore(tab);
 }
+async function renderTools() {
+  const out = document.getElementById('more-out');
+  out.innerHTML = `
+    <div class="card" style="margin-bottom:12px">
+      <div class="chd"><h3>🔧 Document Migration</h3></div>
+      <div class="cbd">
+        <p style="font-size:13px;color:var(--muted);margin-bottom:14px">
+          Backfill document URLs from approved pending entries into their corresponding ledger entries.
+          Run <strong>Preview</strong> first to review proposed matches, then <strong>Apply</strong> to update.
+        </p>
+        <div class="row" style="gap:8px;margin-bottom:16px">
+          <button class="btn btn-o" onclick="runDocMigration('preview')" id="dm-preview-btn">Preview Matches</button>
+          <button class="btn btn-p" onclick="runDocMigration('apply')" id="dm-apply-btn" style="display:none">Apply Migration</button>
+        </div>
+        <div id="dm-out"></div>
+      </div>
+    </div>`;
+}
+
+async function runDocMigration(step) {
+  const out = document.getElementById('dm-out');
+  const previewBtn = document.getElementById('dm-preview-btn');
+  const applyBtn   = document.getElementById('dm-apply-btn');
+  if (!out) return;
+
+  out.innerHTML = '<div class="empty"><span class="spin"></span> Running ' + step + '...</div>';
+  if (previewBtn) previewBtn.disabled = true;
+
+  const r = await api('migrate', { secret: 'migrate_bluedoor_2024', step: step + '_doc_migration' });
+
+  if (previewBtn) previewBtn.disabled = false;
+
+  if (!r.ok) {
+    out.innerHTML = '<div class="empty" style="color:var(--red)">' + (r.error || 'Error') + '</div>';
+    return;
+  }
+
+  if (step === 'preview') {
+    const s = r.summary || {};
+    const matches  = r.matches  || [];
+    const unmatched = r.unmatched || [];
+
+    // Show Apply button only if there are matches
+    if (applyBtn) applyBtn.style.display = matches.length ? 'flex' : 'none';
+
+    let html = '<div class="g2" style="margin-bottom:12px">'
+      + '<div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700">' + s.total_pending_with_docs + '</div><div style="font-size:11px;color:var(--muted)">Entries with docs</div></div>'
+      + '<div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--green)">' + s.matched + '</div><div style="font-size:11px;color:var(--muted)">Matched</div></div>'
+      + '<div class="card" style="padding:10px 14px;text-align:center"><div style="font-size:20px;font-weight:700;color:var(--amber)">' + s.unmatched + '</div><div style="font-size:11px;color:var(--muted)">Unmatched</div></div>'
+      + '</div>';
+
+    if (matches.length) {
+      html += '<div style="font-weight:600;font-size:13px;margin-bottom:8px">Proposed Matches</div>';
+      html += '<div class="tw"><table style="width:100%;font-size:12px;border-collapse:collapse">'
+        + '<thead><tr style="border-bottom:1px solid var(--border)">'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Confidence</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Date</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Type</th>'
+        + '<th style="padding:6px 8px;text-align:right;font-size:11px;color:var(--muted)">Amount</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Narration</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Document</th>'
+        + '</tr></thead><tbody>';
+
+      matches.forEach(function(m) {
+        const et = (_ets||[]).find(t => t.et_key === m.entry_type);
+        const confColor = m.confidence === 'HIGH' ? 'var(--green)' : 'var(--amber)';
+        html += '<tr style="border-bottom:1px solid var(--border)">'
+          + '<td style="padding:6px 8px"><span style="font-size:10px;font-weight:700;color:' + confColor + '">' + m.confidence + '</span></td>'
+          + '<td style="padding:6px 8px;white-space:nowrap">' + fmtDate(m.date) + '</td>'
+          + '<td style="padding:6px 8px">' + (et ? et.label : m.entry_type) + '</td>'
+          + '<td style="padding:6px 8px;text-align:right">' + fmtAmt(m.amount) + '</td>'
+          + '<td style="padding:6px 8px;max-width:120px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">' + (m.narration || '—') + '</td>'
+          + '<td style="padding:6px 8px"><a href="' + m.doc_url + '" target="_blank" style="color:var(--accent);font-size:11px">📎 View</a>'
+          + (m.note ? '<br><span style="font-size:10px;color:var(--muted)">' + m.note + '</span>' : '')
+          + '</td></tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    if (unmatched.length) {
+      html += '<div style="font-weight:600;font-size:13px;margin:14px 0 8px;color:var(--amber)">Could Not Match (' + unmatched.length + ')</div>';
+      html += '<div class="tw"><table style="width:100%;font-size:12px;border-collapse:collapse">'
+        + '<thead><tr style="border-bottom:1px solid var(--border)">'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Reason</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Date</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Type</th>'
+        + '<th style="padding:6px 8px;text-align:right;font-size:11px;color:var(--muted)">Amount</th>'
+        + '<th style="padding:6px 8px;text-align:left;font-size:11px;color:var(--muted)">Narration</th>'
+        + '</tr></thead><tbody>';
+
+      unmatched.forEach(function(u) {
+        const et = (_ets||[]).find(t => t.et_key === u.entry_type);
+        html += '<tr style="border-bottom:1px solid var(--border)">'
+          + '<td style="padding:6px 8px;font-size:10px;color:var(--amber)">' + u.reason + '</td>'
+          + '<td style="padding:6px 8px;white-space:nowrap">' + fmtDate(u.date) + '</td>'
+          + '<td style="padding:6px 8px">' + (et ? et.label : u.entry_type) + '</td>'
+          + '<td style="padding:6px 8px;text-align:right">' + fmtAmt(u.amount) + '</td>'
+          + '<td style="padding:6px 8px">' + (u.narration || '—') + '</td>'
+          + '</tr>';
+      });
+      html += '</tbody></table></div>';
+    }
+
+    if (!matches.length && !unmatched.length) {
+      html += '<div class="empty">No approved pending entries with documents found.</div>';
+    }
+
+    out.innerHTML = html;
+
+  } else {
+    // Apply result
+    const log = r.log || [];
+    out.innerHTML = '<div style="padding:12px;background:rgba(34,197,94,.06);border:1px solid rgba(34,197,94,.2);border-radius:8px;margin-bottom:12px">'
+      + '<div style="font-weight:700;color:var(--green);font-size:14px">Migration Complete</div>'
+      + '<div style="font-size:13px;margin-top:4px">' + r.updated + ' entries updated · ' + r.skipped + ' skipped</div>'
+      + '</div>'
+      + (log.length ? '<div class="tw"><table style="width:100%;font-size:12px;border-collapse:collapse">'
+        + '<thead><tr style="border-bottom:1px solid var(--border)">'
+        + '<th style="padding:6px 8px;font-size:11px;color:var(--muted)">Entry ID</th>'
+        + '<th style="padding:6px 8px;font-size:11px;color:var(--muted)">Confidence</th>'
+        + '<th style="padding:6px 8px;font-size:11px;color:var(--muted)">Document</th>'
+        + '</tr></thead><tbody>'
+        + log.map(function(l) {
+            const confColor = l.confidence === 'HIGH' ? 'var(--green)' : 'var(--amber)';
+            return '<tr style="border-bottom:1px solid var(--border)">'
+              + '<td style="padding:6px 8px;font-size:11px;color:var(--muted)">' + l.entry_id + '</td>'
+              + '<td style="padding:6px 8px"><span style="font-size:10px;font-weight:700;color:' + confColor + '">' + l.confidence + '</span></td>'
+              + '<td style="padding:6px 8px"><a href="' + l.doc_url + '" target="_blank" style="color:var(--accent);font-size:11px">📎 View</a></td>'
+              + '</tr>';
+          }).join('')
+        + '</tbody></table></div>' : '');
+
+    if (applyBtn) applyBtn.style.display = 'none';
+  }
+}
+
 async function renderMore(tab){
   if(tab==='pending') await renderPending();
   else if(tab==='users') await renderUsers();
@@ -2985,6 +3122,7 @@ async function renderMore(tab){
   else if(tab==='docs') renderDocs();
   else if(tab==='rawdata') renderRawData();
   else if(tab==='import') renderImport();
+  else if(tab==='tools') renderTools();
 }
 
 // Pending
