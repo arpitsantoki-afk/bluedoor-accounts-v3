@@ -467,7 +467,7 @@ async function handleAddEntry(params, sess, env) {
   });
 }
 // ── UPDATE ENTRY ─────────────────────────────────────────────────────────────
-async function handleUpdateEntry({ entry_id, narration, drive_file_url, delete_file }, sess, env) {
+async function handleUpdateEntry({ entry_id, narration, vendor_id, project_id, cost_head_id, drive_file_url, delete_file }, sess, env) {
   if (!entry_id) return err('entry_id required');
   if (sess.role !== 'Admin') return err('Forbidden', 403);
   const existing = await env.DB.prepare('SELECT * FROM entries WHERE entry_id = ?').bind(entry_id).first();
@@ -476,13 +476,16 @@ async function handleUpdateEntry({ entry_id, narration, drive_file_url, delete_f
   if (delete_file && existing.drive_file_url) {
     await deleteFileFromDrive(existing.drive_file_url, env);
   }
-  const newUrl = delete_file ? (drive_file_url || '') : (drive_file_url !== undefined ? drive_file_url : existing.drive_file_url);
-  const newNarr = narration !== undefined ? narration : existing.narration;
-  await env.DB.prepare('UPDATE entries SET narration = ?, drive_file_url = ? WHERE entry_id = ?')
-    .bind(newNarr, newUrl, entry_id).run();
-  // Update ledger narration too
-  await env.DB.prepare('UPDATE ledger SET narration = ? WHERE entry_id = ?')
-    .bind(newNarr, entry_id).run();
+  const newUrl  = delete_file ? (drive_file_url || '') : (drive_file_url !== undefined ? drive_file_url : existing.drive_file_url);
+  const newNarr = narration    !== undefined ? narration    : existing.narration;
+  const newVend = vendor_id    !== undefined ? vendor_id    : existing.vendor_id;
+  const newProj = project_id   !== undefined ? project_id   : existing.project_id;
+  const newCH   = cost_head_id !== undefined ? cost_head_id : existing.cost_head_id;
+  await env.DB.prepare('UPDATE entries SET narration=?, vendor_id=?, project_id=?, cost_head_id=?, drive_file_url=? WHERE entry_id=?')
+    .bind(newNarr, newVend, newProj, newCH, newUrl, entry_id).run();
+  // Update ledger narration + vendor + project
+  await env.DB.prepare('UPDATE ledger SET narration=?, vendor_id=?, project_id=?, cost_head_id=? WHERE entry_id=?')
+    .bind(newNarr, newVend, newProj, newCH, entry_id).run();
   return ok({ updated: entry_id, drive_file_url: newUrl });
 }
 
