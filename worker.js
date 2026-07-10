@@ -321,6 +321,28 @@ async function handleAddVendor({ vendor_id, vendor_name, vendor_type = '', conta
   await env.DB.prepare('INSERT INTO vendors (vendor_id, vendor_name, vendor_type, contact, gstin, details) VALUES (?,?,?,?,?,?)').bind(vid, vendor_name, vendor_type, contact, gstin, details).run();
   return ok({ vendor_id: vid });
 }
+async function handleDeleteVendor({ vendor_id }, sess, env) {
+  if (!vendor_id) return err('vendor_id required');
+  if (sess.role !== 'Admin') return err('Forbidden', 403);
+  // Check if vendor has any entries or pending entries
+  const entryCount = await env.DB.prepare(
+    'SELECT COUNT(*) as cnt FROM entries WHERE vendor_id = ?'
+  ).bind(vendor_id).first();
+  if (entryCount && entryCount.cnt > 0) {
+    return err('Cannot delete — vendor has ' + entryCount.cnt + ' ledger entries. Remove entries first.');
+  }
+  const pendingCount = await env.DB.prepare(
+    'SELECT COUNT(*) as cnt FROM pending_entries WHERE vendor_id = ? AND status = \'Pending\''
+  ).bind(vendor_id).first();
+  if (pendingCount && pendingCount.cnt > 0) {
+    return err('Cannot delete — vendor has ' + pendingCount.cnt + ' pending entries awaiting approval.');
+  }
+  await env.DB.prepare('DELETE FROM vendors WHERE vendor_id = ?').bind(vendor_id).run();
+  // Also clean up opening balances if any
+  await env.DB.prepare('DELETE FROM vendor_opening_balances WHERE vendor_id = ?').bind(vendor_id).run();
+  return ok({ deleted: vendor_id });
+}
+
 async function handleUpdateVendor({ vendor_id, vendor_name, vendor_type, contact, gstin, details }, sess, env) {
   if (!vendor_id) return err('vendor_id required');
   // Supervisor access check — only allowed vendors
