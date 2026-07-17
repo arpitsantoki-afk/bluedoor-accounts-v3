@@ -689,11 +689,13 @@ function createSS(containerId, opts, placeholder, onChange) {
     inp.select();
   });
   inp.addEventListener('input', () => renderOpts(inp.value));
+  // Prevent blur from resetting value when user clicks a dropdown option
+  drop.addEventListener('mousedown', (e) => e.preventDefault());
   inp.addEventListener('blur', () => setTimeout(()=>{
     drop.classList.remove('open');
     inp.readOnly = true;
     inp.value = selLabel;
-  }, 200));
+  }, 300));
 
   _ss[containerId] = {
     get: ()=>selVal,
