@@ -2884,50 +2884,119 @@ async function loadProjectRpt(pid){
       </div>
     </div>`;
 
-  window._projRptData={project:p,entries:es,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
+  window._projRptData={project:p,entries:es,expByCH,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
 }
-function printProjectRpt(){
-  const d=window._projRptData||{};const p=d.project||{};const s=d.summary||{};
-  const w=window.open('','_blank');
-  w.document.write(`<!DOCTYPE html><html><head><title>Project Report — ${p.project_name||''}</title>
-  <style>body{font-family:Arial;font-size:11px;margin:20px}.header{text-align:center;margin-bottom:16px;border-bottom:2px solid #000;padding-bottom:8px}h2{font-size:15px;margin:0 0 2px}h3{font-size:12px;margin:0;font-weight:normal}table{width:100%;border-collapse:collapse;margin-bottom:12px}th,td{border:1px solid #ccc;padding:4px 6px}th{background:#f0f0f0}.dr{color:green}.cr{color:red}</style></head><body>
-  <div class="header"><h2>${p.project_name||''}</h2><h3>${p.client||''} · ${p.location||''}</h3><p>FY: ${curFY}</p></div>
-  <table><thead><tr><th>Item</th><th>Amount</th></tr></thead><tbody>
-  <tr><td>(a) Total Income</td><td class="dr">₹${fmt(s.totalIncome)}</td></tr>
-  <tr><td>(d) Advances Received</td><td class="dr">₹${fmt(s.totalAdvances)}</td></tr>
-  <tr><td>(e) Total Direct Expense</td><td class="cr">₹${fmt(s.totalDirectExp)}</td></tr>
-  <tr><td>(i) Outstanding Payable</td><td class="cr">₹${fmt(Math.max(0,s.payable))}</td></tr>
-  <tr><td>(j) Vendor Advances Paid</td><td class="cr">₹${fmt(s.totalAdvPaid)}</td></tr>
-  <tr><td><strong>(k) Net Cash Flow</strong></td><td class="${s.cashFlow>=0?'dr':'cr'}"><strong>₹${fmt(Math.abs(s.cashFlow))} ${s.cashFlow>=0?'surplus':'deficit'}</strong></td></tr>
-  </tbody></table>
+function printProjectRpt() {
+  const d = window._projRptData || {};
+  const p = d.project || {};
+  const s = d.summary || {};
+  const expByCH = d.expByCH || {};
+  const entries = d.entries || [];
+  function fmt(n) { return '\u20b9' + parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
+  function fmtD(dt) { if (!dt) return ''; const x=new Date(dt); return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+  function vendorName(vid) { if (!vid) return '\u2014'; const v=(window._vendors||[]).find(x=>x.vendor_id===vid); return v?v.vendor_name:vid; }
+  function etLabel(et) { const t=(window._ets||[]).find(x=>x.et_key===et); return t?t.label:et; }
+  const income   = entries.filter(e=>['invoice_raised','client_payment_cash','client_payment_bank'].includes(e.entry_type));
+  const advances = entries.filter(e=>['advance_received_cash','advance_received_bank'].includes(e.entry_type));
+  let incomeRows = income.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.narration||etLabel(e.entry_type)}</td><td class="amt dr">${fmt(e.amount)}</td></tr>`).join('');
+  let advRows    = advances.map(e=>`<tr><td>${fmtD(e.date)}</td><td>${e.narration||etLabel(e.entry_type)}</td><td class="amt dr">${fmt(e.amount)}</td></tr>`).join('');
+  let expHTML = '';
+  Object.values(expByCH).sort((a,b)=>b.total-a.total).forEach(ch=>{
+    expHTML += `<tr class="ch-hdr"><td colspan="3"><strong>${ch.name}</strong></td><td class="amt"><strong>${fmt(ch.total)}</strong></td></tr>`;
+    ch.entries.forEach(e=>{
+      expHTML += `<tr><td class="muted">${fmtD(e.date)}</td><td>${vendorName(e.vendor_id)}</td><td>${e.narration||etLabel(e.entry_type)}</td><td class="amt cr">${fmt(e.amount)}</td></tr>`;
+    });
+    expHTML += `<tr class="sub"><td colspan="3" style="text-align:right;color:#666;font-style:italic">Subtotal \u2014 ${ch.name}</td><td class="amt">${fmt(ch.total)}</td></tr>`;
+  });
+  const gross = (s.totalIncome||0)-(s.totalDirectExp||0);
+  const css = `*{box-sizing:border-box;margin:0;padding:0}body{font-family:'Segoe UI',Arial,sans-serif;font-size:11px;color:#1a1a1a;padding:24px}.hdr{border-bottom:2px solid #1a1a1a;padding-bottom:12px;margin-bottom:20px}.hdr h1{font-size:18px;font-weight:700;margin-bottom:4px}.sub{font-size:12px;color:#555}.fy{font-size:11px;color:#888;margin-top:4px}.sec{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;color:#444;background:#f5f5f5;padding:6px 8px;margin:16px 0 0;border-left:3px solid #1a1a1a}table{width:100%;border-collapse:collapse}th,td{padding:5px 8px;border-bottom:1px solid #e8e8e8;vertical-align:top}th{background:#f9f9f9;font-weight:600;font-size:10px;text-transform:uppercase;color:#666}.amt{text-align:right;white-space:nowrap}.dr{color:#166534}.cr{color:#991b1b}.muted{color:#888}.ch-hdr td{background:#f0f4ff;border-top:1px solid #c7d2fe;padding:6px 8px}.sub td{background:#fafafa;font-size:10px;border-top:1px dashed #ccc}.tot td{font-weight:700;border-top:2px solid #1a1a1a;background:#f9f9f9}.gtot td{font-weight:700;font-size:12px;border-top:2px solid #1a1a1a;background:#f0f4ff}.smry td{padding:7px 8px;font-size:12px}.smry tr:last-child td{font-weight:700;font-size:13px;border-top:2px solid #1a1a1a;padding-top:10px}@media print{body{padding:12px}}`;
+  const html = `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Project Report \u2014 ${p.project_name||''}</title><style>${css}</style></head><body>
+<div class="hdr"><h1>${p.project_name||'\u2014'}</h1><div class="sub">${[p.client,p.location].filter(Boolean).join(' \u00b7 ')}</div><div class="fy">FY: ${window.curFY||''} &nbsp;\u00b7&nbsp; Generated: ${new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})}</div></div>
+<div class="sec">(a) Income / Invoiced</div>
+<table><thead><tr><th>Date</th><th>Narration</th><th class="amt">Amount</th></tr></thead><tbody>
+${incomeRows||'<tr><td colspan="3" class="muted" style="text-align:center">No income entries</td></tr>'}
+<tr class="tot"><td colspan="2"><strong>Total Income</strong></td><td class="amt dr"><strong>${fmt(s.totalIncome)}</strong></td></tr></tbody></table>
+${advances.length?`<div class="sec">(d) Advances Received</div><table><thead><tr><th>Date</th><th>Narration</th><th class="amt">Amount</th></tr></thead><tbody>${advRows}<tr class="tot"><td colspan="2"><strong>Total Advances</strong></td><td class="amt dr"><strong>${fmt(s.totalAdvances)}</strong></td></tr></tbody></table>`:''}
+<div class="sec">(e) Direct Expenses</div>
+<table><thead><tr><th>Date</th><th>Vendor</th><th>Narration</th><th class="amt">Amount</th></tr></thead><tbody>
+${expHTML||'<tr><td colspan="4" class="muted" style="text-align:center">No direct expenses</td></tr>'}
+<tr class="gtot"><td colspan="3"><strong>Total Direct Expenses</strong></td><td class="amt cr"><strong>${fmt(s.totalDirectExp)}</strong></td></tr></tbody></table>
+<div class="sec">Project Summary</div>
+<table class="smry"><tbody>
+<tr><td>(a) Total Income / Invoiced</td><td class="amt dr">${fmt(s.totalIncome)}</td></tr>
+<tr><td>(d) Advances Received</td><td class="amt dr">${fmt(s.totalAdvances)}</td></tr>
+<tr><td>(e) Total Direct Expenses</td><td class="amt cr">${fmt(s.totalDirectExp)}</td></tr>
+<tr><td><strong>Gross Margin (a \u2212 e)</strong></td><td class="amt ${gross>=0?'dr':'cr'}"><strong>${fmt(Math.abs(gross))} ${gross>=0?'surplus':'deficit'}</strong></td></tr>
+</tbody></table>
+</body></html>`;
+  const w = window.open('','_blank');
+  w.document.write(html);
+  w.document.close();
+  setTimeout(()=>w.print(),500);
+}
 
-<!-- Document Viewer Modal -->
-<div id="doc-viewer-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:500;display:flex;flex-direction:column">
-  <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 16px;background:var(--card);border-bottom:1px solid var(--border)">
-    <span style="font-weight:600;font-size:14px">📎 Document Viewer</span>
-    <div style="display:flex;gap:8px;align-items:center">
-      <a id="doc-viewer-link" href="#" target="_blank" class="btn btn-o btn-sm">Open in Drive ↗</a>
-      <button onclick="closeDocViewer()" style="background:none;border:none;color:var(--muted);font-size:22px;cursor:pointer;padding:0 4px">✕</button>
-    </div>
-  </div>
-  <iframe id="doc-viewer-frame" src="" style="flex:1;border:none;background:#fff" allow="autoplay"></iframe>
-</div>
-</body></html>`);w.print();
-}
-function exportProjXLS(pid){
-  const d=window._projRptData||{}; const s=d.summary||{};
-  const rows=[
-    {Item:'(a) Total Income',Amount:s.totalIncome},
-    {Item:'(d) Advances Received',Amount:s.totalAdvances},
-    {Item:'(e) Total Direct Expense',Amount:s.totalDirectExp},
-    {Item:'(i) Outstanding Payable',Amount:Math.max(0,s.payable)},
-    {Item:'(j) Vendor Advances Paid',Amount:s.totalAdvPaid},
-    {Item:'(k) Net Cash Flow',Amount:s.cashFlow},
-    ...(d.entries||[]).map(e=>({Date:fmtDate(e.date),Type:e.entry_type,Narration:e.narration||'',Amount:e.amount,Company:e.company_id}))
+function exportProjXLS() {
+  if (typeof XLSX === 'undefined') { toast('Excel library not loaded', 'err'); return; }
+  const d = window._projRptData || {};
+  const p = d.project || {};
+  const s = d.summary || {};
+  const expByCH = d.expByCH || {};
+  const entries = d.entries || [];
+
+  function fmt(n) { return parseFloat(n||0); }
+  function fmtD(dt) { if (!dt) return ''; const x=new Date(dt); return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+  function vendorName(vid) { if (!vid) return '—'; const v=(window._vendors||[]).find(x=>x.vendor_id===vid); return v?v.vendor_name:vid; }
+  function etLabel(et) { const t=(window._ets||[]).find(x=>x.et_key===et); return t?t.label:et; }
+
+  const wb = XLSX.utils.book_new();
+
+  // ── Sheet 1: Summary ──────────────────────────────────────────────────────
+  const gross = (s.totalIncome||0)-(s.totalDirectExp||0);
+  const sumRows = [
+    [p.project_name||'', '', ''],
+    [p.client||'', p.location||'', ''],
+    ['FY: '+(window.curFY||''), '', ''],
+    [''],
+    ['Item', '', 'Amount (₹)'],
+    ['(a) Total Income / Invoiced', '', fmt(s.totalIncome)],
+    ['(d) Advances Received', '', fmt(s.totalAdvances)],
+    ['(e) Total Direct Expenses', '', fmt(s.totalDirectExp)],
+    ['Gross Margin (a − e)', '', Math.abs(gross)],
   ];
-  const ws=XLSX.utils.json_to_sheet(rows); const wb=XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb,ws,'Project');
-  XLSX.writeFile(wb,`Project_${pid}_${curFY}.xlsx`);
+  const wsSummary = XLSX.utils.aoa_to_sheet(sumRows);
+  wsSummary['!cols'] = [{wch:35},{wch:20},{wch:18}];
+  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+
+  // ── Sheet 2: Income ───────────────────────────────────────────────────────
+  const income = entries.filter(e=>['invoice_raised','client_payment_cash','client_payment_bank',
+    'advance_received_cash','advance_received_bank'].includes(e.entry_type));
+  const incRows = [['Date','Entry Type','Narration','Amount (₹)']];
+  income.forEach(e => incRows.push([fmtD(e.date), etLabel(e.entry_type), e.narration||'', fmt(e.amount)]));
+  incRows.push(['','','Total', fmt(s.totalIncome)+(s.totalAdvances||0)]);
+  const wsIncome = XLSX.utils.aoa_to_sheet(incRows);
+  wsIncome['!cols'] = [{wch:14},{wch:28},{wch:35},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsIncome, 'Income');
+
+  // ── Sheet 3: Direct Expenses ──────────────────────────────────────────────
+  const expRows = [['Cost Head','Date','Vendor','Narration','Amount (₹)']];
+  let grandTotal = 0;
+  Object.values(expByCH).sort((a,b)=>b.total-a.total).forEach(ch=>{
+    ch.entries.forEach(e=>{
+      expRows.push([ch.name, fmtD(e.date), vendorName(e.vendor_id), e.narration||etLabel(e.entry_type), fmt(e.amount)]);
+      grandTotal += fmt(e.amount);
+    });
+    expRows.push(['','','','Subtotal — '+ch.name, fmt(ch.total)]);
+  });
+  expRows.push(['','','','Grand Total', grandTotal]);
+  const wsExp = XLSX.utils.aoa_to_sheet(expRows);
+  wsExp['!cols'] = [{wch:22},{wch:14},{wch:24},{wch:35},{wch:16}];
+  XLSX.utils.book_append_sheet(wb, wsExp, 'Direct Expenses');
+
+  const fname = `Project_${(p.project_name||'report').replace(/[^a-zA-Z0-9]/g,'_')}_${window.curFY||''}.xlsx`;
+  XLSX.writeFile(wb, fname);
+  toast('Excel downloaded');
 }
+
 
 async function renderTrial(el){
   const res=await api('getTrialBalance',{fyid:curFY,company_id:curCo});
