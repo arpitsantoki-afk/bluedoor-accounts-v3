@@ -2884,7 +2884,8 @@ async function loadProjectRpt(pid){
       </div>
     </div>`;
 
-  window._projRptData={project:p,entries:es,expByCH,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
+  const _vmap={}; (_vendors||[]).forEach(v=>_vmap[v.vendor_id]=v.vendor_name);
+  window._projRptData={project:p,entries:es,expByCH,vmap:_vmap,summary:{totalIncome,totalAdvances,totalDirectExp,totalPaid,payable,totalAdvPaid,cashFlow}};
 }
 function printProjectRpt() {
   const d = window._projRptData || {};
@@ -2892,6 +2893,7 @@ function printProjectRpt() {
   const s = d.summary || {};
   const expByCH = d.expByCH || {};
   const entries = d.entries || [];
+  const vmap = d.vmap || {};
   function fmt(n) { return '\u20b9' + parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtD(dt) { if (!dt) return ''; const x=new Date(dt); return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
   function vendorName(vid) { if (!vid) return '\u2014'; const v=(window._vendors||[]).find(x=>x.vendor_id===vid); return v?v.vendor_name:vid; }
@@ -2942,8 +2944,9 @@ function exportProjXLS() {
   const s = d.summary || {};
   const expByCH = d.expByCH || {};
   const entries = d.entries || [];
+  const vmap = d.vmap || {};
 
-  function vn(e) { return e.vendor_name || (e.vendor_id ? ((window._vendors||[]).find(x=>x.vendor_id===e.vendor_id)||{}).vendor_name||e.vendor_id : '') || ''; }
+  function vn(e) { return (e.vendor_id && vmap[e.vendor_id]) || ''; }
   function etLabel(et) { const t=(window._ets||[]).find(x=>x.et_key===et); return t?t.label:et; }
   function fmtD(dt) { if (!dt) return ''; return new Date(dt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
   function num(n) { return parseFloat(n||0); }
