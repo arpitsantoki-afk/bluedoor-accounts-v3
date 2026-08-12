@@ -2904,7 +2904,7 @@ function printProjectRpt() {
   Object.values(expByCH).sort((a,b)=>b.total-a.total).forEach(ch=>{
     expHTML += `<tr class="ch-hdr"><td colspan="3"><strong>${ch.name}</strong></td><td class="amt"><strong>${fmt(ch.total)}</strong></td></tr>`;
     ch.entries.forEach(e=>{
-      expHTML += `<tr><td class="muted">${fmtD(e.date)}</td><td>${vendorName(e.vendor_id)}</td><td>${e.narration||etLabel(e.entry_type)}</td><td class="amt cr">${fmt(e.amount)}</td></tr>`;
+      expHTML += `<tr><td class="muted">${fmtD(e.date)}</td><td>${vendorName(e)}</td><td>${e.narration||etLabel(e.entry_type)}</td><td class="amt cr">${fmt(e.amount)}</td></tr>`;
     });
     expHTML += `<tr class="sub"><td colspan="3" style="text-align:right;color:#666;font-style:italic">Subtotal \u2014 ${ch.name}</td><td class="amt">${fmt(ch.total)}</td></tr>`;
   });
@@ -2943,59 +2943,80 @@ function exportProjXLS() {
   const expByCH = d.expByCH || {};
   const entries = d.entries || [];
 
-  function fmt(n) { return parseFloat(n||0); }
-  function fmtD(dt) { if (!dt) return ''; const x=new Date(dt); return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
-  function vendorName(vid) { if (!vid) return '—'; const v=(window._vendors||[]).find(x=>x.vendor_id===vid); return v?v.vendor_name:vid; }
+  function vn(e) { return e.vendor_name || (e.vendor_id ? ((window._vendors||[]).find(x=>x.vendor_id===e.vendor_id)||{}).vendor_name||e.vendor_id : '') || ''; }
   function etLabel(et) { const t=(window._ets||[]).find(x=>x.et_key===et); return t?t.label:et; }
+  function fmtD(dt) { if (!dt) return ''; return new Date(dt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
+  function num(n) { return parseFloat(n||0); }
+
+  // Cell style helpers (SheetJS CE doesn't support styles, but we can use proper types)
+  function numCell(v) { return { t:'n', v: num(v), z: '#,##0.00' }; }
 
   const wb = XLSX.utils.book_new();
 
   // ── Sheet 1: Summary ──────────────────────────────────────────────────────
-  const gross = (s.totalIncome||0)-(s.totalDirectExp||0);
-  const sumRows = [
-    [p.project_name||'', '', ''],
-    [p.client||'', p.location||'', ''],
-    ['FY: '+(window.curFY||''), '', ''],
-    [''],
-    ['Item', '', 'Amount (₹)'],
-    ['(a) Total Income / Invoiced', '', fmt(s.totalIncome)],
-    ['(d) Advances Received', '', fmt(s.totalAdvances)],
-    ['(e) Total Direct Expenses', '', fmt(s.totalDirectExp)],
-    ['Gross Margin (a − e)', '', Math.abs(gross)],
+  const gross = num(s.totalIncome) - num(s.totalDirectExp);
+  const ws1data = [
+    ['PROJECT REPORT'],
+    ['Project', p.project_name||''],
+    ['Client',  p.client||''],
+    ['Location',p.location||''],
+    ['FY',      window.curFY||''],
+    ['Generated', new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})],
+    [],
+    ['SUMMARY','','Amount (₹)'],
+    ['(a) Total Income / Invoiced', '', num(s.totalIncome)],
+    ['(d) Advances Received',       '', num(s.totalAdvances)],
+    ['(e) Total Direct Expenses',   '', num(s.totalDirectExp)],
+    ['Gross Margin (a − e)',        '', Math.abs(gross), gross>=0?'Surplus':'Deficit'],
   ];
-  const wsSummary = XLSX.utils.aoa_to_sheet(sumRows);
-  wsSummary['!cols'] = [{wch:35},{wch:20},{wch:18}];
-  XLSX.utils.book_append_sheet(wb, wsSummary, 'Summary');
+  const ws1 = XLSX.utils.aoa_to_sheet(ws1data);
+  ws1['!cols'] = [{wch:30},{wch:28},{wch:18},{wch:12}];
+  // Format number cells
+  ['C9','C10','C11','C12'].forEach(ref => {
+    if (ws1[ref]) ws1[ref].z = '#,##0.00';
+  });
+  XLSX.utils.book_append_sheet(wb, ws1, 'Summary');
 
-  // ── Sheet 2: Income ───────────────────────────────────────────────────────
-  const income = entries.filter(e=>['invoice_raised','client_payment_cash','client_payment_bank',
+  // ── Sheet 2: Income & Advances ────────────────────────────────────────────
+  const incEntries = entries.filter(e=>['invoice_raised','client_payment_cash','client_payment_bank',
     'advance_received_cash','advance_received_bank'].includes(e.entry_type));
-  const incRows = [['Date','Entry Type','Narration','Amount (₹)']];
-  income.forEach(e => incRows.push([fmtD(e.date), etLabel(e.entry_type), e.narration||'', fmt(e.amount)]));
-  incRows.push(['','','Total', fmt(s.totalIncome)+(s.totalAdvances||0)]);
-  const wsIncome = XLSX.utils.aoa_to_sheet(incRows);
-  wsIncome['!cols'] = [{wch:14},{wch:28},{wch:35},{wch:16}];
-  XLSX.utils.book_append_sheet(wb, wsIncome, 'Income');
+  const ws2rows = [['Date','Entry Type','Narration','Amount (₹)']];
+  incEntries.forEach(e => ws2rows.push([fmtD(e.date), etLabel(e.entry_type), e.narration||'', num(e.amount)]));
+  ws2rows.push(['','','Total', num(s.totalIncome)+num(s.totalAdvances)]);
+  const ws2 = XLSX.utils.aoa_to_sheet(ws2rows);
+  ws2['!cols'] = [{wch:14},{wch:30},{wch:38},{wch:16}];
+  // Format amount column D
+  for (let i=2; i<=ws2rows.length; i++) {
+    const ref='D'+i;
+    if (ws2[ref] && ws2[ref].t==='n') ws2[ref].z='#,##0.00';
+  }
+  XLSX.utils.book_append_sheet(wb, ws2, 'Income');
 
   // ── Sheet 3: Direct Expenses ──────────────────────────────────────────────
-  const expRows = [['Cost Head','Date','Vendor','Narration','Amount (₹)']];
+  const ws3rows = [['Cost Head','Date','Vendor','Narration','Amount (₹)']];
   let grandTotal = 0;
   Object.values(expByCH).sort((a,b)=>b.total-a.total).forEach(ch=>{
     ch.entries.forEach(e=>{
-      expRows.push([ch.name, fmtD(e.date), vendorName(e.vendor_id), e.narration||etLabel(e.entry_type), fmt(e.amount)]);
-      grandTotal += fmt(e.amount);
+      const amt = num(e.amount);
+      ws3rows.push([ch.name, fmtD(e.date), vn(e), e.narration||etLabel(e.entry_type), amt]);
+      grandTotal += amt;
     });
-    expRows.push(['','','','Subtotal — '+ch.name, fmt(ch.total)]);
+    ws3rows.push(['','','','Subtotal \u2014 '+ch.name, num(ch.total)]);
   });
-  expRows.push(['','','','Grand Total', grandTotal]);
-  const wsExp = XLSX.utils.aoa_to_sheet(expRows);
-  wsExp['!cols'] = [{wch:22},{wch:14},{wch:24},{wch:35},{wch:16}];
-  XLSX.utils.book_append_sheet(wb, wsExp, 'Direct Expenses');
+  ws3rows.push(['','','','Grand Total', grandTotal]);
+  const ws3 = XLSX.utils.aoa_to_sheet(ws3rows);
+  ws3['!cols'] = [{wch:22},{wch:14},{wch:26},{wch:38},{wch:16}];
+  for (let i=2; i<=ws3rows.length; i++) {
+    const ref='E'+i;
+    if (ws3[ref] && ws3[ref].t==='n') ws3[ref].z='#,##0.00';
+  }
+  XLSX.utils.book_append_sheet(wb, ws3, 'Direct Expenses');
 
-  const fname = `Project_${(p.project_name||'report').replace(/[^a-zA-Z0-9]/g,'_')}_${window.curFY||''}.xlsx`;
+  const fname = 'Project_'+(p.project_name||'report').replace(/[^a-zA-Z0-9]/g,'_')+'_'+(window.curFY||'')+'.xlsx';
   XLSX.writeFile(wb, fname);
   toast('Excel downloaded');
 }
+
 
 
 async function renderTrial(el){
