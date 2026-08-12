@@ -2896,7 +2896,7 @@ function printProjectRpt() {
   const vmap = d.vmap || {};
   function fmt(n) { return '\u20b9' + parseFloat(n||0).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2}); }
   function fmtD(dt) { if (!dt) return ''; const x=new Date(dt); return x.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}); }
-  function vendorName(vid) { if (!vid) return '\u2014'; const v=(window._vendors||[]).find(x=>x.vendor_id===vid); return v?v.vendor_name:vid; }
+  function vendorName(vid) { if (!vid) return '\u2014'; return vmap[vid] || vid; }
   function etLabel(et) { const t=(window._ets||[]).find(x=>x.et_key===et); return t?t.label:et; }
   const income   = entries.filter(e=>['invoice_raised','client_payment_cash','client_payment_bank'].includes(e.entry_type));
   const advances = entries.filter(e=>['advance_received_cash','advance_received_bank'].includes(e.entry_type));
