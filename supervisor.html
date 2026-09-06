@@ -1612,7 +1612,7 @@ function printVoucher() {
   const co = curCo || '';
   const { from: dateFrom, to: dateTo } = pcGetDateRange();
   const month = document.getElementById('pc-month')?.value || '';
-  const monthNames = {'':\'Entire FY\','01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec','custom':'Custom Range'};
+  const monthNames = {"":"Entire FY","01":"Jan","02":"Feb","03":"Mar","04":"Apr","05":"May","06":"Jun","07":"Jul","08":"Aug","09":"Sep","10":"Oct","11":"Nov","12":"Dec","custom":"Custom Range"};
   const periodLabel = month === 'custom' ? (dateFrom + ' to ' + dateTo) : (monthNames[month] || month) + ' — ' + fy;
   const coName = co ? (_cos.find(c=>c.company_id===co)?.company_name||co) : '';
   // Populate voucher fields from current ledger data
