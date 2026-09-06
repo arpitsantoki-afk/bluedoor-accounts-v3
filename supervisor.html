@@ -337,6 +337,19 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
               </div>
             </div>
 
+            <!-- Vendor petty cash payment fields -->
+            <div id="vp-fields" class="hidden">
+              <div class="field">
+                <label>Vendor *</label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-vendor-vp-inp" placeholder="Search vendor…" autocomplete="off"
+                    oninput="ssFilter('vendor-vp')" onfocus="ssOpen('vendor-vp')" onblur="setTimeout(()=>ssClose('vendor-vp'),150)">
+                  <div class="ss-drop" id="ae-vendor-vp-drop"></div>
+                  <input type="hidden" id="ae-vendor-vp-val">
+                </div>
+              </div>
+            </div>
+
             <!-- Common -->
             <div class="field">
               <label>Narration <span style="color:var(--muted);font-size:10px">(optional)</span></label>
@@ -2121,16 +2134,3 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
-
-            <!-- Vendor petty cash payment fields -->
-            <div id="vp-fields" class="hidden">
-              <div class="field">
-                <label>Vendor *</label>
-                <div class="ss-wrap">
-                  <input class="ss-input" id="ae-vendor-vp-inp" placeholder="Search vendor…" autocomplete="off"
-                    oninput="ssFilter('vendor-vp')" onfocus="ssOpen('vendor-vp')" onblur="setTimeout(()=>ssClose('vendor-vp'),150)">
-                  <div class="ss-drop" id="ae-vendor-vp-drop"></div>
-                  <input type="hidden" id="ae-vendor-vp-val">
-                </div>
-              </div>
-            </div>
