@@ -1130,8 +1130,9 @@ async function saveEditEntry(entryId, oldUrl, entryType) {
   const narration   = isBankImport ? null : (document.getElementById('ee-narr')?.value || '');
   const vendor_id   = document.getElementById('ee-vendor')?.value || '';
   const _eeProjWrap = document.getElementById('ee-proj-wrap');
-  const project_id = (_eeProjWrap && _eeProjWrap.style.display !== 'none')
-    ? (document.getElementById('ee-proj')?.value || '') : '';
+  const project_id = _eeProjWrap
+    ? ((_eeProjWrap.style.display !== 'none') ? (document.getElementById('ee-proj')?.value || '') : '')
+    : (document.getElementById('ee-proj')?.value || '');  // direct (client_project types)
   const cost_head_id = document.getElementById('ee-ch')?.value || '';
   const deleteFile  = window._eeDeleteDoc || false;
 
@@ -3412,8 +3413,9 @@ async function saveAdminPendingEdit(entryId, oldUrl, companyId) {
   var narr   = isBankImport ? (entry.narration||'') : ((document.getElementById('ape-narr')||{}).value || '');
   var vendor_id    = (document.getElementById('ape-vendor')||{}).value || '';
   var _projWrap = document.getElementById('ape-proj-wrap');
-  var project_id = (_projWrap && _projWrap.style.display !== 'none')
-    ? ((document.getElementById('ape-proj')||{}).value || '') : '';
+  var project_id = _projWrap
+    ? ((_projWrap.style.display !== 'none') ? ((document.getElementById('ape-proj')||{}).value || '') : '')
+    : ((document.getElementById('ape-proj')||{}).value || '');  // direct (client_project types)
   var cost_head_id = (document.getElementById('ape-ch')    ||{}).value || '';
   var delDoc = (document.getElementById('ape-del-doc')||{}).value === '1';
   if (!date || !amount) { toast('Date and amount required', 'err'); return; }
