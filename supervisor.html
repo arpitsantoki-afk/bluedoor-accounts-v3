@@ -250,6 +250,11 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="toh">Record a petty cash expense</div>
       </div>
 
+      <div class="type-opt" id="type-vendor-petty" onclick="selectEntryType('vendor_paid_petty')">
+        <div class="tol">🧾 Petty Cash — Vendor Payment</div>
+        <div class="toh">Pay a vendor bill via petty cash</div>
+      </div>
+
       <!-- Entry form (hidden until type selected) -->
       <div id="entry-form" class="hidden">
         <div class="card">
@@ -882,6 +887,7 @@ const FIELD_RULES = {
   "transfer_cash_to_bank": { project:"hidden",   vendor:"hidden",   cost_head:"hidden",   doc:"hidden"   },
   "transfer_bank_to_cash": { project:"hidden",   vendor:"hidden",   cost_head:"hidden",   doc:"hidden"   },
   "drawings_cash":         { project:"hidden",   vendor:"hidden",   cost_head:"hidden",   doc:"hidden"   },
+  "vendor_paid_petty":     { project:"hidden",   vendor:"required", cost_head:"hidden",   doc:"optional" },
   "drawings_bank":         { project:"hidden",   vendor:"hidden",   cost_head:"hidden",   doc:"hidden"   }
 };
 
