@@ -1577,6 +1577,7 @@ window.FIELD_RULES = {
   },
   "Bank_payment_received": {
     "project": "required",
+    "client_project": "required",
     "vendor": "hidden",
     "cost_head": "hidden",
     "doc": "hidden"
@@ -1589,6 +1590,7 @@ window.FIELD_RULES = {
   },
   "advance_received_bank": {
     "project": "required",
+    "client_project": "required",
     "vendor": "hidden",
     "cost_head": "hidden",
     "doc": "hidden"
@@ -1676,6 +1678,12 @@ window.FIELD_RULES = {
     "vendor": "hidden",
     "cost_head": "hidden",
     "doc": "hidden"
+  },
+  "vendor_paid_petty": {
+    "project": "hidden",
+    "vendor": "required",
+    "cost_head": "hidden",
+    "doc": "optional"
   },
   "drawings_cash": {
     "project": "hidden",
@@ -3260,8 +3268,13 @@ function apeEtChanged() {
     html += '<input type="hidden" id="ape-ch" value="'+(entry.cost_head_id||'')+'">'; 
   }
 
-  // Project — shown only when cost head is EXP_DIRECT; hidden initially, apeCHChanged drives it
-  if (rules.project && rules.project !== 'hidden') {
+  // Client Project — shown directly for income entry types (no cost-head gate)
+  if (rules.client_project && rules.client_project !== 'hidden') {
+    var cpReq = ' <span style="color:var(--red)">*</span>';
+    var cpOpts = (_projs||[]).map(function(p){ return '<option value="'+p.project_id+'"'+(p.project_id===entry.project_id?' selected':'')+'>'+p.project_name+'</option>'; }).join('');
+    html += '<div class="field"><label>Project / Client'+cpReq+'</label>'
+      + '<select id="ape-proj" style="'+selStyle+'"><option value="">-- select project --</option>'+cpOpts+'</select></div>';
+  } else if (rules.project && rules.project !== 'hidden') {
     var existingCH = entry.cost_head_id ? (_chs||[]).find(function(c){ return c.ch_id===entry.cost_head_id; }) : null;
     var initVisible = existingCH && existingCH.ac_key === 'EXP_DIRECT';
     html += '<div id="ape-proj-wrap" style="display:'+(initVisible?'block':'none')+'">'
