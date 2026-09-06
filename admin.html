@@ -1062,11 +1062,14 @@ async function showEditEntry(entryId) {
     : '<input type="hidden" id="ee-ch" value="'+(entry.cost_head_id||'')+'">';
 
   // Project field — wrapped for show/hide; visible only if existing CH is EXP_DIRECT
-  const projField = (rules.project && rules.project !== 'hidden') ?
-    ('<div id="ee-proj-wrap" style="display:' + (initProjVisible ? 'block' : 'none') + '">'
-      + '<div class="field"><label>Project'+(initProjVisible?' <span style="color:var(--red)">*</span>':'')+'</label>'
-      + '<select id="ee-proj" style="'+selStyle+'"><option value="">— select project —</option>'+pOpts+'</select></div></div>')
-    : '<input type="hidden" id="ee-proj" value="'+(entry.project_id||'')+'">';
+  const projField = (rules.client_project && rules.client_project !== 'hidden')
+    ? ('<div class="field"><label>Project / Client <span style="color:var(--red)">*</span></label>'
+      + '<select id="ee-proj" style="'+selStyle+'"><option value="">— select project —</option>'+pOpts+'</select></div>')
+    : (rules.project && rules.project !== 'hidden')
+      ? ('<div id="ee-proj-wrap" style="display:' + (initProjVisible ? 'block' : 'none') + '">'
+        + '<div class="field"><label>Project'+(initProjVisible?' <span style="color:var(--red)">*</span>':'')+'</label>'
+        + '<select id="ee-proj" style="'+selStyle+'"><option value="">— select project —</option>'+pOpts+'</select></div></div>')
+      : '<input type="hidden" id="ee-proj" value="'+(entry.project_id||'')+'">';
 
   const body = ''
     + '<div style="padding:8px 10px;background:rgba(245,158,11,.06);border:1px solid rgba(245,158,11,.2);border-radius:7px;margin-bottom:12px;font-size:12px">'
