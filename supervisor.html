@@ -386,18 +386,33 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="cbd">
           <div class="g2">
             <div class="field">
-              <label>Financial Year</label>
-              <select id="pc-fy" onchange="renderPetty()">
-                <option value="FY2627">FY 2026-27</option>
-                <option value="FY2526">FY 2025-26</option>
-                <option value="FY2425">FY 2024-25</option>
+              <label>Month</label>
+              <select id="pc-month" onchange="pcMonthChanged()">
+                <option value="">Entire FY</option>
+                <option value="04">April</option>
+                <option value="05">May</option>
+                <option value="06">June</option>
+                <option value="07">July</option>
+                <option value="08">August</option>
+                <option value="09">September</option>
+                <option value="10">October</option>
+                <option value="11">November</option>
+                <option value="12">December</option>
+                <option value="01">January</option>
+                <option value="02">February</option>
+                <option value="03">March</option>
+                <option value="custom">Custom Range</option>
               </select>
             </div>
+          </div>
+          <div id="pc-custom-range" style="display:none" class="g2">
             <div class="field">
-              <label>Company</label>
-              <select id="pc-co" onchange="renderPetty()">
-                <option value="">All</option>
-              </select>
+              <label>From</label>
+              <input type="date" id="pc-date-from" onchange="renderPetty()">
+            </div>
+            <div class="field">
+              <label>To</label>
+              <input type="date" id="pc-date-to" onchange="renderPetty()">
             </div>
           </div>
           <div class="row">
@@ -1447,13 +1462,55 @@ async function submitEntry() {
 // PETTY CASH LEDGER
 // ═══════════════════════════════════════════════════════════════
 function initPettyMonth() {
-  const el = document.getElementById('pc-fy');
-  if (el) el.value = curFY;
+  // FY and company come from topbar — nothing to initialize
+  const monthSel = document.getElementById('pc-month');
+  if (monthSel) monthSel.value = '';
+  const rangeDiv = document.getElementById('pc-custom-range');
+  if (rangeDiv) rangeDiv.style.display = 'none';
+}
+
+function pcMonthChanged() {
+  const val = document.getElementById('pc-month')?.value || '';
+  const rangeDiv = document.getElementById('pc-custom-range');
+  if (rangeDiv) rangeDiv.style.display = val === 'custom' ? 'grid' : 'none';
+  if (val !== 'custom') renderPetty();
+}
+
+function pcGetDateRange() {
+  // Returns {from, to} strings YYYY-MM-DD based on current filter
+  const fy = curFY || 'FY2627';
+  // FY format: FY2627 = Apr 2026 – Mar 2027
+  const fyYear = parseInt('20' + fy.slice(2,4)); // start year e.g. 2026
+  const month = document.getElementById('pc-month')?.value || '';
+
+  if (month === 'custom') {
+    return {
+      from: document.getElementById('pc-date-from')?.value || '',
+      to:   document.getElementById('pc-date-to')?.value   || ''
+    };
+  }
+  if (!month) {
+    // Entire FY: Apr fyYear – Mar fyYear+1
+    return {
+      from: fyYear + '-04-01',
+      to:   (fyYear + 1) + '-03-31'
+    };
+  }
+  // Specific month
+  const m = parseInt(month);
+  const yr = m >= 4 ? fyYear : fyYear + 1;
+  const lastDay = new Date(yr, m, 0).getDate();
+  const mm = month.padStart(2,'0');
+  return {
+    from: yr + '-' + mm + '-01',
+    to:   yr + '-' + mm + '-' + lastDay
+  };
 }
 
 async function renderPetty() {
-  const fy = document.getElementById('pc-fy')?.value || curFY;
-  const co = document.getElementById('pc-co').value;
+  const fy = curFY;
+  const co = curCo || '';
+  const { from: dateFrom, to: dateTo } = pcGetDateRange();
 
   const summaryEl = document.getElementById('petty-summary-body');
   const tbl = document.getElementById('petty-table');
@@ -1468,7 +1525,7 @@ async function renderPetty() {
   const pettyAcCode = pettyCoa?.ac_code || '1003';
 
   const [ledgerRes, pendingRes, obRes] = await Promise.all([
-    api('getLedger', { fyid: fy, company_id: co, ac_code: pettyAcCode }),
+    api('getLedger', { fyid: fy, company_id: co, ac_code: pettyAcCode, date_from: dateFrom, date_to: dateTo }),
     api('listPending', { fyid: fy, company_id: co, status: 'Pending' }),
     api('listOpeningBalances', { fyid: fy, company_id: co })
   ]);
@@ -1551,11 +1608,16 @@ async function renderPetty() {
 
 
 function printVoucher() {
-  const fy = document.getElementById('pc-fy')?.value || curFY;
-  const co = document.getElementById('pc-co').value;
+  const fy = curFY;
+  const co = curCo || '';
+  const { from: dateFrom, to: dateTo } = pcGetDateRange();
+  const month = document.getElementById('pc-month')?.value || '';
+  const monthNames = {'':\'Entire FY\','01':'Jan','02':'Feb','03':'Mar','04':'Apr','05':'May','06':'Jun','07':'Jul','08':'Aug','09':'Sep','10':'Oct','11':'Nov','12':'Dec','custom':'Custom Range'};
+  const periodLabel = month === 'custom' ? (dateFrom + ' to ' + dateTo) : (monthNames[month] || month) + ' — ' + fy;
+  const coName = co ? (_cos.find(c=>c.company_id===co)?.company_name||co) : '';
   // Populate voucher fields from current ledger data
   const periodEl = document.getElementById('voucher-period');
-  if (periodEl) periodEl.textContent = fy + (co ? ' — ' + (_cos.find(c=>c.company_id===co)?.company_name||co) : '');
+  if (periodEl) periodEl.textContent = periodLabel + (coName ? ' — ' + coName : '');
   const dateEl = document.getElementById('voucher-date-print');
   if (dateEl) dateEl.textContent = new Date().toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
 
