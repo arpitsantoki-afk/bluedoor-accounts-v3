@@ -1168,49 +1168,51 @@ function selectEntryType(key) {
   if (!_selType) { toast('Entry type not found in DB', 'err'); return; }
 
   document.querySelectorAll('.type-opt').forEach(el => el.classList.remove('sel'));
-  document.getElementById(key === 'vendor_bill' ? 'type-vendor' : 'type-petty').classList.add('sel');
+  const tileId = key === 'vendor_bill' ? 'type-vendor'
+    : key === 'vendor_paid_petty' ? 'type-vendor-petty'
+    : 'type-petty';
+  const tile = document.getElementById(tileId);
+  if (tile) tile.classList.add('sel');
 
-  const isVendor = key === 'vendor_bill';
-  const isPetty  = key === 'expense_petty_cash';
+  const isVendor      = key === 'vendor_bill';
+  const isPetty       = key === 'expense_petty_cash';
+  const isVendorPetty = key === 'vendor_paid_petty';
 
   document.getElementById('vb-fields').classList.toggle('hidden', !isVendor);
   document.getElementById('pc-fields').classList.toggle('hidden', !isPetty);
+  document.getElementById('vp-fields').classList.toggle('hidden', !isVendorPetty);
   document.getElementById('form-title').textContent = _selType.label;
-
-  // Doc required for both types per Excel rules
   document.getElementById('doc-req').style.display = 'inline';
 
-  // Init search-selects
   if (isVendor) {
     ssInit('vendor', _vendors, v => v.vendor_name, v => v.vendor_id);
     ssInit('proj',   _projs,   p => p.project_name, p => p.project_id);
-    // Populate vendor bill cost heads
     const chSel = document.getElementById('ae-ch-vb');
-    chSel.innerHTML = '<option value="">Select cost head…</option>';
+    chSel.innerHTML = '<option value="">\u30BB\u30EC\u30AF\u30C8\u2026</option>';
+    chSel.innerHTML = '<option value="">Select cost head\u2026</option>';
     _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
   }
   if (isPetty) {
     ssInit('proj-pc',   _projs,   p => p.project_name, p => p.project_id);
     ssInit('vendor-pc', _vendors, v => v.vendor_name,   v => v.vendor_id);
-    // Populate petty cash cost heads
     const chSel = document.getElementById('ae-ch-pc');
-    chSel.innerHTML = '<option value="">Select cost head…</option>';
+    chSel.innerHTML = '<option value="">Select cost head\u2026</option>';
     _chs.forEach(c => chSel.add(new Option(c.ch_name, c.ch_id)));
   }
+  if (isVendorPetty) {
+    ssInit('vendor-vp', _vendors, v => v.vendor_name, v => v.vendor_id);
+  }
 
-  // Set today's date
   if (!document.getElementById('ae-date').value) {
     document.getElementById('ae-date').value = new Date().toISOString().slice(0,10);
   }
-
-  // Auto-select company from topbar
   const coSel = document.getElementById('ae-co');
   if (curCo) {
     coSel.value = curCo;
     coSel.disabled = true;
     const coLbl = coSel.closest('.field')?.querySelector('label');
     const coName2 = (_cos||[]).find(c=>c.company_id===curCo)?.company_name||curCo;
-    if (coLbl) coLbl.innerHTML = 'Company <span style="font-size:10px;color:var(--accent)">🔒 ' + coName2 + '</span>';
+    if (coLbl) coLbl.innerHTML = 'Company <span style="font-size:10px;color:var(--accent)">\uD83D\uDD12 ' + coName2 + '</span>';
   } else {
     coSel.value = '';
     coSel.disabled = false;
@@ -1220,6 +1222,7 @@ function selectEntryType(key) {
   document.getElementById('entry-form').classList.remove('hidden');
   document.getElementById('entry-form').scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
+
 
 // When vendor bill cost head changes — check if indirect expense → hide project
 function onVbCostHeadChange() {
@@ -1328,6 +1331,11 @@ async function submitEntry() {
     payload.cost_head_id = document.getElementById('ae-ch-pc').value;
     if (!payload.project_id)   { toast('Project required', 'err'); return; }
     if (!payload.cost_head_id) { toast('Cost head required', 'err'); return; }
+  }
+
+  if (_selType.et_key === 'vendor_paid_petty') {
+    payload.vendor_id = document.getElementById('ae-vendor-vp-val').value;
+    if (!payload.vendor_id) { toast('Vendor required', 'err'); return; }
   }
 
   // File is uploaded to Drive on submit — see Drive upload block below
@@ -2113,3 +2121,16 @@ if ('serviceWorker' in navigator) {
 </script>
 </body>
 </html>
+
+            <!-- Vendor petty cash payment fields -->
+            <div id="vp-fields" class="hidden">
+              <div class="field">
+                <label>Vendor *</label>
+                <div class="ss-wrap">
+                  <input class="ss-input" id="ae-vendor-vp-inp" placeholder="Search vendor…" autocomplete="off"
+                    oninput="ssFilter('vendor-vp')" onfocus="ssOpen('vendor-vp')" onblur="setTimeout(()=>ssClose('vendor-vp'),150)">
+                  <div class="ss-drop" id="ae-vendor-vp-drop"></div>
+                  <input type="hidden" id="ae-vendor-vp-val">
+                </div>
+              </div>
+            </div>
