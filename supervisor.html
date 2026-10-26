@@ -1253,10 +1253,9 @@ function onVbCostHeadChange() {
   const chId  = document.getElementById('ae-ch-vb').value;
   const ch    = _chs.find(c => c.ch_id === chId);
   const projW = document.getElementById('proj-wrap-vb');
-  // Indirect: no ch or ch linked to indirect expense account
-  // Simple heuristic: if ch_name contains 'indirect' or 'overhead' → hide project
-  const isIndirect = ch && (ch.ch_name.toLowerCase().includes('indirect') || ch.ch_name.toLowerCase().includes('overhead') || ch.ch_name.toLowerCase().includes('general'));
-  if (isIndirect) {
+  // Use ac_key to determine if direct expense (project required) or not
+  const isDirect = ch && ch.ac_key === 'EXP_DIRECT';
+  if (!isDirect) {
     projW.style.display = 'none';
     document.getElementById('ae-proj-val').value = '';
     document.getElementById('ae-proj-inp').value = '';
