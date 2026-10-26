@@ -307,7 +307,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
 
             <!-- Petty cash fields -->
             <div id="pc-fields" class="hidden">
-              <div class="field">
+              <div class="field" id="proj-wrap-pc">
                 <label>Project *</label>
                 <div class="ss-wrap">
                   <input class="ss-input" id="ae-proj-pc-inp" placeholder="Search project…" autocomplete="off"
@@ -327,7 +327,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
               </div>
               <div class="field">
                 <label>Cost Head *</label>
-                <select id="ae-ch-pc">
+                <select id="ae-ch-pc" onchange="onPcCostHeadChange()">
                   <option value="">Select cost head…</option>
                 </select>
               </div>
@@ -1264,6 +1264,21 @@ function onVbCostHeadChange() {
   }
 }
 
+// When petty cash expense cost head changes — check if indirect expense → hide project
+function onPcCostHeadChange() {
+  const chId  = document.getElementById('ae-ch-pc').value;
+  const ch    = _chs.find(c => c.ch_id === chId);
+  const projW = document.getElementById('proj-wrap-pc');
+  const isDirect = ch && ch.ac_key === 'EXP_DIRECT';
+  if (!isDirect) {
+    projW.style.display = 'none';
+    document.getElementById('ae-proj-pc-val').value = '';
+    document.getElementById('ae-proj-pc-inp').value = '';
+  } else {
+    projW.style.display = '';
+  }
+}
+
 // Document file handler — read as base64, store locally
 // old onDocFileChange removed
 function resetForm() {
@@ -1352,8 +1367,9 @@ async function submitEntry() {
     payload.project_id   = document.getElementById('ae-proj-pc-val').value;
     payload.vendor_id    = document.getElementById('ae-vendor-pc-val').value;
     payload.cost_head_id = document.getElementById('ae-ch-pc').value;
-    if (!payload.project_id)   { toast('Project required', 'err'); return; }
     if (!payload.cost_head_id) { toast('Cost head required', 'err'); return; }
+    const pcProjWrap = document.getElementById('proj-wrap-pc');
+    if (pcProjWrap.style.display !== 'none' && !payload.project_id) { toast('Project required for this cost head', 'err'); return; }
   }
 
   if (_selType.et_key === 'vendor_paid_petty') {
