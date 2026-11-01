@@ -429,6 +429,7 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
         <div class="ctab" onclick="setMore('rawdata',this)">Raw Data</div>
         <div class="ctab" onclick="setMore('import',this)">Import</div>
         <div class="ctab" onclick="setMore('tools',this)">🔧 Tools</div>
+        <div class="ctab" onclick="location.href='estimate.html'">📐 Estimates</div>
       </div>
       <div id="more-out"></div>
     </div>
@@ -3784,6 +3785,7 @@ async function addUser() {
   }
 }
 
+function euMods(u) { try { const m = typeof u.modules === 'string' ? JSON.parse(u.modules || '{}') : (u.modules || {}); return m && typeof m === 'object' ? m : {}; } catch(e) { return {}; } }
 function showEditUser(uid) {
   const u = window._usersMap[uid] || {};
   if (!u.user_id) { toast('User data not loaded — please refresh', 'err'); return; }
@@ -3813,6 +3815,13 @@ function showEditUser(uid) {
     </div>
     <div class="field"><label>New Password <span style="color:var(--muted);font-size:10px">(blank = no change)</span></label>
       <input id="eu-pass" type="text" placeholder="Leave blank to keep current">
+    </div>
+    <div class="field"><label>Estimates &amp; billing access <span style="color:var(--muted);font-size:10px">(Admins always have full access)</span></label>
+      <select id="eu-mod-est">
+        <option value="" ${!euMods(u).estimates?'selected':''}>No access</option>
+        <option value="view" ${euMods(u).estimates==='view'?'selected':''}>View only</option>
+        <option value="edit" ${euMods(u).estimates==='edit'?'selected':''}>View and edit</option>
+      </select>
     </div>
     <div class="field"><label>Companies</label>
       <div id="eu-co-list" style="background:var(--bg);border:1px solid var(--border);border-radius:8px;padding:10px;max-height:150px;overflow-y:auto"><em style="color:var(--muted);font-size:12px">Loading…</em></div>
@@ -3862,7 +3871,8 @@ async function saveEditUser(uid) {
     return;
   }
 
-  const payload = { user_id: uid, username: name, role, companies, google_email: email };
+  const estAcc   = document.getElementById('eu-mod-est')?.value || '';
+  const payload = { user_id: uid, username: name, role, companies, google_email: email, modules: estAcc ? { estimates: estAcc } : {} };
   if (pass) payload.password = pass;
 
   const r = await api('updateUser', payload);

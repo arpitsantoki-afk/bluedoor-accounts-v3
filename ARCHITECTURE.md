@@ -523,3 +523,53 @@ problems = re.findall(r'async\s+async', content)
 | Migrate secret | `migrate_bluedoor_2024` |
 | Super admin email | `info.unikraft@gmail.com` |
 | Super admin user_id | `USR_SUPERADMIN` |
+
+---
+
+## 13. Estimates & Billing Module
+
+**Files:** `estimate.html` (UI), `estimate-core.js` (shared calculation code, imported by both `estimate.html` and `worker.js`), est* actions in `worker.js`.
+
+### Access
+| Who | Access |
+|---|---|
+| `Admin` role | Always full access |
+| Any other user | None by default. An Admin grants `View only` or `View and edit` from **More → Users → Edit user → Estimates & billing access**. |
+
+- Grants live in `users.modules` as JSON, e.g. `{"estimates":"view"}`. Only an Admin can change them (`updateUser` rejects `modules` from anyone else).
+- Checked on every est* call against the DB (not the session), so granting or revoking applies immediately.
+- `supervisor.html` shows an Estimates icon in the topbar only when `estAccess` returns access.
+- To add another module later: add a key to `MODULES` in `worker.js`, gate its actions with `moduleAccess(sess, env, '<key>')`, and add a selector in the Edit user modal.
+
+### Tables (created automatically on first use by `ensureEst`)
+```sql
+est_projects  est_id PK, project_id (linked V3 project), name, client, data (full JSON),
+              version (optimistic lock), estimate_total, quote_total, quote_grand,
+              bill_total, net_payable, line_count, created_*/updated_* 
+est_rates     rate_id PK, code, cat, data (JSON: desc, unit, oh, profit, comps[])
+est_settings  skey PK ('firm'), data (JSON: name, addr, phone, email, gstin, notes[])
+users.modules TEXT DEFAULT '{}'   -- added by ensureEst
+```
+Totals columns are recomputed server-side with `estimate-core.js` on every save; client totals are ignored.
+
+### Actions
+| Action | Needs | Description |
+|---|---|---|
+| `estAccess` | session | `{access: 'edit'|'view'|null, ai}` |
+| `estBootstrap` | view | rates, estimate list (summaries), settings, V3 projects |
+| `estGetProject` | view | full estimate JSON + version |
+| `estSaveProject` | edit | upsert; `version` 0 = create. Stale version → 409 `{conflict, data, version, updated_by}` |
+| `estDeleteProject` | edit | |
+| `estSaveRate` / `estDeleteRate` | edit | rate analysis library |
+| `estSaveSettings` | edit | `skey: 'firm'` |
+| `estImport` | Admin | bulk import `{rates, projects, settings}` JSON; skips existing ids |
+| `estReadDrawing` | edit | sends a drawing image + prompt to the Claude API; needs secret `ANTHROPIC_API_KEY` (optional var `ANTHROPIC_MODEL`) |
+
+### Enabling AI drawing reading
+```bash
+echo "<anthropic api key>" | npx wrangler secret put ANTHROPIC_API_KEY
+```
+Never put the key in `worker.js` or `wrangler.toml`. Without it the page shows that AI reading isn't set up; DXF take-off works regardless (parsed in the browser).
+
+### Client-side libraries (loaded on demand from jsDelivr)
+jsPDF 2.5.1 + jspdf-autotable 3.8.2 (PDF export), xlsx-js-style 1.2.0 (formatted Excel), pdf.js 3.11.174 (PDF drawings → image).

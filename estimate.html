@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Estimates · BlueDoor Accounts</title>
+<meta name="theme-color" content="#0d0f14">
+<link rel="icon" href="icons/icon-192x192.png">
+<script>try{if(localStorage.getItem('bd_theme')==='light')document.documentElement.classList.add('light-theme')}catch(e){}</script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@75..100,500..800&family=IBM+Plex+Sans:wght@400;500;600&family=IBM+Plex+Mono:wght@400;500&display=swap">
+<style>
+/* Layout: drafting-office tool — slim header band, tab rail, dense measurement tables on a cool paper ground; door-blue as the one accent */
+:root{
+  --bg:#0d0f14; --surface:#161920; --sunk:#11141a; --ink:#e2e8f0; --muted:#8a97ab; --line:#262a35;
+  --accent:#4f8ef7; --accent-ink:#0b1220; --accent-soft:#1a2740;
+  --pos:#22c55e; --neg:#f87171; --warn:#f59e0b; --warn-soft:#2b2312;
+  --f-display:"Archivo",ui-sans-serif,system-ui,sans-serif;
+  --f-body:"IBM Plex Sans",ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  --f-mono:"IBM Plex Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  color-scheme:dark;
+}
+:root.light-theme{
+  --bg:#f8fafc; --surface:#ffffff; --sunk:#f1f5f9; --ink:#0f172a; --muted:#5b6878; --line:#dfe5ec;
+  --accent:#2563eb; --accent-ink:#ffffff; --accent-soft:#e3ecfd;
+  --pos:#15803d; --neg:#b91c1c; --warn:#92400e; --warn-soft:#fef3c7; color-scheme:light;
+}
+html,body{margin:0}
+body{background:var(--bg);color:var(--ink);font:14px/1.5 var(--f-body)}
+*{box-sizing:border-box}
+.wrap{padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));max-width:1320px;margin:0 auto}
+header.top{background:var(--surface);border-bottom:1px solid var(--line)}
+.topin{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:center;padding-block:12px}
+.brand{display:flex;gap:10px;align-items:center;margin-right:auto}
+.door{width:18px;height:26px;background:var(--accent);border-radius:2px;position:relative;flex:none}
+.door::after{content:"";position:absolute;right:3px;top:12px;width:3px;height:3px;border-radius:50%;background:var(--accent-ink)}
+.brand b{font:700 17px/1.1 var(--f-display);font-stretch:85%;letter-spacing:.01em}
+.brand small{display:block;color:var(--muted);font-size:12px}
+.projpick{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.status{font-size:12px;color:var(--muted);min-width:60px}
+.back{color:var(--muted);text-decoration:none;font-size:13px}.back:hover{color:var(--accent)}
+.ro .btn[disabled],.ro input[disabled],.ro select[disabled],.ro textarea[disabled]{opacity:.75;cursor:default}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;padding-block:0}
+nav.tabs button{border:0;background:none;padding:10px 14px;font:600 13px var(--f-body);color:var(--muted);border-bottom:2px solid transparent;cursor:pointer;white-space:nowrap}
+nav.tabs button[aria-current="true"]{color:var(--accent);border-bottom-color:var(--accent)}
+main{padding-block:20px 60px;display:flex;flex-direction:column;gap:18px}
+h2{font:700 19px/1.2 var(--f-display);font-stretch:88%;margin:0;text-wrap:balance}
+h3{font:700 15px/1.2 var(--f-display);font-stretch:90%;margin:0;display:flex;gap:10px;align-items:baseline;justify-content:space-between}
+.hint{color:var(--muted);font-size:13px;margin:0;max-width:70ch}
+.panel{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px;display:flex;flex-direction:column;gap:14px;min-width:0}
+.grid-meta{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px 14px}
+label.fld{display:flex;flex-direction:column;gap:4px;font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--muted);font-weight:600}
+input,select,textarea{font:inherit;font-size:14px;color:var(--ink);background:var(--surface);border:1px solid var(--line);border-radius:4px;padding:6px 8px;min-width:0;width:100%}
+textarea{resize:vertical;min-height:64px}
+input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+td input,td select{padding:4px 6px;font-size:13px}
+input.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
+.btn{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer;white-space:nowrap}
+.btn:hover{border-color:var(--accent)}
+.btn.pri{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.btn.danger{color:var(--neg);border-color:var(--neg)}
+.btn.sm{padding:3px 8px;font-size:12px}
+.btn[disabled]{opacity:.5;cursor:default}
+.iconbtn{border:0;background:none;color:var(--muted);cursor:pointer;font-size:15px;padding:2px 6px;border-radius:3px}
+.iconbtn:hover{color:var(--neg);background:var(--sunk)}
+.iconbtn.sync:hover{color:var(--accent)}
+.bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.bar .grow{flex:1 1 auto}
+.bar select{width:auto;max-width:100%}
+.scroll{overflow-x:auto;border:1px solid var(--line);border-radius:4px}
+table{border-collapse:collapse;width:100%;font-size:13px}
+th{font:600 11px var(--f-body);letter-spacing:.06em;text-transform:uppercase;color:var(--muted);text-align:left;padding:7px 8px;background:var(--sunk);border-bottom:1px solid var(--line);white-space:nowrap}
+td{padding:5px 8px;border-bottom:1px solid var(--line);vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td.n,th.n{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums;white-space:nowrap}
+td.code{font-family:var(--f-mono);font-size:12px;color:var(--muted);white-space:nowrap}
+tr.sub td{background:var(--sunk);font-weight:600}
+.w-desc{min-width:240px}.w-num{width:110px;min-width:110px}.w-unit{width:90px;min-width:90px}
+td input.num{min-width:90px}
+.chip{display:inline-block;font-size:11px;padding:1px 7px;border-radius:10px;background:var(--sunk);color:var(--muted);border:1px solid var(--line);white-space:nowrap}
+.chip.acc{background:var(--accent-soft);color:var(--accent);border-color:transparent}
+.chip.warn{background:var(--warn-soft);color:var(--warn);border-color:transparent}
+.pos{color:var(--pos)}.neg{color:var(--neg)}.mut{color:var(--muted)}
+.cat{display:flex;flex-direction:column;gap:8px}
+.sum{display:grid;grid-template-columns:1fr auto;gap:6px 24px;max-width:460px;margin-left:auto;width:100%;font-size:14px}
+.sum .n{font-family:var(--f-mono);font-variant-numeric:tabular-nums;text-align:right}
+.sum .tot{font:700 17px var(--f-display);border-top:1px solid var(--line);padding-top:8px}
+.sum .tot.n{font-family:var(--f-mono)}
+.note{background:var(--warn-soft);color:var(--warn);border-radius:4px;padding:8px 12px;font-size:13px}
+.two{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,520px),1fr));gap:18px;align-items:start}
+.ratewrap{display:grid;grid-template-columns:minmax(0,320px) minmax(0,1fr);gap:18px;align-items:start}
+@media (max-width:820px){.ratewrap{grid-template-columns:minmax(0,1fr)}}
+.rlist{display:flex;flex-direction:column;max-height:70vh;overflow:auto;border:1px solid var(--line);border-radius:4px}
+.ritem{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;padding:8px 10px;border:0;border-bottom:1px solid var(--line);background:var(--surface);text-align:left;cursor:pointer;font:inherit;color:inherit}
+.ritem[aria-current="true"]{background:var(--accent-soft)}
+.ritem .rc{font-family:var(--f-mono);font-size:12px;color:var(--muted)}
+.ritem .rd{font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ritem .rr{grid-column:2;font-size:12px;color:var(--muted);font-family:var(--f-mono)}
+.big{font:700 26px var(--f-mono);font-variant-numeric:tabular-nums}
+.empty{padding:28px;text-align:center;color:var(--muted);display:flex;flex-direction:column;gap:12px;align-items:center}
+.thumb{max-width:100%;max-height:280px;border:1px solid var(--line);border-radius:4px;background:#fff;align-self:flex-start}
+.mono{font-family:var(--f-mono);font-size:12px}
+.toast{position:fixed;left:50%;transform:translateX(-50%);bottom:calc(20px + env(safe-area-inset-bottom,0px));background:var(--ink);color:var(--bg);padding:8px 16px;border-radius:4px;font-size:13px;z-index:20;max-width:calc(100% - 32px)}
+.kv{display:flex;flex-wrap:wrap;gap:6px}
+.preview{font-family:var(--f-mono);font-size:13px;background:var(--sunk);padding:8px 10px;border-radius:4px}
+@media (prefers-reduced-motion:no-preference){.btn,.ritem{transition:border-color .12s,background .12s}}
+</style>
+</head>
+<body>
+<div id="app"></div>
+<div id="toast" class="toast" hidden></div>
+
+<script type="module">
+import {CATS,UNITS,CT,QB,num,r2,rnd,hasV,locOf,bill,rateCalc,estCalc,qset,quoteCalc,billCalc} from './estimate-core.js';
+const XLSX_URL='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+const PDF_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const PDFW_URL='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+const API='https://bluedoor-accounts.info-unikraft.workers.dev/api';
+
+const S={rates:{},projects:{},ver:{},loading:{},plist:[],v3:[],access:null,aiOK:false,settings:{},cur:null,tab:'estimate',rateSel:null,rateQ:'',rateCat:'All',
+  dxf:null,du:null,ai:{name:'',blob:null,thumb:'',pdf:null,pages:0,page:1,ctx:'',busy:false,ctl:null,res:null,err:'',status:''},
+  store:'loading',status:'',confirm:null,addPick:'',extraPick:'',};
+
+/* ---------- utils ---------- */
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const inr=n=>(n<0?'−':'')+'₹'+Math.abs(n).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const qf=n=>(+n||0).toLocaleString('en-IN',{maximumFractionDigits:3});
+const uid=p=>p+Date.now().toString(36)+Math.random().toString(36).slice(2,6);
+const today=()=>new Date().toISOString().slice(0,10);
+const clone=o=>JSON.parse(JSON.stringify(o));
+const lsGet=k=>{try{return localStorage.getItem(k)}catch(e){return null}};
+const lsSet=(k,v)=>{try{localStorage.setItem(k,v)}catch(e){}};
+function toast(m){const t=document.getElementById('toast');t.textContent=m;t.hidden=false;clearTimeout(toast.t);toast.t=setTimeout(()=>t.hidden=true,3200)}
+function loadScript(src){return new Promise((res,rej)=>{const s=document.createElement('script');s.src=src;s.onload=res;s.onerror=()=>rej(new Error('Could not load '+src));document.head.appendChild(s)})}
+
+/* ---------- storage (V3 Worker API) ---------- */
+const TOKEN=lsGet('bd_token');
+const ME=(()=>{try{return JSON.parse(lsGet('bd_user')||'{}')}catch(e){return{}}})();
+async function api(action,params={},signal){const r=await fetch(API,{method:'POST',signal,headers:{'Content-Type':'application/json','X-Session-Token':TOKEN||''},body:JSON.stringify({action,...params})});
+  let j={};try{j=await r.json()}catch(e){j={ok:false,error:'Bad response ('+r.status+')'}}j.status=r.status;return j}
+const RO=()=>S.access!=='edit';
+const dirty=new Set(),inflight=new Set(),again=new Set(),timers={};
+async function initStore(){
+  if(!TOKEN){location.href='index.html';return}
+  let j;try{j=await api('estBootstrap')}catch(e){S.store='error';render();return}
+  if(j.status===401){location.href='index.html';return}
+  if(!j.ok){S.store='denied';S.denyMsg=j.error;render();return}
+  S.access=j.access;S.aiOK=!!j.ai;S.rates=j.rates||{};S.settings=j.settings||{};S.plist=j.projects||[];S.v3=j.v3projects||[];S.store='api';
+  pickCur();render();if(S.cur)loadProject(S.cur);
+}
+async function loadProject(id){if(!id||S.projects[id]||S.loading[id])return;S.loading[id]=true;
+  let j;try{j=await api('estGetProject',{est_id:id})}catch(e){j={ok:false,error:'Can’t reach the server'}}
+  delete S.loading[id];if(j.ok){S.projects[id]=j.data;S.ver[id]=j.version}else toast(j.error||'Could not open estimate');render()}
+function pickCur(){const has=id=>S.plist.some(x=>x.est_id===id);if(S.cur&&has(S.cur))return;const saved=lsGet('bd-est-cur');
+  if(saved&&has(saved)){S.cur=saved;return}S.cur=S.plist.length?S.plist[0].est_id:null}
+function save(col,id){if(RO())return;const k=col+'/'+id;dirty.add(k);S.status='Saving…';updStatus();clearTimeout(timers[k]);timers[k]=setTimeout(()=>flush(col,id),700)}
+async function flush(col,id){const k=col+'/'+id;if(inflight.has(k)){again.add(k);return}inflight.add(k);let j={ok:true};
+  try{
+    if(col==='projects'){const d=S.projects[id];if(d){j=await api('estSaveProject',{est_id:id,data:d,version:S.ver[id]||0});
+      if(j.ok){S.ver[id]=j.version;upPlist(id,d,j)}
+      else if(j.conflict){S.projects[id]=j.data;S.ver[id]=j.version;again.delete(k);
+        toast((j.updated_by||'Someone')+' changed this estimate meanwhile. Their latest version is loaded; redo your last change.');render()}}}
+    else if(col==='rates'){const d=S.rates[id];j=d?await api('estSaveRate',{rate_id:id,data:d}):await api('estDeleteRate',{rate_id:id})}
+    else if(col==='settings')j=await api('estSaveSettings',{skey:id,data:S.settings[id]});
+    S.status=j.ok?'Saved':j.conflict?'Reloaded latest':'Not saved: '+(j.error||'error')}
+  catch(e){S.status='Not saved: can’t reach the server'}
+  finally{inflight.delete(k);if(again.has(k)){again.delete(k);flush(col,id)}else dirty.delete(k);updStatus()}}
+function upPlist(id,d,j){const row={est_id:id,name:d.name,client:d.client,version:j.version,updated_at:j.updated_at,updated_by:ME.username||'',...(j.summary||{})};
+  const x=S.plist.find(r=>r.est_id===id);if(x)Object.assign(x,row);else S.plist.unshift(row)}
+function updStatus(){const el=document.getElementById('status');if(el)el.textContent=S.status}
+window.addEventListener('beforeunload',e=>{if(dirty.size||inflight.size){e.preventDefault();e.returnValue=''}});
+const P=()=>S.projects[S.cur];
+function touch(){const p=P();if(!p||RO())return;p.updated=Date.now();save('projects',S.cur)}
+
+/* ---------- calculations ---------- */
+function catOrder(c){const i=CATS.indexOf(c);return i<0?99:i}
+const gmode=()=>(P()&&P().groupBy)||'cat';
+function groupBy(lines){const m=gmode(),g={};lines.forEach(x=>{const k=m==='loc'?(locOf(x.l)||'General / whole project'):(x.l.cat||'Other');(g[k]=g[k]||[]).push(x)});
+  const e=Object.entries(g);return m==='loc'?e.sort((a,b)=>(a[0]==='General / whole project')-(b[0]==='General / whole project')):e.sort((a,b)=>catOrder(a[0])-catOrder(b[0]))}
+function locList(p){return[...new Set([...(p.lines||[]).map(locOf),...bill(p).extras.map(locOf)].filter(Boolean))]}
+const locData=p=>`<datalist id="locs">${locList(p).map(x=>`<option value="${esc(x)}">`).join('')}</datalist>`;
+const groupToggle=p=>`<div class="kv" role="group" aria-label="Group by"><span class="mut" style="font-size:12px;align-self:center">Group by</span><button class="btn sm${gmode()==='cat'?' pri':''}" data-a="gmode:cat">Trade</button><button class="btn sm${gmode()==='loc'?' pri':''}" data-a="gmode:loc">Location</button></div>`;
+const locLine=(l,m)=>m!=='loc'&&locOf(l)?`<span class="chip acc" style="margin-right:6px">${esc(locOf(l))}</span>`:'';
+function lineFromRate(r,qty,src){return{id:uid('l'),rateId:r?r.__id:null,code:r?r.code:'',cat:r?r.cat:'Other',desc:r?r.desc:'New item',unit:r?r.unit:'nos',qty:r2(num(qty)),rate:r?rateCalc(r).rate:0,src:src||'Manual'}}
+function rateById(id){const r=S.rates[id];return r?{...r,__id:id}:null}
+function sortedRates(){return Object.entries(S.rates).map(([id,r])=>({...r,__id:id})).sort((a,b)=>catOrder(a.cat)-catOrder(b.cat)||String(a.code).localeCompare(String(b.code)))}
+function rateOptions(sel,blankLabel){const rs=sortedRates();let h=`<option value="">${esc(blankLabel||'Choose item…')}</option>`;
+  CATS.forEach(c=>{const g=rs.filter(r=>(r.cat||'Other')===c);if(!g.length)return;h+=`<optgroup label="${c}">`+g.map(r=>`<option value="${r.__id}"${r.__id===sel?' selected':''}>${esc(r.code)} · ${esc(r.desc)} (${esc(r.unit)})</option>`).join('')+'</optgroup>'});return h}
+const unitSel=(f,v)=>`<select data-f="${f}">${(UNITS.includes(v)?UNITS:[v,...UNITS]).map(u=>`<option${u===v?' selected':''}>${esc(u)}</option>`).join('')}</select>`;
+const catSel=(f,v)=>`<select data-f="${f}">${CATS.map(c=>`<option${c===v?' selected':''}>${c}</option>`).join('')}</select>`;
+
+/* ---------- render ---------- */
+function render(){
+  const a=document.activeElement,fid=a&&a.id,fval=a&&'value' in a?a.value:null;let ss=null,se=null;try{ss=a.selectionStart;se=a.selectionEnd}catch(e){}
+  const ps=S.plist.map(x=>[x.est_id,x]);
+  let h=`<header class="top"><div class="wrap topin">
+    <div class="brand"><span class="door" aria-hidden="true"></span><div><b>Estimates &amp; billing</b><small><a class="back" href="${ME.role==='Admin'||!ME.role?'admin.html':'supervisor.html'}">← BlueDoor Accounts</a>${S.access==='view'?' · <span class="chip warn">View only</span>':''}</small></div></div>
+    <div class="projpick">${ps.length?`<select id="projSel" data-f="ui.cur" aria-label="Project" style="width:auto;max-width:260px">${ps.map(([id,p])=>`<option value="${id}"${id===S.cur?' selected':''}>${esc(p.name||'Untitled')}</option>`).join('')}</select>`:''}
+    ${S.access==='edit'?'<button class="btn" data-a="proj-new">New estimate</button>':''}<span class="status" id="status">${esc(S.status)}</span></div></div>
+    <div class="wrap"><nav class="tabs">${[['estimate','Estimate (internal)'],['takeoff','Drawing take-off'],['quote','Client quote'],['bill','Final bill'],['rates','Rate analysis'],['firm','Firm & notes']].map(([k,l])=>`<button data-a="tab:${k}" aria-current="${S.tab===k}">${l}</button>`).join('')}</nav></div></header>
+    <main class="wrap">`;
+  if(S.store==='loading')h+=`<div class="panel empty">Loading estimates and rates…</div>`;
+  else if(S.store==='denied')h+=`<div class="panel empty"><h2>No access</h2><p class="hint">${esc(S.denyMsg||'You don’t have access to Estimates.')} Ask an admin to grant it from Users → Edit user.</p></div>`;
+  else if(S.store==='error')h+=`<div class="panel empty"><h2>Can’t reach the server</h2><p class="hint">Check your connection and reload the page.</p></div>`;
+  else if(S.tab==='rates')h+=viewRates();
+  else if(S.tab==='firm')h+=viewFirm();
+  else if(!S.cur)h+=`<div class="panel empty"><h2>No estimate yet</h2><p class="hint">Create an estimate to start. Rates you build in Rate analysis are shared across all estimates.</p>${RO()?'':'<button class="btn pri" data-a="proj-new">Create estimate</button>'}</div>`;
+  else if(!P()){loadProject(S.cur);h+=`<div class="panel empty">Opening estimate…</div>`}
+  else if(S.tab==='estimate')h+=viewEstimate();
+  else if(S.tab==='takeoff')h+=viewTakeoff();
+  else if(S.tab==='bill')h+=viewBill();
+  else if(S.tab==='quote')h+=viewQuote();
+  h+='</main>';
+  const app=document.getElementById('app');app.innerHTML=h;app.classList.toggle('ro',S.access==='view');if(S.access==='view')lockRO(app);
+  if(fid){const n=document.getElementById(fid);if(n){n.focus();if(fval!==null&&n.tagName!=='SELECT'&&n.type!=='file'&&n.type!=='checkbox')n.value=fval;try{if(ss!==null)n.setSelectionRange(ss,se)}catch(e){}}}
+}
+const RO_OK=new Set(['tab','rcat','rate-sel','gmode','exp','du','du-close','confirm-no','ai-clear']);
+function lockRO(root){root.querySelectorAll('input,select,textarea').forEach(el=>{const f=el.dataset.f||'';if(!(f.startsWith('ui.')||f.startsWith('file.')||f.startsWith('du.')||el.id==='rateQ'))el.disabled=true});
+  root.querySelectorAll('[data-a]').forEach(b=>{if(!RO_OK.has(b.dataset.a.split(':')[0]))b.disabled=true})}
+function sampleNote(p){return p&&p.isSample?`<div class="note">Example project with sample rates, for trying the workflow. Replace the rates in Rate analysis with BDA’s own before using this for real estimates.</div>`:''}
+
+function projMeta(p){return `<div class="grid-meta">
+  <label class="fld">Project<input id="p-name" data-f="p.name" value="${esc(p.name)}"></label>
+  <label class="fld">Client<input id="p-client" data-f="p.client" value="${esc(p.client)}"></label>
+  <label class="fld">Site<input id="p-site" data-f="p.site" value="${esc(p.site)}"></label>
+  <label class="fld">Estimate date<input id="p-date" type="date" data-f="p.date" value="${esc(p.date)}"></label>
+  <label class="fld">GST %<input id="p-gst" class="num" inputmode="decimal" data-f="p.gst" data-n="1" value="${esc(p.gst)}"></label>
+  <label class="fld">Linked accounts project<select id="p-v3" data-f="p.v3project"><option value="">Not linked</option>${S.v3.map(x=>`<option value="${esc(x.project_id)}"${x.project_id===p.v3project?' selected':''}>${esc(x.project_name)}${x.client?' · '+esc(x.client):''}</option>`).join('')}</select></label></div>`}
+
+function viewEstimate(){
+  const p=P(),c=estCalc(p);
+  let h=sampleNote(p)+`<section class="panel"><div class="bar"><h2 class="grow">Estimate <span class="chip">internal cost</span></h2>
+    ${S.confirm==='proj-del'?`<button class="btn danger" data-a="proj-del-yes">Delete “${esc(p.name)}” permanently</button><button class="btn" data-a="confirm-no">Cancel</button>`:`<button class="btn sm" data-a="proj-dup">Duplicate</button><button class="btn sm danger" data-a="proj-del">Delete estimate</button>`}</div>${projMeta(p)}</section>
+  <section class="panel"><div class="bar"><select id="addPick" data-f="ui.addPick" style="flex:1 1 280px">${rateOptions(S.addPick,'Add item from rate analysis…')}</select>
+    <button class="btn pri" data-a="line-add"${S.addPick?'':' disabled'}>Add</button><button class="btn" data-a="line-custom">Custom item</button><span class="grow"></span>
+    ${groupToggle(p)}<button class="btn" data-a="tab:takeoff">Take off from drawing</button><button class="btn" data-a="exp:est:pdf"${c.rows.length?'':' disabled'}>PDF</button><button class="btn" data-a="exp:est:xlsx"${c.rows.length?'':' disabled'}>Excel</button></div>`;
+  h+=locData(p);if(!c.rows.length)h+=`<div class="empty">No items yet. Add items from your rate analysis, or measure them from a DXF or PDF drawing in Drawing take-off.</div>`;
+  let sr=0;
+  groupBy(c.rows).forEach(([cat,rows])=>{const sub=r2(rows.reduce((s,r)=>s+r.a,0));
+    h+=`<div class="cat"><h3>${esc(cat)} <span class="mono">${inr(sub)}</span></h3><div class="scroll"><table><thead><tr><th>#</th><th>Code</th><th>Location</th><th>Description</th><th>Unit</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th>Quote as</th><th>Source</th><th></th></tr></thead><tbody>`;
+    rows.forEach(({l,a})=>{const qb=l.qb||'item';sr++;const r=l.rateId&&S.rates[l.rateId];const lib=r?rateCalc(r).rate:null;const diff=lib!==null&&Math.abs(lib-num(l.rate))>0.004;
+      h+=`<tr><td class="mut">${sr}</td><td class="code">${esc(l.code||'—')}</td><td style="min-width:140px"><input id="l-${l.id}-loc" data-f="l.${l.id}.loc" list="locs" value="${esc(l.loc||'')}" placeholder="e.g. Bedroom 1" aria-label="Location"></td><td class="w-desc"><input id="l-${l.id}-desc" data-f="l.${l.id}.desc" value="${esc(l.desc)}"></td>
+      <td class="w-unit">${unitSel(`l.${l.id}.unit`,l.unit)}</td>
+      <td class="w-num">${qb==='unit'?`<input class="num" value="1" disabled title="Unit-rate items are quoted per unit, quantity fixed at 1">`:`<input id="l-${l.id}-qty" class="num" inputmode="decimal" data-f="l.${l.id}.qty" data-n="1" value="${esc(l.qty)}">`}</td>
+      <td class="w-num"><input id="l-${l.id}-rate" class="num" inputmode="decimal" data-f="l.${l.id}.rate" data-n="1" value="${esc(l.rate)}"></td>
+      <td class="n">${qb==='unit'?'<span class="mut" title="Not included in the total">rate only</span>':inr(a)}</td><td style="min-width:150px"><select data-f="l.${l.id}.qb" aria-label="Quote as">${Object.entries(QB).map(([k,v])=>`<option value="${k}"${k===qb?' selected':''}>${v}</option>`).join('')}</select>${qb==='ls'?`<input id="l-${l.id}-lsg" data-f="l.${l.id}.lsg" value="${esc(l.lsg||'')}" placeholder="Combine under heading" title="Lumpsum lines with the same heading become one line on the quote" style="margin-top:4px">`:''}</td><td><span class="chip${/AI/.test(l.src)?' warn':/DXF/.test(l.src)?' acc':''}" title="${esc(l.src)}">${esc(String(l.src||'Manual').slice(0,22))}</span></td>
+      <td style="white-space:nowrap">${diff?`<button class="iconbtn sync" data-a="line-sync:${l.id}" title="Rate analysis now gives ${inr(lib)} — update this line">↻</button>`:''}<button class="iconbtn sync" data-a="line-dup:${l.id}" title="Copy this item for another location" aria-label="Copy line">⧉</button><button class="iconbtn" data-a="line-del:${l.id}" title="Remove line" aria-label="Remove line">✕</button></td></tr>`});
+    h+=`</tbody></table></div></div>`});
+  const nu=c.rows.filter(r=>r.u).length;if(c.rows.length)h+=`<div class="sum">${nu?`<span class="mut">Unit-rate items (rate only, not in total)</span><span class="n mut">${nu}</span>`:''}<span>Total before GST</span><span class="n">${inr(c.total)}</span><span>GST @ ${qf(p.gst)}%</span><span class="n">${inr(c.gst)}</span><span class="tot">Estimate total</span><span class="tot n">${inr(c.grand)}</span></div>`;
+  return h+'</section>';
+}
+
+function viewBill(){
+  const p=P(),b=bill(p),c=billCalc(p);
+  let h=sampleNote(p)+`<section class="panel"><div class="bar"><h2 class="grow">Final bill · ${esc(p.name)}</h2><button class="btn pri" data-a="exp:bill:pdf"${c.rows.length||b.extras.length?'':' disabled'}>Export PDF</button><button class="btn" data-a="exp:bill:xlsx"${c.rows.length||b.extras.length?'':' disabled'}>Excel</button></div>
+  <p class="hint">Billed at the rates in the client quote. Enter the executed (measured) quantity for each item: leave it blank to bill the quoted quantity, or enter 0 for items dropped from scope. Unit-rate items are billed only on what you enter. Lumpsums are billed as quoted; record changes to them as extra items (a negative quantity makes a deduction).</p>
+  <div class="grid-meta"><label class="fld">Bill no.<input id="b-no" data-f="b.no" value="${esc(b.no)}"></label>
+  <label class="fld">Bill date<input id="b-date" type="date" data-f="b.date" value="${esc(b.date)}"></label>
+  <label class="fld">Received so far (₹)<input id="b-rec" class="num" inputmode="decimal" data-f="b.received" data-n="1" value="${esc(b.received||0)}"></label></div></section>
+  ${locData(p)}<section class="panel"><div class="bar"><span class="grow"></span>${groupToggle(p)}</div><h3>Quoted items · executed vs quoted <span class="kv"><span class="chip">${c.measured}/${c.rows.length} measured</span><span class="chip">${c.over} over</span><span class="chip">${c.under} under</span></span></h3>`;
+  if(!c.rows.length)h+=`<div class="empty">This project’s estimate has no items yet.</div>`;
+  let sr=0;
+  groupBy(c.rows).forEach(([cat,rows])=>{
+    h+=`<div class="cat"><h3>${esc(cat)}</h3><div class="scroll"><table><thead><tr><th>#</th><th>Description</th><th>Unit</th><th class="n">Quoted qty</th><th class="n">Exec. qty</th><th class="n">Quoted rate</th><th class="n">Quoted amount</th><th class="n">Bill amount</th><th class="n">Variance</th><th></th></tr></thead><tbody>`;
+    rows.forEach(r=>{sr++;const l=r.l;
+      h+=`<tr><td class="mut">${sr}</td><td class="w-desc">${locLine(l,gmode())}${esc(l.desc)}<div class="code">${esc(l.code||'')}</div></td><td>${r.qb==='ls'?'LS':esc(l.unit)}</td><td class="n">${r.qb==='ls'?'LS':r.qb==='unit'?'<span class="mut">rate only</span>':qf(l.qty)}</td>
+      <td class="w-num">${r.qb==='ls'?'<span class="mut">fixed</span>':`<input id="e-${l.id}" class="num" inputmode="decimal" data-f="e.${l.id}" placeholder="${r.qb==='unit'?'0':esc(qf(l.qty))}" value="${r.has?esc(b.exec[l.id]):''}" aria-label="Executed quantity">`}</td>
+      <td class="n">${r.qb==='ls'?'—':inr(r.rate)}</td><td class="n">${inr(r.ea)}</td><td class="n">${inr(r.ba)}</td>
+      <td class="n ${r.v>0?'neg':r.v<0?'pos':'mut'}">${r.v===0?'—':(r.v>0?'+':'')+inr(r.v)}</td>
+      <td>${r.has?`<button class="iconbtn sync" data-a="exec-reset:${l.id}" title="Bill the estimated quantity">↺</button>`:''}</td></tr>`});
+    h+=`</tbody></table></div></div>`});
+  h+=`</section><section class="panel"><h3>Extra items · add-ons outside the estimate <span class="mono">${inr(c.ext)}</span></h3>
+  <div class="bar"><select id="extraPick" data-f="ui.extraPick" style="flex:1 1 280px">${rateOptions(S.extraPick,'Add extra from rate analysis…')}</select>
+  <button class="btn pri" data-a="extra-add"${S.extraPick?'':' disabled'}>Add</button><button class="btn" data-a="extra-custom">Custom extra</button></div>`;
+  if(b.extras.length){h+=`<div class="scroll"><table><thead><tr><th>Location</th><th>Description</th><th>Category</th><th>Unit</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th>Reason / instruction</th><th></th></tr></thead><tbody>`;
+    b.extras.forEach(x=>{h+=`<tr><td style="min-width:130px"><input id="x-${x.id}-loc" data-f="x.${x.id}.loc" list="locs" value="${esc(x.loc||'')}" placeholder="Location"></td><td class="w-desc"><input id="x-${x.id}-desc" data-f="x.${x.id}.desc" value="${esc(x.desc)}"></td><td>${catSel(`x.${x.id}.cat`,x.cat)}</td><td class="w-unit">${unitSel(`x.${x.id}.unit`,x.unit)}</td>
+      <td class="w-num"><input id="x-${x.id}-qty" class="num" inputmode="decimal" data-f="x.${x.id}.qty" data-n="1" value="${esc(x.qty)}"></td>
+      <td class="w-num"><input id="x-${x.id}-rate" class="num" inputmode="decimal" data-f="x.${x.id}.rate" data-n="1" value="${esc(x.rate)}"></td>
+      <td class="n">${inr(r2(num(x.qty)*num(x.rate)))}</td><td style="min-width:180px"><input id="x-${x.id}-note" data-f="x.${x.id}.note" value="${esc(x.note)}" placeholder="e.g. Client asked on site, 12 Oct"></td>
+      <td><button class="iconbtn" data-a="extra-del:${x.id}" aria-label="Remove extra">✕</button></td></tr>`});
+    h+='</tbody></table></div>'}else h+=`<p class="hint">No extra items yet.</p>`;
+  h+=`</section><section class="panel"><h3>Bill summary</h3><div class="sum">
+    <span>Quoted value (before GST)</span><span class="n mut">${inr(c.est)}</span>
+    <span>Executed quoted items</span><span class="n">${inr(c.exec)}</span>
+    <span>Extra items</span><span class="n">${inr(c.ext)}</span>
+    <span><b>Bill value before GST</b></span><span class="n"><b>${inr(c.sub)}</b></span>
+    <span>Deviation from quote</span><span class="n ${c.dev>0?'neg':c.dev<0?'pos':''}">${(c.dev>0?'+':'')+inr(c.dev)} (${(c.devPct>0?'+':'')+c.devPct.toFixed(1)}%)</span>
+    <span>GST @ ${qf(p.gst)}%</span><span class="n">${inr(c.gst)}</span>
+    <span class="tot">Bill total</span><span class="tot n">${inr(c.total)}</span>
+    <span>Less received</span><span class="n">${inr(-num(b.received))}</span>
+    <span class="tot">Net payable</span><span class="tot n">${inr(c.net)}</span></div></section>`;
+  return h;
+}
+
+function viewFirm(){const f=firm();
+  return `<section class="panel"><h2>Firm details</h2><p class="hint">Printed at the top of every PDF and Excel quote, estimate and bill.</p>
+  <div class="grid-meta"><label class="fld">Firm name<input id="f-name" data-f="f.name" value="${esc(f.name)}"></label><label class="fld">Phone<input id="f-phone" data-f="f.phone" value="${esc(f.phone)}"></label>
+  <label class="fld">Email<input id="f-email" data-f="f.email" value="${esc(f.email)}"></label><label class="fld">GSTIN<input id="f-gstin" data-f="f.gstin" value="${esc(f.gstin)}"></label></div>
+  <label class="fld">Address<textarea id="f-addr" data-f="f.addr" placeholder="Office address (each line prints on its own line)">${esc(f.addr)}</textarea></label></section>
+  <section class="panel"><div class="bar"><h2 class="grow">Standard quote notes</h2><button class="btn sm" data-a="fn-add">+ Add note</button></div>
+  <p class="hint">Printed at the bottom of every quotation, in this order. You can untick a note for a single project on its Client quote tab.</p>
+  ${f.notes.map((n,i)=>`<div class="bar"><span class="mut mono">${i+1}.</span><textarea id="fn-${i}" data-f="fn.${i}" style="flex:1 1 300px;min-height:44px">${esc(n)}</textarea><button class="iconbtn" data-a="fn-del:${i}" aria-label="Remove note">✕</button></div>`).join('')}</section>
+  ${ME.role==='Admin'?`<section class="panel"><h2>Import data</h2><p class="hint">Bring in rates, estimates and firm settings from a JSON export (for example from the prototype). Items that already exist here are skipped, so importing twice is safe.</p>
+  <input type="file" id="impFile" accept=".json,application/json" data-f="file.import" aria-label="Choose JSON export"></section>`:''}`}
+function viewRates(){
+  const rs=sortedRates().filter(r=>(S.rateCat==='All'||(r.cat||'Other')===S.rateCat)&&(!S.rateQ||(r.code+' '+r.desc).toLowerCase().includes(S.rateQ.toLowerCase())));
+  const anySample=Object.values(S.rates).some(r=>r.sample);
+  if(S.rateSel&&!S.rates[S.rateSel])S.rateSel=null;
+  let h=(anySample?`<div class="note">Items marked Sample hold placeholder rates for testing. Edit them or replace them with BDA’s own rate analyses.</div>`:'')+`<div class="ratewrap"><section class="panel">
+    <div class="bar"><h2 class="grow">Rate analysis</h2><button class="btn pri sm" data-a="rate-new">New item</button></div>
+    <input id="rateQ" data-f="ui.rateQ" placeholder="Search code or description" value="${esc(S.rateQ)}">
+    <div class="kv">${['All',...CATS].map(c=>`<button class="btn sm${S.rateCat===c?' pri':''}" data-a="rcat:${c}">${c}</button>`).join('')}</div>
+    <div class="rlist">${rs.length?rs.map(r=>`<button class="ritem" data-a="rate-sel:${r.__id}" aria-current="${r.__id===S.rateSel}"><span class="rc">${esc(r.code||'—')}</span><span class="rd">${esc(r.desc)}</span><span class="rr">${inr(rateCalc(r).rate)} / ${esc(r.unit)}${r.sample?' · Sample':''}</span></button>`).join(''):`<div class="empty">No items match.</div>`}</div></section>`;
+  const r=S.rateSel&&S.rates[S.rateSel];
+  if(!r)h+=`<section class="panel empty"><h2>Pick an item to analyse</h2><p class="hint">Each rate is built from material, labour and equipment per unit, plus overhead and profit. Estimates copy the rate when you add an item, so later changes here don’t alter existing estimates until you press ↻ on a line.</p><button class="btn pri" data-a="rate-new">New rate item</button></section>`;
+  else{const c=rateCalc(r);let used=0,projs=0;Object.values(S.projects).forEach(p=>{const n=(p.lines||[]).filter(l=>l.rateId===S.rateSel).length;used+=n;if(n)projs++});
+    h+=`<section class="panel"><div class="bar"><h2 class="grow">${esc(r.code||'New item')}${r.sample?' <span class="chip warn">Sample</span>':''}</h2>
+      <button class="btn sm" data-a="rate-dup">Duplicate</button>${S.confirm==='rate-del'?`<button class="btn sm danger" data-a="rate-del-yes">Confirm delete</button><button class="btn sm" data-a="confirm-no">Cancel</button>`:`<button class="btn sm danger" data-a="rate-del">Delete</button>`}</div>
+      <div class="grid-meta"><label class="fld">Code<input id="r-code" data-f="r.code" value="${esc(r.code)}"></label><label class="fld">Category${catSel('r.cat',r.cat)}</label>
+      <label class="fld">Unit${unitSel('r.unit',r.unit)}</label><label class="fld">Overhead %<input id="r-oh" class="num" inputmode="decimal" data-f="r.oh" data-n="1" value="${esc(r.oh)}"></label>
+      <label class="fld">Profit %<input id="r-pr" class="num" inputmode="decimal" data-f="r.profit" data-n="1" value="${esc(r.profit)}"></label></div>
+      <label class="fld">Description / specification<textarea id="r-desc" data-f="r.desc">${esc(r.desc)}</textarea></label>
+      <h3>Per 1 ${esc(r.unit)}</h3><div class="scroll"><table><thead><tr><th>Type</th><th>Component</th><th class="n">Qty</th><th>Unit</th><th class="n">Rate (₹)</th><th class="n">Amount</th><th></th></tr></thead><tbody>
+      ${(r.comps||[]).map((k,i)=>`<tr><td style="width:120px"><select data-f="c.${i}.t">${Object.entries(CT).map(([t,l])=>`<option value="${t}"${t===k.t?' selected':''}>${l}</option>`).join('')}</select></td>
+      <td style="min-width:200px"><input id="c-${i}-name" data-f="c.${i}.name" value="${esc(k.name)}"></td>
+      <td class="w-num"><input id="c-${i}-qty" class="num" inputmode="decimal" data-f="c.${i}.qty" data-n="1" value="${esc(k.qty)}"></td>
+      <td style="width:90px"><input id="c-${i}-unit" data-f="c.${i}.unit" value="${esc(k.unit)}"></td>
+      <td class="w-num"><input id="c-${i}-rate" class="num" inputmode="decimal" data-f="c.${i}.rate" data-n="1" value="${esc(k.rate)}"></td>
+      <td class="n">${inr(num(k.qty)*num(k.rate))}</td><td><button class="iconbtn" data-a="comp-del:${i}" aria-label="Remove component">✕</button></td></tr>`).join('')||`<tr><td colspan="7" class="mut">No components yet.</td></tr>`}
+      </tbody></table></div><div class="bar"><button class="btn sm" data-a="comp-add:M">+ Material</button><button class="btn sm" data-a="comp-add:L">+ Labour</button><button class="btn sm" data-a="comp-add:E">+ Equipment</button></div>
+      <div class="sum"><span>Material</span><span class="n">${inr(c.M)}</span><span>Labour</span><span class="n">${inr(c.L)}</span><span>Equipment / sundries</span><span class="n">${inr(c.E)}</span>
+      <span>Base cost</span><span class="n">${inr(c.base)}</span><span>Overhead @ ${qf(r.oh)}%</span><span class="n">${inr(c.oh)}</span><span>Profit @ ${qf(r.profit)}%</span><span class="n">${inr(c.pr)}</span>
+      <span class="tot">Rate per ${esc(r.unit)}</span><span class="tot n">${inr(c.rate)}</span></div>
+      <p class="hint">Used in ${used} line${used===1?'':'s'} of the estimates opened in this session.</p></section>`}
+  return h+'</div>';
+}
+
+function viewQuote(){const p=P(),q=qset(p),c=quoteCalc(p);
+  const dbl=[...new Set((p.lines||[]).map(l=>l.rateId).filter(id=>id&&S.rates[id]&&(num(S.rates[id].oh)||num(S.rates[id].profit))))];
+  const sel=(f,v,opts)=>`<select data-f="${f}"${typeof opts[0][0]==='number'?' data-n="1"':''}>${opts.map(([a,b])=>`<option value="${a}"${String(a)===String(v)?' selected':''}>${b}</option>`).join('')}</select>`;
+  let h=sampleNote(p)+`<section class="panel"><div class="bar"><h2 class="grow">Pricing build-up <span class="chip">internal</span></h2></div>
+  <p class="hint">Overheads, indirect expenses and profit are spread over all item-rate and lumpsum lines in proportion to their cost, so each quoted rate carries its share. Unit-rate items get the same loading but don’t count toward the quote total.</p>
+  ${dbl.length?`<div class="note">${dbl.length} rate item${dbl.length===1?'':'s'} in this estimate (e.g. ${esc(S.rates[dbl[0]].code)}) already include overhead or profit inside Rate analysis. If that is the same overhead and profit, set those to 0% in Rate analysis and press ↻ on the estimate lines, so it isn’t counted twice.</div>`:''}
+  <div class="two"><div class="cat"><div class="grid-meta">
+    <label class="fld">Overhead % on direct cost<input id="q-oh" class="num" inputmode="decimal" data-f="q.oh" data-n="1" value="${esc(q.oh)}"></label>
+    <label class="fld">Profit %<input id="q-pr" class="num" inputmode="decimal" data-f="q.profit" data-n="1" value="${esc(q.profit)}"></label>
+    <label class="fld">Profit counted as${sel('q.pmode',q.pmode,[['markup','Markup on cost'],['margin','Margin on quote value']])}</label>
+    <label class="fld">Round rates to${sel('q.rr',q.rr,[[0,'Paise'],[1,'₹1'],[5,'₹5'],[10,'₹10']])}</label>
+    <label class="fld">Round lumpsums to${sel('q.lr',q.lr,[[0,'Paise'],[10,'₹10'],[100,'₹100'],[1000,'₹1,000']])}</label></div>
+    <h3>Indirect expenses <button class="btn sm" data-a="ind-add">+ Add</button></h3>
+    ${q.ind.length?`<div class="scroll"><table><thead><tr><th>Description</th><th class="n">Amount (₹)</th><th></th></tr></thead><tbody>${q.ind.map(x=>`<tr><td><input id="qi-${x.id}-desc" data-f="qi.${x.id}.desc" value="${esc(x.desc)}" placeholder="e.g. Site supervision"></td><td class="w-num"><input id="qi-${x.id}-amt" class="num" inputmode="decimal" data-f="qi.${x.id}.amt" data-n="1" value="${esc(x.amt)}"></td><td><button class="iconbtn" data-a="ind-del:${x.id}" aria-label="Remove">✕</button></td></tr>`).join('')}</tbody></table></div>`:`<p class="hint">Site supervision, transport, insurance, design fees and similar project-level costs.</p>`}</div>
+  <div class="sum" style="align-self:start"><span>Direct cost of quoted items</span><span class="n">${inr(c.D)}</span><span>Indirect expenses</span><span class="n">${inr(c.I)}</span>
+    <span>Overhead @ ${qf(q.oh)}%</span><span class="n">${inr(c.O)}</span><span><b>Total cost</b></span><span class="n"><b>${inr(c.C)}</b></span>
+    <span>Profit (after rounding and edits)</span><span class="n ${c.profit<0?'neg':''}">${inr(c.profit)}</span>
+    <span class="tot">Quote value before GST</span><span class="tot n">${inr(c.total)}</span>
+    <span class="mut">Margin on quote · loading factor</span><span class="n mut">${c.margin.toFixed(1)}% · ×${c.k.toFixed(3)}</span></div></div></section>
+  <section class="panel"><div class="bar"><h2 class="grow">Client quote</h2>${groupToggle(p)}<button class="btn pri" data-a="exp:quote:pdf"${c.rowsA.length||c.rowsB.length?'':' disabled'}>Export PDF</button><button class="btn" data-a="exp:quote:xlsx"${c.rowsA.length||c.rowsB.length?'':' disabled'}>Excel</button></div>
+  <div class="grid-meta"><label class="fld">Quote no.<input id="q-no" data-f="q.no" value="${esc(q.no||'')}"></label><label class="fld">Quote date<input id="q-date" type="date" data-f="q.date" value="${esc(q.date||'')}"></label></div>
+  <p class="hint">Rate and lumpsum boxes show the calculated figure. Type over one to set your own; clear it to go back to the calculated figure.</p>`;
+  const cell=r=>`<input id="qo-${esc(r.key)}" class="num" inputmode="decimal" data-f="qo" data-k="${esc(r.key)}" placeholder="${r.auto}" value="${hasV(q.ovr[r.key])?esc(q.ovr[r.key]):''}" aria-label="Quoted ${r.type==='ls'?'amount':'rate'}"${r.edited?' style="border-color:var(--accent)"':''}>`;
+  if(!c.rowsA.length&&!c.rowsB.length)h+=`<div class="empty">Add items to the estimate first.</div>`;
+  let sr=0;
+  if(c.rowsA.length){h+=`<h3>A · Scope of work (item rates and lumpsums)</h3>`;
+    groupBy(c.rowsA.map(r=>({l:{cat:r.cat,loc:r.loc},r}))).forEach(([cat,rs])=>{const sub=r2(rs.reduce((s,x)=>s+x.r.amt,0));
+      h+=`<div class="cat"><h3>${esc(cat)} <span class="mono">${inr(sub)}</span></h3><div class="scroll"><table><thead><tr><th>#</th><th>Description</th><th>Unit</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th></tr></thead><tbody>`;
+      rs.forEach(({r})=>{sr++;h+=r.type==='ls'
+        ?`<tr><td class="mut">${sr}</td><td class="w-desc">${locLine(r,gmode())}${esc(r.desc)}${r.ids.length>1?`<div class="mut" style="font-size:12px">${r.ids.length} estimate lines combined</div>`:''}</td><td>LS</td><td class="n mut">—</td><td class="n mut">Lumpsum</td><td class="w-num" style="min-width:130px">${cell(r)}</td></tr>`
+        :`<tr><td class="mut">${sr}</td><td class="w-desc">${locLine(r,gmode())}${esc(r.desc)}</td><td>${esc(r.unit)}</td><td class="n">${qf(r.qty)}</td><td class="w-num">${cell(r)}</td><td class="n">${inr(r.amt)}</td></tr>`});
+      h+=`</tbody></table></div></div>`});
+    h+=`<div class="sum"><span>Total before GST</span><span class="n">${inr(c.total)}</span><span>GST @ ${qf(p.gst)}%</span><span class="n">${inr(c.gst)}</span><span class="tot">Quote total</span><span class="tot n">${inr(c.grand)}</span></div>`}
+  if(c.rowsB.length){h+=`<h3>B · Unit rates (billed on actual measured quantity, not in the total above)</h3><div class="scroll"><table><thead><tr><th>#</th><th>Description</th><th>Unit</th><th class="n">Rate per unit</th><th class="n">GST @ ${qf(p.gst)}%</th><th class="n">Rate incl. GST</th></tr></thead><tbody>
+    ${c.rowsB.map((r,i)=>`<tr><td class="mut">${i+1}</td><td class="w-desc">${locLine(r,'cat')}${esc(r.desc)}</td><td>${esc(r.unit)}</td><td class="w-num">${cell(r)}</td><td class="n">${inr(r2(r.rate*num(p.gst)/100))}</td><td class="n"><b>${inr(r2(r.rate*(1+num(p.gst)/100)))}</b></td></tr>`).join('')}</tbody></table></div>`}
+  const fn=firm().notes.filter(n=>n.trim()),off=q.noteOff||{};
+  h+=`<div class="cat"><h3>Notes at the bottom of the quote <button class="btn sm" data-a="tab:firm">Edit standard notes</button></h3>
+    ${fn.length?fn.map((n,i)=>`<label style="display:flex;gap:8px;align-items:flex-start;font-size:13px"><input type="checkbox" style="width:auto;margin-top:3px" data-f="qn" data-k="${esc(n)}"${off[n]?'':' checked'}><span>${esc(n)}</span></label>`).join(''):'<p class="hint">No standard notes set.</p>'}</div>`;
+  h+=`<label class="fld">Additional notes for this project (one per line)<textarea id="q-terms" data-f="q.terms" placeholder="e.g. Validity 30 days from the quote date.&#10;Payment: 50% advance, 40% on progress, 10% on handover.">${esc(q.terms||'')}</textarea></label></section>`;
+  return h}
+
+/* ---------- DXF ---------- */
+const DU={mm:.001,cm:.01,m:1,in:.0254,ft:.3048};
+const INSU={1:'in',2:'ft',4:'mm',5:'cm',6:'m'};
+function parseDXF(text){
+  const L=text.split(/\r?\n/);const pr=[];for(let i=0;i+1<L.length;i+=2)pr.push([parseInt(L[i],10),L[i+1].trim()]);
+  let unit=null;for(let i=0;i<pr.length;i++){if(pr[i][0]===9&&pr[i][1]==='$INSUNITS'){const v=pr[i+1];if(v&&INSU[+v[1]])unit=INSU[+v[1]];break}}
+  let s=-1;for(let i=0;i<pr.length-1;i++)if(pr[i][0]===0&&pr[i][1]==='SECTION'&&pr[i+1][0]===2&&pr[i+1][1]==='ENTITIES'){s=i+2;break}
+  if(s<0)throw new Error('No ENTITIES section found. Is this an ASCII DXF?');
+  const ents=[];let cur=null;
+  for(let i=s;i<pr.length;i++){const[c,v]=pr[i];if(c===0){if(cur)ents.push(cur);if(v==='ENDSEC')break;cur={type:v,g:[]}}else if(cur)cur.g.push([c,v])}
+  const layers={};const Ly=n=>layers[n]=layers[n]||{closed:0,area:0,perim:0,open:0,blocks:{}};
+  const val=(g,c)=>{const x=g.find(p=>p[0]===c);return x?x[1]:null};
+  function polyMeasure(V,closed){let len=0,a=0;const n=V.length;const segs=closed?n:n-1;
+    for(let i=0;i<segs;i++){const p=V[i],q=V[(i+1)%n];const dx=q.x-p.x,dy=q.y-p.y,c=Math.hypot(dx,dy);const b=p.b||0;
+      a+=p.x*q.y-q.x*p.y;
+      if(b&&c){const th=4*Math.atan(b),rr=c/(2*Math.sin(Math.abs(th)/2));len+=rr*Math.abs(th);a+=Math.sign(b)*rr*rr*(Math.abs(th)-Math.sin(Math.abs(th)))}else len+=c}
+    return{len,area:Math.abs(a/2)}}
+  for(let k=0;k<ents.length;k++){const e=ents[k];if(val(e.g,67)==='1')continue;const lay=val(e.g,8)||'0';
+    if(e.type==='LWPOLYLINE'){const V=[];e.g.forEach(([c,v])=>{if(c===10)V.push({x:+v,y:0,b:0});else if(c===20&&V.length)V[V.length-1].y=+v;else if(c===42&&V.length)V[V.length-1].b=+v});
+      const closed=(+val(e.g,70)&1)===1;add(lay,V,closed)}
+    else if(e.type==='POLYLINE'){const closed=(+val(e.g,70)&1)===1;const V=[];let j=k+1;
+      while(j<ents.length&&ents[j].type==='VERTEX'){const g=ents[j].g;V.push({x:+val(g,10),y:+val(g,20),b:+(val(g,42)||0)});j++}k=j;add(lay,V,closed)}
+    else if(e.type==='LINE'){Ly(lay).open+=Math.hypot(+val(e.g,11)-+val(e.g,10),+val(e.g,21)-+val(e.g,20))}
+    else if(e.type==='ARC'){let a0=+val(e.g,50),a1=+val(e.g,51);let d=a1-a0;if(d<0)d+=360;Ly(lay).open+=+val(e.g,40)*d*Math.PI/180}
+    else if(e.type==='CIRCLE'){const r=+val(e.g,40);const o=Ly(lay);o.closed++;o.area+=Math.PI*r*r;o.perim+=2*Math.PI*r}
+    else if(e.type==='INSERT'){const n=val(e.g,2)||'?';const b=Ly(lay).blocks;b[n]=(b[n]||0)+1}}
+  function add(lay,V,closed){if(V.length<2)return;const cl=closed&&(V.length>2||V.some(v=>v.b));const m=polyMeasure(V,cl);const o=Ly(lay);
+    if(cl){o.closed++;o.area+=m.area;o.perim+=m.len}else o.open+=m.len}
+  return{unit,layers,count:ents.length};
+}
+const MEAS={area:['Area',2],perim:['Perimeter',1],open:['Open line length',1],count:['Closed shape count',0]};
+const UDIM={sqm:[2,1],sqft:[2,10.7639],rmt:[1,1],rft:[1,3.28084],cum:[3,1],cft:[3,35.3147],nos:[0,1],point:[0,1],set:[0,1]};
+const DIMLBL=['nos','m','m²','m³'];
+function duCalc(){const d=S.du,lay=S.dxf.layers[d.layer],sc=DU[S.dxf.unitSel];let base,dim;
+  if(d.measure.startsWith('block:')){base=lay.blocks[d.measure.slice(6)]||0;dim=0}
+  else{dim=MEAS[d.measure][1];const raw=lay[d.measure==='count'?'closed':d.measure];base=dim===2?raw*sc*sc:dim===1?raw*sc:raw}
+  const f=num(d.factor)||0,rdim=dim+(d.fk==='len'?1:0),v=base*f;const r=d.rateId&&rateById(d.rateId);const u=r?r.unit:null;
+  let qty=v,warn='';if(u){const m=UDIM[u];if(m&&m[0]===rdim)qty=v*m[1];else if(m)warn=`This gives ${DIMLBL[rdim]||'?'} but the item is measured in ${u}. Check the multiplier type.`}
+  return{base,dim,rdim,v,qty:r2(qty),u,warn}}
+function viewDXF(){
+  let h=`<section class="panel"><h2>CAD drawing (DXF)</h2><p class="hint">In AutoCAD use Save As → DXF (DWG can’t be read in a browser). Measurements come from layers: draw closed polylines around floors, ceilings and wall runs, and use blocks for fixtures and points. Each layer can then be priced against a rate item.</p>
+    <input type="file" id="dxfFile" accept=".dxf" data-f="file.dxf" aria-label="Choose DXF file">`;
+  const d=S.dxf;if(!d)return h+'</section>';
+  if(d.err)return h+`<div class="note">${esc(d.err)}</div></section>`;
+  const sc=DU[d.unitSel];const lays=Object.entries(d.layers).sort((a,b)=>a[0].localeCompare(b[0]));
+  h+=`<div class="bar"><span class="chip acc">${esc(d.name)}</span><span class="chip">${lays.length} layers · ${d.count} entities</span><span class="grow"></span>
+    <label class="fld" style="flex-direction:row;align-items:center;gap:8px">Drawing units<select id="dxfUnit" data-f="ui.dxfUnit" style="width:auto">${Object.keys(DU).map(u=>`<option${u===d.unitSel?' selected':''}>${u}</option>`).join('')}</select></label></div>
+    ${d.unit?'':'<p class="hint">The file doesn’t state its units. Check the unit above before using quantities.</p>'}
+    <div class="scroll"><table><thead><tr><th>Layer</th><th class="n">Closed</th><th class="n">Area</th><th class="n">Perimeter</th><th class="n">Open lines</th><th>Blocks</th><th></th></tr></thead><tbody>`;
+  lays.forEach(([n,o])=>{const a=o.area*sc*sc;h+=`<tr${S.du&&S.du.layer===n?' style="background:var(--accent-soft)"':''}><td class="code" style="color:var(--ink)">${esc(n)}</td><td class="n">${o.closed||'—'}</td>
+    <td class="n">${a?qf(r2(a))+' m²<div class="mut">'+qf(r2(a*10.7639))+' sqft</div>':'—'}</td><td class="n">${o.perim?qf(r2(o.perim*sc))+' m':'—'}</td><td class="n">${o.open?qf(r2(o.open*sc))+' m':'—'}</td>
+    <td><div class="kv">${Object.entries(o.blocks).map(([b,c])=>`<span class="chip">${esc(b)} ×${c}</span>`).join('')||'<span class="mut">—</span>'}</div></td>
+    <td><button class="btn sm" data-a="du:${encodeURIComponent(n)}">Use</button></td></tr>`});
+  h+=`</tbody></table></div>`;
+  if(S.du&&d.layers[S.du.layer]){const u=S.du,lay=d.layers[u.layer],k=duCalc();
+    const opts=Object.entries(MEAS).filter(([m])=>m==='count'?lay.closed:lay[m]).map(([m,[l]])=>`<option value="${m}"${u.measure===m?' selected':''}>${l}</option>`).join('')
+      +Object.keys(lay.blocks).map(b=>`<option value="block:${esc(b)}"${u.measure==='block:'+b?' selected':''}>Count of block ${esc(b)}</option>`).join('');
+    h+=`<div class="panel" style="background:var(--sunk)"><h3>Price layer <span class="code">${esc(u.layer)}</span></h3>
+      <div class="grid-meta"><label class="fld">Measure<select id="du-m" data-f="du.measure">${opts}</select></label>
+      <label class="fld">Multiplier type<select id="du-fk" data-f="du.fk"><option value="num"${u.fk==='num'?' selected':''}>× number (sides, coats, deduction)</option><option value="len"${u.fk==='len'?' selected':''}>× height / depth in m</option></select></label>
+      <label class="fld">Multiplier<input id="du-f" class="num" inputmode="decimal" data-f="du.factor" value="${esc(u.factor)}"></label></div>
+      <label class="fld">Location<input id="du-loc" data-f="du.loc" list="locs" value="${esc(u.loc||'')}" placeholder="e.g. Bedroom 1 (optional)"></label>
+      <label class="fld">Rate item<select id="du-r" data-f="du.rateId">${rateOptions(u.rateId,'Choose the item this layer measures…')}</select></label>
+      <div class="preview">${qf(r2(k.base))} ${DIMLBL[k.dim]} × ${qf(num(u.factor))} = ${qf(r2(k.v))} ${DIMLBL[k.rdim]||''}${k.u&&!k.warn?` → <b>${qf(k.qty)} ${esc(k.u)}</b>`:''}</div>
+      ${k.warn?`<div class="note">${esc(k.warn)}</div>`:''}
+      <div class="bar"><button class="btn pri" data-a="du-add"${u.rateId&&k.qty>0?'':' disabled'}>Add to estimate</button><button class="btn" data-a="du-close">Close</button></div></div>`}
+  return h+'</section>';
+}
+
+/* ---------- AI drawing read ---------- */
+async function pdfjs(){if(window.pdfjsLib)return window.pdfjsLib;await loadScript(PDF_URL);await loadScript(PDFW_URL);window.pdfjsLib.GlobalWorkerOptions.workerSrc=PDFW_URL;return window.pdfjsLib}
+async function renderPdfPage(){const A=S.ai;A.status='Rendering page '+A.page+'…';render();
+  try{const page=await A.pdf.getPage(A.page);const v1=page.getViewport({scale:1});const sc=Math.min(4,2600/Math.max(v1.width,v1.height));const vp=page.getViewport({scale:sc});
+    const cv=document.createElement('canvas');cv.width=vp.width;cv.height=vp.height;const cx=cv.getContext('2d');cx.fillStyle='#fff';cx.fillRect(0,0,cv.width,cv.height);
+    await page.render({canvasContext:cx,viewport:vp}).promise;A.blob=await new Promise(r=>cv.toBlob(r,'image/png'));A.thumb=thumbOf(cv);A.status=''}
+  catch(e){A.err='Could not render this PDF page.';A.status=''}render()}
+function thumbOf(src){const w=900,s=Math.min(1,w/src.width);const c=document.createElement('canvas');c.width=src.width*s;c.height=src.height*s;const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(src,0,0,c.width,c.height);return c.toDataURL('image/jpeg',.75)}
+async function loadAiFile(f){const A=S.ai;Object.assign(A,{name:f.name,blob:null,thumb:'',pdf:null,pages:0,page:1,res:null,err:'',status:'Opening…'});render();
+  try{if(/\.pdf$/i.test(f.name)||f.type==='application/pdf'){const lib=await pdfjs();A.pdf=await lib.getDocument({data:await f.arrayBuffer()}).promise;A.pages=A.pdf.numPages;await renderPdfPage();return}
+    const bmp=await createImageBitmap(f);A.blob=f;A.thumb=thumbOf(bmp);A.status=''}
+  catch(e){A.err='Could not open this file. Use a PDF, PNG, JPG or WebP drawing.';A.status=''}render()}
+function aiPrompt(){const lib=sortedRates().map(r=>`${r.code} | ${r.cat} | ${r.desc} | ${r.unit}`).join('\n');
+  return `You are a quantity surveyor at an Indian architecture and interior firm. Read the attached drawing and prepare a draft bill of quantities for estimating.
+
+Estimator's notes about this drawing (scale, heights, scope, what to include or skip):
+${S.ai.ctx||'(none given)'}
+
+Firm's rate library. When an item matches, use its code and its unit:
+code | category | description | unit
+${lib||'(empty)'}
+
+Rules:
+- Take dimensions written on the drawing. If you must infer or scale a dimension, say so in "basis".
+- Give quantities in the matched item's unit (sqft, rft, sqm, rmt, cum, nos, point...). Convert feet-inches correctly.
+- Deduct openings (doors, windows) from wall areas where they are shown.
+- Include civil, interior and MEP items you can see (e.g. electrical points from symbols). Up to 40 items.
+- Items with no match in the library: code null and a clear description.
+- Give each item the room or area it belongs to, as labelled on the drawing (e.g. "Bedroom 1", "Kitchen"). List the same item separately for each room, so Bedroom 1 wardrobe and Bedroom 2 wardrobe are two items. Use "" for items that apply to the whole project.
+
+Reply with only JSON in this shape:
+{"notes":"1-2 sentences on what the drawing shows and any limits on accuracy","items":[{"code":"INT-01 or null","category":"Civil|Interior|MEP|Other","location":"Bedroom 1","description":"...","unit":"sqft","qty":120.5,"basis":"e.g. Bedroom 1: 12'0\\" x 10'6\\" = 126 sqft"}]}`}
+async function blobToB64(blob){
+  const img=await createImageBitmap(blob);const m=2400,sc=Math.min(1,m/Math.max(img.width,img.height));
+  const c=document.createElement('canvas');c.width=Math.round(img.width*sc);c.height=Math.round(img.height*sc);const x=c.getContext('2d');x.fillStyle='#fff';x.fillRect(0,0,c.width,c.height);x.drawImage(img,0,0,c.width,c.height);
+  let url=c.toDataURL('image/png'),mt='image/png';if(url.length>4500000){url=c.toDataURL('image/jpeg',.9);mt='image/jpeg'}
+  return{b64:url.slice(url.indexOf(',')+1),mt}}
+function parseJSONloose(t){t=String(t||'');try{return JSON.parse(t)}catch(e){}const f=t.match(/```(?:json)?\s*([\s\S]*?)```/);if(f){try{return JSON.parse(f[1])}catch(e){}}
+  const a=t.indexOf('{'),b=t.lastIndexOf('}');if(a>=0&&b>a){try{return JSON.parse(t.slice(a,b+1))}catch(e){}}return null}
+async function runAI(){const A=S.ai;if(!A.blob||RO())return;
+  A.ctl=new AbortController();A.busy=true;A.err='';A.res=null;A.status='Reading the drawing. This usually takes under a minute…';render();
+  try{const im=await blobToB64(A.blob);const j=await api('estReadDrawing',{image_b64:im.b64,media_type:im.mt,prompt:aiPrompt()},A.ctl.signal);
+    if(!j.ok)throw{msg:j.error||'Reading failed'};const out=parseJSONloose(j.text);if(!out)throw{msg:'The reply couldn’t be read as a quantity list. Try again, or add notes about the drawing.'};
+    const byCode={};sortedRates().forEach(r=>byCode[String(r.code).toLowerCase()]=r.__id);
+    const items=(Array.isArray(out.items)?out.items:[]).map(it=>{const rid=it.code?byCode[String(it.code).toLowerCase()]||'':'';const r=rid&&S.rates[rid];
+      return{pick:true,rateId:rid,loc:String(it.location||'').trim(),desc:String(it.description||''),unit:r?r.unit:String(it.unit||'nos'),cat:r?r.cat:(CATS.includes(it.category)?it.category:'Other'),qty:r2(num(it.qty)),basis:String(it.basis||'')}});
+    A.res={notes:String(out.notes||''),items};A.status=items.length?'':'No measurable items found.'}
+  catch(e){A.status='';if(e&&e.name!=='AbortError')A.err=e.msg||'Reading failed. Check your connection and try again.'}
+  finally{A.busy=false;A.ctl=null;render()}}
+function viewAI(){const A=S.ai;
+  let h=`<section class="panel"><h2>PDF or image drawing (AI read)</h2><p class="hint">Claude reads the dimensions on one sheet and drafts quantities against your rate library. Treat the result as a first draft and check every line. For dense sheets, upload a cropped image of one area at a time.</p>`;
+  if(!S.aiOK)return h+`<div class="note">AI drawing reading isn’t set up yet. It needs an Anthropic API key added to the Worker as the ANTHROPIC_API_KEY secret.</div></section>`;
+  h+=`<input type="file" id="aiFile" accept=".pdf,image/png,image/jpeg,image/webp" data-f="file.ai" aria-label="Choose drawing">`;
+  if(A.pages>1)h+=`<label class="fld">Sheet / page<select id="aiPage" data-f="ui.aiPage" style="width:auto">${Array.from({length:A.pages},(_,i)=>`<option${i+1===A.page?' selected':''}>${i+1}</option>`).join('')}</select></label>`;
+  if(A.thumb)h+=`<img class="thumb" src="${A.thumb}" alt="Drawing preview: ${esc(A.name)}">`;
+  h+=`<label class="fld">Notes for the reader<textarea id="aiCtx" data-f="ui.aiCtx" placeholder="e.g. Scale 1:50. Ceiling height 10 ft. Price flooring, false ceiling, painting and electrical points only.">${esc(A.ctx)}</textarea></label>
+    <div class="bar"><button class="btn pri" data-a="ai-run"${A.blob&&!A.busy?'':' disabled'}>Read drawing</button>${A.busy?'<button class="btn" data-a="ai-stop">Stop</button>':''}<span class="mut">${esc(A.status)}</span></div>`;
+  if(A.err)h+=`<div class="note">${esc(A.err)}</div>`;
+  if(A.res&&A.res.items.length){const n=A.res.items.filter(i=>i.pick).length;
+    h+=`${A.res.notes?`<p class="hint">${esc(A.res.notes)}</p>`:''}<div class="scroll"><table><thead><tr><th></th><th>Location</th><th>Rate item</th><th>Drawing item</th><th class="n">Qty</th><th>Unit</th><th>How measured</th></tr></thead><tbody>
+    ${A.res.items.map((it,i)=>`<tr><td><input type="checkbox" id="ai-${i}-pick" data-f="ai.${i}.pick"${it.pick?' checked':''} aria-label="Include" style="width:auto"></td><td style="min-width:130px"><input id="ai-${i}-loc" data-f="ai.${i}.loc" list="locs" value="${esc(it.loc)}"></td>
+      <td style="min-width:200px"><select data-f="ai.${i}.rateId">${rateOptions(it.rateId,'Custom (no rate yet)')}</select></td><td style="min-width:180px">${esc(it.desc)}</td>
+      <td class="w-num"><input id="ai-${i}-qty" class="num" inputmode="decimal" data-f="ai.${i}.qty" data-n="1" value="${esc(it.qty)}"></td><td>${esc(it.unit)}</td><td class="mut" style="min-width:220px">${esc(it.basis)}</td></tr>`).join('')}
+    </tbody></table></div><div class="bar"><button class="btn pri" data-a="ai-add"${n?'':' disabled'}>Add ${n} item${n===1?'':'s'} to estimate</button><button class="btn" data-a="ai-clear">Discard</button></div>`}
+  return h+'</section>'}
+function viewTakeoff(){return sampleNote(P())+locData(P())+`<div class="two">${viewDXF()}${viewAI()}</div>`}
+
+/* ---------- export ---------- */
+function saveFile(name,blob){const u=URL.createObjectURL(blob);const a=document.createElement('a');a.href=u;a.download=name;document.body.appendChild(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(u),5000)}
+const DEFAULT_NOTES=['This is an estimate; final billing will be done as per actual execution.','Rates may change with any change in design or specifications.','Wardrobe, kitchen and bathroom accessories are not included in the estimate.','Equipment such as A/C, fridge, TV, washing machine, dishwasher, water filter, chimney etc. is not included.'];
+function firm(){const f=S.settings.firm||{};return{name:f.name||'Blue Door Architects',addr:f.addr||'',phone:f.phone||'',email:f.email||'',gstin:f.gstin||'',notes:Array.isArray(f.notes)?f.notes:DEFAULT_NOTES}}
+function quoteNotes(p){const q=qset(p),off=q.noteOff||{};const a=firm().notes.filter(n=>n.trim()&&!off[n]);String(q.terms||'').split(/\n/).map(t=>t.trim()).filter(Boolean).forEach(t=>a.push(t));return a}
+function words(n){const neg=n<0;n=Math.abs(Math.round(n*100)/100);const r=Math.floor(n),ps=Math.round((n-r)*100);
+  const a=['','One','Two','Three','Four','Five','Six','Seven','Eight','Nine','Ten','Eleven','Twelve','Thirteen','Fourteen','Fifteen','Sixteen','Seventeen','Eighteen','Nineteen'],b=['','','Twenty','Thirty','Forty','Fifty','Sixty','Seventy','Eighty','Ninety'];
+  const two=x=>x<20?a[x]:b[Math.floor(x/10)]+(x%10?' '+a[x%10]:''),three=x=>(x>=100?a[Math.floor(x/100)]+' Hundred'+(x%100?' ':''):'')+(x%100?two(x%100):'');
+  const conv=x=>{if(!x)return'Zero';let s='';const cr=Math.floor(x/1e7);x%=1e7;const l=Math.floor(x/1e5);x%=1e5;const t=Math.floor(x/1e3);x%=1e3;
+    if(cr)s+=conv(cr)+' Crore ';if(l)s+=two(l)+' Lakh ';if(t)s+=two(t)+' Thousand ';if(x)s+=three(x);return s.trim()};
+  return(neg?'Minus ':'')+'Rupees '+conv(r)+(ps?' and '+two(ps)+' Paise':'')+' Only'}
+const fdate=d=>{if(!d)return'';const m=String(d).match(/^(\d{4})-(\d{2})-(\d{2})$/);return m?`${m[3]}-${m[2]}-${m[1]}`:String(d)};
+const Mn=v=>({v:r2(v),f:'m'}),Qn=v=>({v:+v||0,f:'q'});
+const withLoc=(loc,d,force)=>((force||gmode()!=='loc')&&loc?loc+' — ':'')+d;
+const COL={sr:{h:'Sr',w:5,a:'c'},desc:{h:'Description',w:48,a:'l',wrap:true},unit:{h:'Unit',w:7,a:'c'},qty:{h:'Qty',w:9,a:'r'},rate:{h:'Rate (Rs.)',w:12,a:'r'},amt:{h:'Amount (Rs.)',w:14,a:'r'}};
+
+function specQuote(p){const c=quoteCalc(p),q=c.q,g=num(p.gst),B=[];let sr=0;
+  if(c.rowsA.length){const rows=[];
+    groupBy(c.rowsA.map(r=>({l:{cat:r.cat,loc:r.loc},r}))).forEach(([cat,rs])=>{rows.push({k:'group',c:[cat]});
+      rs.forEach(({r})=>{const d=withLoc(r.loc,r.desc);rows.push({k:'item',c:r.type==='ls'?[++sr,d,'LS','','Lumpsum',Mn(r.amt)]:[++sr,d,r.unit,Qn(r.qty),Mn(r.rate),Mn(r.amt)]})});
+      rows.push({k:'sub',c:['','Subtotal — '+cat,'','','',Mn(rs.reduce((s,x)=>s+x.r.amt,0))]})});
+    B.push({type:'table',heading:'A. Scope of work',cols:[COL.sr,COL.desc,COL.unit,COL.qty,COL.rate,COL.amt],rows});
+    B.push({type:'summary',rows:[['Total before GST',Mn(c.total)],[`GST @ ${qf(g)}%`,Mn(c.gst)],['Quote total',Mn(c.grand),'grand']]});
+    B.push({type:'words',text:'Quote total in words: '+words(c.grand)})}
+  if(c.rowsB.length)B.push({type:'table',heading:'B. Unit rates — billed on actual measured quantity, not included in the total above',
+    cols:[COL.sr,{...COL.desc,w:52},COL.unit,{h:'Rate (Rs.)',w:12,a:'r'},{h:`GST ${qf(g)}% (Rs.)`,w:12,a:'r'},{h:'Rate incl. GST (Rs.)',w:14,a:'r'}],
+    rows:c.rowsB.map((r,i)=>({k:'item',c:[i+1,withLoc(r.loc,r.desc,true),r.unit,Mn(r.rate),Mn(r.rate*g/100),Mn(r.rate*(1+g/100))]}))});
+  const notes=quoteNotes(p);if(notes.length)B.push({type:'notes',heading:'Notes',items:notes});B.push({type:'sign',client:true});
+  return{title:'QUOTATION',orient:'portrait',file:(p.name||'Project')+' - Quotation',meta:[['Client',p.client],['Project',p.name],['Site',p.site],['Quote no.',q.no],['Date',fdate(q.date)]],blocks:B}}
+
+function specEst(p){const c=estCalc(p),g=num(p.gst),rows=[];let sr=0;
+  groupBy(c.rows).forEach(([k,rs])=>{rows.push({k:'group',c:[k]});
+    rs.forEach(({l,a,u})=>rows.push({k:'item',c:[++sr,l.code||'',locOf(l),l.desc,l.unit,u?Qn(1):Qn(l.qty),Mn(num(l.rate)),u?'rate only':Mn(a),QB[l.qb||'item']+(l.lsg?' · '+l.lsg:'')]}));
+    rows.push({k:'sub',c:['','','','Subtotal — '+k,'','','',Mn(rs.reduce((s,r)=>s+r.a,0)),'']})});
+  const B=[{type:'table',heading:'Estimate (internal cost)',cols:[COL.sr,{h:'Code',w:9,a:'l'},{h:'Location',w:16,a:'l',wrap:true},{...COL.desc,w:50},COL.unit,COL.qty,COL.rate,COL.amt,{h:'Quote as',w:16,a:'l',wrap:true}],rows},
+    {type:'summary',rows:[['Total before GST (excl. unit-rate items)',Mn(c.total)],[`GST @ ${qf(g)}%`,Mn(c.gst)],['Estimate total',Mn(c.grand),'grand']]}];
+  const ra=[];[...new Set(p.lines.map(l=>l.rateId).filter(id=>id&&S.rates[id]))].forEach(id=>{const r=S.rates[id],k=rateCalc(r);
+    ra.push({k:'group',c:[`${r.code} · ${r.desc} · per 1 ${r.unit}`]});(r.comps||[]).forEach(cp=>ra.push({k:'item',c:[CT[cp.t],cp.name,Qn(num(cp.qty)),cp.unit,Mn(num(cp.rate)),Mn(num(cp.qty)*num(cp.rate))]}));
+    ra.push({k:'sub',c:['','Base cost','','','',Mn(k.base)]},{k:'item',c:['',`Overhead @ ${qf(r.oh)}%`,'','','',Mn(k.oh)]},{k:'item',c:['',`Profit @ ${qf(r.profit)}%`,'','','',Mn(k.pr)]},{k:'total',c:['','Rate per '+r.unit,'','','',Mn(k.rate)]})});
+  return{title:'ESTIMATE (INTERNAL)',orient:'landscape',file:(p.name||'Project')+' - Estimate (internal)',meta:[['Client',p.client],['Project',p.name],['Site',p.site],['Date',fdate(p.date)]],blocks:B,
+    sheets:ra.length?[{name:'Rate analysis',title:'RATE ANALYSIS',blocks:[{type:'table',heading:'Rate analysis (per unit)',cols:[{h:'Type',w:12,a:'l'},{h:'Component',w:46,a:'l',wrap:true},COL.qty,{h:'Unit',w:8,a:'c'},COL.rate,COL.amt],rows:ra}]}]:[]}}
+
+function specBill(p){const c=billCalc(p),b=bill(p),g=num(p.gst),rows=[];let sr=0;
+  groupBy(c.rows).forEach(([k,rs])=>{rows.push({k:'group',c:[k]});
+    rs.forEach(r=>{const d=withLoc(locOf(r.l),r.l.desc);rows.push({k:'item',c:r.qb==='ls'?[++sr,d,'LS','','','Lumpsum',Mn(r.ea),Mn(r.ba),Mn(r.v)]:[++sr,d,r.l.unit,r.qb==='unit'?'rate only':Qn(r.estQ),Qn(r.eq),Mn(r.rate),Mn(r.ea),Mn(r.ba),Mn(r.v)]})});
+    rows.push({k:'sub',c:['','Subtotal — '+k,'','','','',Mn(rs.reduce((s,r)=>s+r.ea,0)),Mn(rs.reduce((s,r)=>s+r.ba,0)),Mn(rs.reduce((s,r)=>s+r.v,0))]})});
+  const B=[{type:'table',heading:'A. Quoted items — executed vs quoted',cols:[COL.sr,{...COL.desc,w:50},COL.unit,{h:'Quoted qty',w:10,a:'r'},{h:'Exec. qty',w:10,a:'r'},COL.rate,{h:'Quoted (Rs.)',w:14,a:'r'},{h:'Billed (Rs.)',w:14,a:'r'},{h:'Variance (Rs.)',w:13,a:'r'}],rows}];
+  if(b.extras.length)B.push({type:'table',heading:'B. Extra items (outside the quote)',cols:[COL.sr,{...COL.desc,w:50},COL.unit,COL.qty,COL.rate,COL.amt,{h:'Reason / instruction',w:30,a:'l',wrap:true}],
+    rows:b.extras.map((x,i)=>({k:'item',c:[i+1,withLoc(locOf(x),x.desc,true),x.unit,Qn(num(x.qty)),Mn(num(x.rate)),Mn(num(x.qty)*num(x.rate)),x.note||'']}))});
+  B.push({type:'summary',rows:[['Quoted value',Mn(c.est)],['Executed quoted items',Mn(c.exec)],['Extra items',Mn(c.ext)],['Bill value before GST',Mn(c.sub),'total'],[`Deviation from quote (${(c.devPct>0?'+':'')+c.devPct.toFixed(1)}%)`,Mn(c.dev)],[`GST @ ${qf(g)}%`,Mn(c.gst)],['Bill total',Mn(c.total),'total'],['Less received',Mn(-num(b.received))],['Net payable',Mn(c.net),'grand']]},
+    {type:'words',text:'Net payable in words: '+words(c.net)},{type:'sign'});
+  return{title:'FINAL BILL',orient:'landscape',file:(p.name||'Project')+' - Final Bill',meta:[['Client',p.client],['Project',p.name],['Site',p.site],['Bill no.',b.no],['Date',fdate(b.date)]],blocks:B}}
+
+/* PDF */
+const C_ACC=[30,77,140],C_SOFT=[226,235,247],C_SUB=[242,245,248],C_INK=[24,33,44],C_MUT=[94,104,120],C_LINE=[205,213,223];
+const pdfTxt=s=>String(s??'').replace(/₹/g,'Rs.').replace(/[^\x00-\xFF–—‘’“”•…]/g,'');
+const fmtM=v=>(v<0?'-':'')+Math.abs(v).toLocaleString('en-IN',{minimumFractionDigits:2,maximumFractionDigits:2});
+const fmtCell=x=>x&&typeof x==='object'?(x.f==='m'?fmtM(x.v):qf(x.v)):pdfTxt(x);
+function buildPDF(spec){const{jsPDF}=window.jspdf;const doc=new jsPDF({orientation:spec.orient,unit:'mm',format:'a4'});const F=firm();
+  const W=doc.internal.pageSize.getWidth(),H=doc.internal.pageSize.getHeight(),M=14;let y=M+2;
+  doc.setFillColor(...C_ACC);doc.rect(M,y-4.5,3.2,7.5,'F');
+  doc.setFont('helvetica','bold');doc.setFontSize(16);doc.setTextColor(...C_ACC);doc.text(pdfTxt(F.name),M+6,y+2);
+  doc.setFontSize(13);doc.setTextColor(...C_INK);doc.text(spec.title,W-M,y+2,{align:'right'});
+  doc.setFont('helvetica','normal');doc.setFontSize(8.5);doc.setTextColor(...C_MUT);y+=7;
+  const info=[...String(F.addr).split(/\n/).filter(Boolean),[F.phone&&'Phone: '+F.phone,F.email&&'Email: '+F.email].filter(Boolean).join('   '),F.gstin?'GSTIN: '+F.gstin:''].filter(Boolean);
+  info.forEach(t=>{doc.text(pdfTxt(t),M+6,y);y+=3.8});y+=1.5;doc.setDrawColor(...C_ACC);doc.setLineWidth(.5);doc.line(M,y,W-M,y);y+=6;
+  const meta=spec.meta.filter(m=>m[1]);const half=Math.ceil(meta.length/2);
+  meta.forEach((m,i)=>{const x=i<half?M:W/2+4,yy=y+(i%half)*5;doc.setFont('helvetica','bold');doc.setTextColor(...C_MUT);doc.text(m[0].toUpperCase(),x,yy);doc.setFont('helvetica','normal');doc.setTextColor(...C_INK);doc.text(pdfTxt(m[1]),x+24,yy,{maxWidth:W/2-34})});
+  y+=half*5+4;
+  const need=h=>{if(y+h>H-16){doc.addPage();y=M+4}};
+  spec.blocks.forEach(bk=>{
+    if(bk.type==='table'){need(20);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C_INK);doc.text(pdfTxt(bk.heading),M,y);y+=2.5;
+      const tw=bk.cols.reduce((s,c)=>s+c.w,0),avail=W-2*M,n=bk.cols.length,cs={};
+      bk.cols.forEach((c,i)=>cs[i]={cellWidth:avail*c.w/tw,halign:c.a==='r'?'right':c.a==='c'?'center':'left'});
+      const body=bk.rows.map(r=>{if(r.k==='group')return[{content:pdfTxt(r.c[0]),colSpan:n,styles:{fillColor:C_SOFT,fontStyle:'bold',textColor:C_ACC,halign:'left'}}];
+        const st=r.k==='sub'||r.k==='total'?{fillColor:C_SUB,fontStyle:'bold'}:{};return r.c.map(x=>({content:fmtCell(x),styles:st}))});
+      doc.autoTable({startY:y,head:[bk.cols.map((c,i)=>({content:c.h,styles:{halign:cs[i].halign}}))],body,columnStyles:cs,theme:'grid',margin:{left:M,right:M,top:M+4,bottom:16},
+        styles:{font:'helvetica',fontSize:8.3,cellPadding:1.6,lineColor:C_LINE,lineWidth:.15,textColor:C_INK,valign:'middle',overflow:'linebreak'},
+        headStyles:{fillColor:C_ACC,textColor:255,fontStyle:'bold',fontSize:8},showHead:'everyPage'});
+      y=doc.lastAutoTable.finalY+5}
+    else if(bk.type==='summary'){need(bk.rows.length*6+4);const sw=Math.min(110,W-2*M);
+      doc.autoTable({startY:y,body:bk.rows.map(r=>{const st=r[2]==='grand'?{fontStyle:'bold',fillColor:C_ACC,textColor:255,fontSize:9.5}:r[2]==='total'?{fontStyle:'bold',fillColor:C_SUB}:{};return[{content:pdfTxt(r[0]),styles:st},{content:fmtCell(r[1]),styles:{...st,halign:'right'}}]}),
+        theme:'plain',margin:{left:W-M-sw,right:M},tableWidth:sw,styles:{fontSize:8.8,cellPadding:1.5,textColor:C_INK},columnStyles:{1:{cellWidth:38}}});y=doc.lastAutoTable.finalY+4}
+    else if(bk.type==='words'){need(8);doc.setFont('helvetica','italic');doc.setFontSize(8.8);doc.setTextColor(...C_INK);const t=doc.splitTextToSize(pdfTxt(bk.text),W-2*M);doc.text(t,M,y);y+=t.length*4+4}
+    else if(bk.type==='notes'){need(14);doc.setFont('helvetica','bold');doc.setFontSize(10);doc.setTextColor(...C_INK);doc.text(bk.heading,M,y);y+=5;doc.setFont('helvetica','normal');doc.setFontSize(8.6);
+      bk.items.forEach((t,i)=>{const L=doc.splitTextToSize(pdfTxt(t),W-2*M-7);need(L.length*3.9+1);doc.text((i+1)+'.',M,y);doc.text(L,M+6,y);y+=L.length*3.9+1.2});y+=4}
+    else if(bk.type==='sign'){need(24);y+=12;doc.setDrawColor(...C_LINE);doc.setLineWidth(.3);doc.setFontSize(8.6);doc.setFont('helvetica','normal');doc.setTextColor(...C_INK);
+      if(bk.client){doc.line(M,y,M+62,y);doc.text('Accepted by client (signature and date)',M,y+4)}
+      doc.line(W-M-62,y,W-M,y);doc.text('For '+pdfTxt(F.name),W-M,y+4,{align:'right'});doc.setTextColor(...C_MUT);doc.text('Authorised signatory',W-M,y+8,{align:'right'});y+=12}});
+  const n=doc.getNumberOfPages();for(let i=1;i<=n;i++){doc.setPage(i);doc.setFont('helvetica','normal');doc.setFontSize(7.5);doc.setTextColor(...C_MUT);
+    doc.text(pdfTxt(F.name+' · '+spec.title.toLowerCase().replace(/^./,c=>c.toUpperCase())+(spec.meta[1]&&spec.meta[1][1]?' · '+spec.meta[1][1]:'')),M,H-8);doc.text(`Page ${i} of ${n}`,W-M,H-8,{align:'right'})}
+  return doc.output('arraybuffer')}
+
+/* Excel */
+const X_ACC='1E4D8C',X_SOFT='E2EBF7',X_SUB='F2F5F8',X_LINE='CDD5DF',X_MUT='5E6878';
+const NUMF='[>=10000000]##\\,##\\,##\\,##0.00;[>=100000]##\\,##\\,##0.00;##,##0.00',QTYF='#,##0.00';
+function buildSheet(spec,blocks,title){const F=firm();const tables=blocks.filter(b=>b.type==='table');const n=Math.max(2,...tables.map(t=>t.cols.length));
+  const widths=Array(n).fill(4);tables.forEach(t=>t.cols.forEach((c,i)=>widths[i]=Math.max(widths[i],c.w)));
+  const cells=[],merges=[],hts=[];let r=0;const bd={style:'thin',color:{rgb:X_LINE}},box={top:bd,bottom:bd,left:bd,right:bd};
+  const put=(c,v,s)=>{(cells[r]=cells[r]||[])[c]=v&&typeof v==='object'?{v:v.v,t:'n',z:v.f==='m'?NUMF:QTYF,s:{...s,numFmt:v.f==='m'?NUMF:QTYF}}:{v:v??'',t:typeof v==='number'?'n':'s',s}};
+  const span=(c1,c2)=>{if(c2>c1)merges.push({s:{r,c:c1},e:{r,c:c2}})};
+  const line=(txt,s,h)=>{put(0,txt,s);for(let c=1;c<n;c++)put(c,'',s);span(0,n-1);if(h)hts[r]={hpt:h};r++};
+  line(F.name,{font:{bold:true,sz:16,color:{rgb:X_ACC}}},24);
+  [...String(F.addr).split(/\n/).filter(Boolean),[F.phone&&'Phone: '+F.phone,F.email&&'Email: '+F.email].filter(Boolean).join('   '),F.gstin?'GSTIN: '+F.gstin:''].filter(Boolean).forEach(t=>line(t,{font:{sz:9,color:{rgb:X_MUT}}}));
+  line(title,{font:{bold:true,sz:13},border:{bottom:{style:'medium',color:{rgb:X_ACC}}}},22);r++;
+  const lab=Math.min(1,n-2);spec.meta.filter(m=>m[1]).forEach(m=>{put(0,m[0],{font:{bold:true,sz:9,color:{rgb:X_MUT}}});for(let c=1;c<=lab;c++)put(c,'',{});span(0,lab);put(lab+1,m[1],{font:{sz:10}});for(let c=lab+2;c<n;c++)put(c,'',{});span(lab+1,n-1);r++});r++;
+  blocks.forEach(bk=>{
+    if(bk.type==='table'){line(bk.heading,{font:{bold:true,sz:11}},18);
+      bk.cols.forEach((c,i)=>put(i,c.h,{font:{bold:true,color:{rgb:'FFFFFF'},sz:9},fill:{fgColor:{rgb:X_ACC}},alignment:{horizontal:c.a==='r'?'right':c.a==='c'?'center':'left',vertical:'center',wrapText:true},border:box}));hts[r]={hpt:20};r++;
+      bk.rows.forEach(row=>{if(row.k==='group'){const s={font:{bold:true,color:{rgb:X_ACC}},fill:{fgColor:{rgb:X_SOFT}},border:box};put(0,row.c[0],s);for(let c=1;c<bk.cols.length;c++)put(c,'',s);span(0,bk.cols.length-1);r++;return}
+        const bold=row.k!=='item',fill=bold?{fill:{fgColor:{rgb:X_SUB}}}:{};let lines=1;
+        row.c.forEach((v,i)=>{const col=bk.cols[i];put(i,v,{font:{bold,sz:10},...fill,border:box,alignment:{horizontal:col.a==='r'?'right':col.a==='c'?'center':'left',vertical:'top',wrapText:!!col.wrap}});
+          if(col.wrap&&typeof v==='string')lines=Math.max(lines,Math.ceil(v.length/(col.w*1.2)))});
+        if(lines>1)hts[r]={hpt:15*lines};r++});r++}
+    else if(bk.type==='summary'){bk.rows.forEach(s=>{const g=s[2]==='grand',t=s[2]==='total';const st={font:{bold:g||t,sz:g?11:10,color:g?{rgb:'FFFFFF'}:undefined},...(g?{fill:{fgColor:{rgb:X_ACC}}}:t?{fill:{fgColor:{rgb:X_SUB}}}:{}),alignment:{horizontal:'right'}};
+        for(let c=0;c<n-1;c++)put(c,c===0?s[0]:'',st);span(0,n-2);put(n-1,s[1],st);r++});r++}
+    else if(bk.type==='words'){line(bk.text,{font:{italic:true,sz:10}});r++}
+    else if(bk.type==='notes'){line(bk.heading,{font:{bold:true,sz:11}},18);const tot=widths.reduce((a,b)=>a+b,0);
+      bk.items.forEach((t,i)=>line(`${i+1}.  ${t}`,{font:{sz:10},alignment:{wrapText:true,vertical:'top'}},15*Math.max(1,Math.ceil((t.length+5)/(tot*1.05)))));r++}
+    else if(bk.type==='sign'){r+=2;line('For '+F.name,{font:{bold:true},alignment:{horizontal:'right'}});line('Authorised signatory',{font:{sz:9,color:{rgb:X_MUT}},alignment:{horizontal:'right'}})}});
+  const X=window.XLSX;const ws={};let maxC=n-1;
+  cells.forEach((row,ri)=>row&&row.forEach((cell,ci)=>{if(cell)ws[X.utils.encode_cell({r:ri,c:ci})]=cell}));
+  ws['!ref']=X.utils.encode_range({s:{r:0,c:0},e:{r:Math.max(0,r-1),c:maxC}});ws['!merges']=merges;ws['!cols']=widths.map(w=>({wch:w+2}));ws['!rows']=hts;
+  ws['!margins']={left:.4,right:.4,top:.5,bottom:.5,header:.3,footer:.3};return ws}
+function buildXLSX(spec){const X=window.XLSX,wb=X.utils.book_new();
+  X.utils.book_append_sheet(wb,buildSheet(spec,spec.blocks,spec.title),spec.title.replace(/\W+/g,' ').trim().slice(0,30));
+  (spec.sheets||[]).forEach(sh=>X.utils.book_append_sheet(wb,buildSheet(spec,sh.blocks,sh.title),sh.name));
+  return X.write(wb,{bookType:'xlsx',type:'array'})}
+
+const LIBS={pdf:['https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js','https://cdn.jsdelivr.net/npm/jspdf-autotable@3.8.2/dist/jspdf.plugin.autotable.min.js'],xlsx:['https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js']};
+const _libs={};async function needLibs(k){if(!_libs[k]){_libs[k]=(async()=>{for(const u of LIBS[k])await loadScript(u)})();_libs[k].catch(()=>delete _libs[k])}return _libs[k]}
+async function exportDoc(kind,fmt){
+  const p=P();if(!p)return;toast('Preparing '+(fmt==='pdf'?'PDF':'Excel')+'…');
+  try{await needLibs(fmt)}catch(e){toast('Couldn’t load the '+(fmt==='pdf'?'PDF':'Excel')+' writer. Check your connection.');return}
+  const spec=kind==='quote'?specQuote(p):kind==='bill'?specBill(p):specEst(p);
+  let data;try{data=fmt==='pdf'?buildPDF(spec):buildXLSX(spec)}catch(e){console.error(e);toast('Couldn’t build the file.');return}
+  const fn=spec.file.replace(/[^\w\- ().]+/g,'').trim()+'.'+fmt;
+  saveFile(fn,new Blob([data],{type:fmt==='pdf'?'application/pdf':'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'}));toast('Downloaded '+fn)}
+
+/* ---------- events ---------- */
+function setField(el){
+  const f=el.dataset.f,isNum=el.dataset.n==='1';const v=el.type==='checkbox'?el.checked:isNum?num(el.value):el.value;const parts=f.split('.');const k=parts[0];const p=P();
+  if(RO()&&!['ui','file','du','ai'].includes(k))return;
+  if(k==='ui'){const n=parts[1];
+    if(n==='cur'){S.cur=v;lsSet('bd-est-cur',v);S.confirm=null;S.du=null;loadProject(v)}else if(n==='addPick')S.addPick=v;else if(n==='extraPick')S.extraPick=v;else if(n==='rateQ')S.rateQ=v;
+    else if(n==='dxfUnit')S.dxf.unitSel=v;else if(n==='aiCtx')S.ai.ctx=v;else if(n==='aiPage'){S.ai.page=+v;renderPdfPage();return}
+    render();return}
+  if(k==='file'){const file=el.files&&el.files[0];if(!file)return;
+    if(parts[1]==='dxf'){file.text().then(t=>{try{const d=parseDXF(t);S.dxf={...d,name:file.name,unitSel:d.unit||'mm'};S.du=null}catch(e){S.dxf={name:file.name,err:e.message||'Could not read this DXF.'}}render()})}
+    else if(parts[1]==='import'){file.text().then(async t=>{let d;try{d=JSON.parse(t)}catch(e){toast('That file isn’t valid JSON.');return}
+      const j=await api('estImport',{rates:d.rates||{},projects:d.projects||{},settings:d.settings||{}});
+      if(!j.ok){toast(j.error||'Import failed');return}const n=j.imported;toast(`Imported ${n.rates} rates, ${n.projects} estimates${n.settings?', firm settings':''}.`);S.projects={};S.ver={};initStore()})}
+    else loadAiFile(file);return}
+  if(k==='p'&&p){p[parts[1]]=v;touch()}
+  else if(k==='l'&&p){const l=p.lines.find(x=>x.id===parts[1]);if(l){l[parts[2]]=v;if(parts[2]==='qb'&&v==='unit')l.qty=1;touch()}}
+  else if(k==='x'&&p){const x=bill(p).extras.find(x=>x.id===parts[1]);if(x){x[parts[2]]=v;touch()}}
+  else if(k==='e'&&p){const b=bill(p);if(el.value.trim()==='')delete b.exec[parts[1]];else b.exec[parts[1]]=num(el.value);touch()}
+  else if(k==='b'&&p){bill(p)[parts[1]]=v;touch()}
+  else if(k==='q'&&p){qset(p)[parts[1]]=v;touch()}
+  else if(k==='qi'&&p){const x=qset(p).ind.find(x=>x.id===parts[1]);if(x){x[parts[2]]=v;touch()}}
+  else if(k==='qn'&&p){const q=qset(p);q.noteOff=q.noteOff||{};if(el.checked)delete q.noteOff[el.dataset.k];else q.noteOff[el.dataset.k]=true;touch()}
+  else if(k==='f'){S.settings.firm={...firm(),...(S.settings.firm||{}),[parts[1]]:v};save('settings','firm')}
+  else if(k==='fn'){const f=S.settings.firm={...firm(),...(S.settings.firm||{})};f.notes=[...f.notes];f.notes[+parts[1]]=v;save('settings','firm')}
+  else if(k==='qo'&&p){const o=qset(p).ovr,key=el.dataset.k;if(el.value.trim()==='')delete o[key];else o[key]=num(el.value);touch()}
+  else if(k==='r'&&S.rates[S.rateSel]){S.rates[S.rateSel][parts[1]]=v;save('rates',S.rateSel)}
+  else if(k==='c'&&S.rates[S.rateSel]){const c=S.rates[S.rateSel].comps[+parts[1]];if(c){c[parts[2]]=v;save('rates',S.rateSel)}}
+  else if(k==='du'&&S.du){S.du[parts[1]]=v}
+  else if(k==='ai'&&S.ai.res){const it=S.ai.res.items[+parts[1]];if(it){it[parts[2]]=v;if(parts[2]==='rateId'){const r=S.rates[v];if(r){it.unit=r.unit;it.cat=r.cat}}}}
+  render();
+}
+const appEl=document.getElementById('app');
+appEl.addEventListener('input',e=>{const el=e.target;if(el.dataset.f&&el.tagName!=='SELECT'&&el.type!=='file'&&el.type!=='checkbox')setField(el)});
+appEl.addEventListener('change',e=>{const el=e.target;if(el.dataset.f&&(el.tagName==='SELECT'||el.type==='file'||el.type==='checkbox'))setField(el)});
+appEl.addEventListener('click',e=>{const b=e.target.closest('[data-a]');if(!b||b.disabled)return;const[a,arg]=b.dataset.a.split(/:(.*)/s);act(a,arg)});
+function act(a,arg){const p=P();if(RO()&&!RO_OK.has(a))return;
+  switch(a){
+  case'tab':S.tab=arg;S.confirm=null;break;
+  case'proj-new':{const id=uid('E');S.projects[id]={name:'New estimate',client:'',site:'',date:today(),gst:18,lines:[],bill:{no:'',date:'',exec:{},extras:[],received:0},updated:Date.now()};S.ver[id]=0;
+    S.plist.unshift({est_id:id,name:'New estimate',client:''});S.cur=id;lsSet('bd-est-cur',id);save('projects',id);if(S.tab==='rates'||S.tab==='firm')S.tab='estimate';break}
+  case'proj-dup':{if(!p)break;const id=uid('E');const c=clone(p);c.name=p.name+' (copy)';c.isSample=false;c.updated=Date.now();c.lines.forEach(l=>l.id=uid('l'));c.bill={no:'',date:'',exec:{},extras:[],received:0};
+    S.projects[id]=c;S.ver[id]=0;S.plist.unshift({est_id:id,name:c.name,client:c.client});S.cur=id;lsSet('bd-est-cur',id);save('projects',id);toast('Duplicated without bill data');break}
+  case'proj-del':S.confirm='proj-del';break;
+  case'proj-del-yes':{const id=S.cur;S.confirm=null;api('estDeleteProject',{est_id:id}).then(j=>{if(!j.ok){toast(j.error||'Couldn’t delete');return}
+      delete S.projects[id];S.plist=S.plist.filter(x=>x.est_id!==id);S.cur=null;pickCur();toast('Estimate deleted');render();if(S.cur)loadProject(S.cur)});break}
+  case'confirm-no':S.confirm=null;break;
+  case'line-add':{const r=rateById(S.addPick);if(r){p.lines.push(lineFromRate(r,1,'Manual'));touch()}break}
+  case'line-custom':p.lines.push(lineFromRate(null,1,'Manual'));touch();break;
+  case'fn-add':{const f=S.settings.firm={...firm(),...(S.settings.firm||{})};f.notes=[...f.notes,''];save('settings','firm');break}
+  case'fn-del':{const f=S.settings.firm={...firm(),...(S.settings.firm||{})};f.notes=f.notes.filter((_,i)=>i!==+arg);save('settings','firm');break}
+  case'gmode':p.groupBy=arg;touch();break;
+  case'line-dup':{const i=p.lines.findIndex(l=>l.id===arg);if(i>=0){const c=clone(p.lines[i]);c.id=uid('l');c.loc='';p.lines.splice(i+1,0,c);touch();render();const el=document.getElementById('l-'+c.id+'-loc');if(el)el.focus();toast('Copied. Set the location for the new line.');return}break}
+  case'line-del':p.lines=p.lines.filter(l=>l.id!==arg);delete bill(p).exec[arg];touch();break;
+  case'line-sync':{const l=p.lines.find(x=>x.id===arg);const r=l&&S.rates[l.rateId];if(r){l.rate=rateCalc(r).rate;touch()}break}
+  case'extra-add':{const r=rateById(S.extraPick);if(r){const qc=quoteCalc(p);bill(p).extras.push({id:uid('x'),rateId:r.__id,cat:r.cat,desc:r.desc,unit:r.unit,qty:1,rate:rnd(rateCalc(r).rate*qc.k,num(qc.q.rr)),note:''});touch()}break}
+  case'extra-custom':bill(p).extras.push({id:uid('x'),rateId:null,cat:'Other',desc:'Extra item',unit:'nos',qty:1,rate:0,note:''});touch();break;
+  case'extra-del':bill(p).extras=bill(p).extras.filter(x=>x.id!==arg);touch();break;
+  case'ind-add':qset(p).ind.push({id:uid('i'),desc:'',amt:0});touch();break;
+  case'ind-del':qset(p).ind=qset(p).ind.filter(x=>x.id!==arg);touch();break;
+  case'exec-reset':delete bill(p).exec[arg];touch();break;
+  case'exp':{const[k,f]=arg.split(':');exportDoc(k,f);return}
+  case'rcat':S.rateCat=arg;break;
+  case'rate-sel':S.rateSel=arg;S.confirm=null;break;
+  case'rate-new':{const id=uid('r');S.rates[id]={code:'NEW-'+(Object.keys(S.rates).length+1),cat:S.rateCat!=='All'?S.rateCat:'Interior',desc:'New item',unit:'sqft',oh:10,profit:15,comps:[{t:'M',name:'',qty:1,unit:'',rate:0},{t:'L',name:'',qty:1,unit:'',rate:0}]};S.rateSel=id;S.tab='rates';save('rates',id);break}
+  case'rate-dup':{const id=uid('r');const c=clone(S.rates[S.rateSel]);c.code+='-B';delete c.sample;S.rates[id]=c;S.rateSel=id;save('rates',id);break}
+  case'rate-del':S.confirm='rate-del';break;
+  case'rate-del-yes':{const id=S.rateSel;delete S.rates[id];save('rates',id);S.rateSel=null;S.confirm=null;break}
+  case'comp-add':{const r=S.rates[S.rateSel];(r.comps=r.comps||[]).push({t:arg,name:'',qty:1,unit:'',rate:0});save('rates',S.rateSel);break}
+  case'comp-del':{const r=S.rates[S.rateSel];r.comps.splice(+arg,1);save('rates',S.rateSel);break}
+  case'du':{const n=decodeURIComponent(arg),lay=S.dxf.layers[n];const m=lay.area?'area':lay.open?'open':Object.keys(lay.blocks).length?'block:'+Object.keys(lay.blocks)[0]:'perim';S.du={layer:n,measure:m,fk:'num',factor:1,rateId:''};break}
+  case'du-close':S.du=null;break;
+  case'du-add':{const k=duCalc(),r=rateById(S.du.rateId);if(r&&k.qty>0){p.lines.push({...lineFromRate(r,k.qty,'DXF · '+S.du.layer),loc:(S.du.loc||'').trim()});touch();toast(`Added ${qf(k.qty)} ${r.unit} of ${r.code} to the estimate`);S.du=null}break}
+  case'ai-run':runAI();return;
+  case'ai-stop':S.ai.ctl&&S.ai.ctl.abort();return;
+  case'ai-clear':S.ai.res=null;break;
+  case'ai-add':{const its=S.ai.res.items.filter(i=>i.pick);its.forEach(it=>{const r=it.rateId&&rateById(it.rateId);const l=r?lineFromRate(r,it.qty,'AI · '+S.ai.name):{...lineFromRate(null,it.qty,'AI · '+S.ai.name),desc:it.desc,unit:it.unit,cat:it.cat};l.loc=(it.loc||'').trim();p.lines.push(l)});
+    touch();S.ai.res=null;toast(`Added ${its.length} items. Lines without a rate show ₹0 until you set one.`);break}
+  }
+  render();
+}
+
+/* ---------- boot ---------- */
+render();initStore();
+</script>
+</body>
+</html>
