@@ -166,6 +166,8 @@ code{font-size:11px;background:rgba(79,142,247,.08);padding:1px 5px;border-radiu
       <span class="pill co" id="co-pill" onclick="toggleMenu('co-menu')">All ▾</span>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
+      <!-- Estimates (shown only when an admin has granted access) -->
+      <a id="est-link" href="estimate.html" title="Estimates &amp; billing" style="display:none;color:var(--muted);padding:5px;align-items:center"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 21h18M5 21V7l7-4 7 4v14M9 21v-6h6v6M9 10h.01M15 10h.01"/></svg></a>
       <!-- Sync button -->
       <button id="sync-btn" style="background:none;border:none;color:var(--muted);cursor:pointer;padding:5px;display:flex;align-items:center" onclick="doSync()" title="Sync data">
         <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.3"/></svg>
@@ -781,6 +783,7 @@ async function initApp() {
   document.getElementById('user-btn').onclick = () => toggleMenu('user-menu');
   await loadMasters();
   renderHome();
+  api('estAccess').then(r => { if (r && r.ok && r.access) document.getElementById('est-link').style.display = 'flex'; }).catch(() => {});
 }
 
 async function loadMasters() {

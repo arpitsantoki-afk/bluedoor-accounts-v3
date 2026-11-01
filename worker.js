@@ -4,6 +4,8 @@
 //          opening_balances, vendor_opening_balances, reports, drive proxy
 // Bindings: DB (D1), SESSIONS (KV), GAS_URL (env var)
 
+import { summarize } from './estimate-core.js';
+
 const CORS = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
@@ -60,6 +62,7 @@ async function route(action, params, req, env, ctx) {
   if (action === 'logout') return handleLogout(params, req, env);
   const { sess, resp } = await requireSession(env, req);
   if (resp) return resp;
+  if (typeof action === 'string' && /^est[A-Z]/.test(action)) return handleEstimates(action, params, sess, env);
   switch (action) {
     case 'getMe': return ok({ user: sess });
     case 'getMyProfile': return handleGetMyProfile(params, sess, env);
@@ -205,7 +208,8 @@ async function handleGetMyProfile(params, sess, env) {
 
 async function handleListUsers(params, sess, env) {
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
-  const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies, google_email, allowed_vendors FROM users ORDER BY username').all();
+  await ensureEst(env);
+  const rows = await env.DB.prepare('SELECT user_id, username, role, active, companies, google_email, allowed_vendors, modules FROM users ORDER BY username').all();
   return ok({ users: rows.results });
 }
 async function handleAddUser({ username, password, role, companies = [], google_email = '' }, sess, env) {
@@ -222,7 +226,7 @@ async function handleAddUser({ username, password, role, companies = [], google_
   return ok({ user_id: uid, password });
 }
 async function handleUpdateUser(params, sess, env) {
-  const { user_id, role, active, companies, google_email, allowed_vendors, username, password } = params;
+  const { user_id, role, active, companies, google_email, allowed_vendors, username, password, modules } = params;
   if ((sess.role !== 'Admin' && sess.role !== 'Supervisor')) return err('Forbidden', 403);
   if (!user_id) return err('user_id required');
   const fields = [], vals = [];
@@ -233,6 +237,14 @@ async function handleUpdateUser(params, sess, env) {
   if (companies !== undefined && companies !== null) { fields.push('companies = ?'); vals.push(JSON.stringify(Array.isArray(companies) ? companies : [])); }
   if (google_email !== undefined) { fields.push('google_email = ?'); vals.push(google_email); }
   if (allowed_vendors !== undefined) { fields.push('allowed_vendors = ?'); vals.push(JSON.stringify(allowed_vendors)); }
+  if (modules !== undefined) {
+    // Module grants are Admin-only, whatever else this handler allows.
+    if (sess.role !== 'Admin') return err('Only an Admin can change module access', 403);
+    await ensureEst(env);
+    const clean = {};
+    for (const [k, v] of Object.entries(modules && typeof modules === 'object' ? modules : {})) if (MODULES[k] && (v === 'view' || v === 'edit')) clean[k] = v;
+    fields.push('modules = ?'); vals.push(JSON.stringify(clean));
+  }
   if (!fields.length) return err('Nothing to update');
   vals.push(user_id);
   await env.DB.prepare(`UPDATE users SET ${fields.join(', ')} WHERE user_id = ?`).bind(...vals).run();
@@ -802,7 +814,8 @@ async function handleSendOnboarding({ user_id }, sess, env) {
   if (!user) return err('User not found', 404);
   if (!user.google_email) return err('No email set for this user. Add their Google Email first.', 400);
 
-  const RESEND_KEY = env.RESEND_API_KEY || 're_apoTnUiS_NmAvgB2c8w3gsdM8qJCEUx12';
+  const RESEND_KEY = env.RESEND_API_KEY;
+  if (!RESEND_KEY) return err('Email is not set up: add the RESEND_API_KEY secret to the Worker.', 500);
   const APP_URL = env.APP_URL || 'https://arpitsantoki-afk.github.io/bluedoor-accounts-v3';
   const role = user.role;
   const appUrl = role === 'Admin' ? `${APP_URL}/admin.html` : `${APP_URL}/supervisor.html`;
@@ -1176,4 +1189,152 @@ async function handleMigrate(request, env) {
   }
 
   return err('Unknown step. Use: probe | seed_user | insert | counts');
+}
+
+// ── ESTIMATES & BILLING MODULE ───────────────────────────────────────────────
+// Access: Admin role always has full access. Any other user gets access only
+// through an explicit grant in users.modules, e.g. {"estimates":"view"} or
+// {"estimates":"edit"}. Grants are set by an Admin from Users → Edit user.
+// Data: est_projects (one row per estimate, full JSON + summary totals),
+//       est_rates (rate analysis library), est_settings (firm details, notes).
+// Totals are always recomputed here with estimate-core.js; client totals are ignored.
+
+const MODULES = { estimates: 'Estimates & billing' };
+let _estReady = false;
+async function ensureEst(env) {
+  if (_estReady) return;
+  const stmts = [
+    "CREATE TABLE IF NOT EXISTS est_rates (rate_id TEXT PRIMARY KEY, code TEXT, cat TEXT, data TEXT NOT NULL, updated_at TEXT, updated_by TEXT)",
+    "CREATE TABLE IF NOT EXISTS est_projects (est_id TEXT PRIMARY KEY, project_id TEXT DEFAULT '', name TEXT, client TEXT, data TEXT NOT NULL, version INTEGER NOT NULL DEFAULT 1, estimate_total REAL DEFAULT 0, quote_total REAL DEFAULT 0, quote_grand REAL DEFAULT 0, bill_total REAL DEFAULT 0, net_payable REAL DEFAULT 0, line_count INTEGER DEFAULT 0, created_at TEXT, created_by TEXT, updated_at TEXT, updated_by TEXT)",
+    "CREATE TABLE IF NOT EXISTS est_settings (skey TEXT PRIMARY KEY, data TEXT NOT NULL, updated_at TEXT, updated_by TEXT)",
+  ];
+  for (const s of stmts) await env.DB.prepare(s).run();
+  try { await env.DB.prepare("ALTER TABLE users ADD COLUMN modules TEXT DEFAULT '{}'").run(); }
+  catch (e) { if (!/duplicate|already exists/i.test(e.message)) throw e; }
+  _estReady = true;
+}
+function parseModules(v) { try { const m = JSON.parse(v || '{}'); return m && typeof m === 'object' && !Array.isArray(m) ? m : {}; } catch { return {}; } }
+/** 'edit' | 'view' | null — read fresh from the DB so a grant or revoke applies without re-login. */
+async function moduleAccess(sess, env, mod) {
+  if (sess.role === 'Admin') return 'edit';
+  const u = await env.DB.prepare('SELECT modules, active FROM users WHERE user_id = ?').bind(sess.user_id).first();
+  if (!u || u.active === 0) return null;
+  const lvl = parseModules(u.modules)[mod];
+  return lvl === 'edit' || lvl === 'view' ? lvl : null;
+}
+async function estGate(sess, env, needEdit) {
+  await ensureEst(env);
+  const a = await moduleAccess(sess, env, 'estimates');
+  if (!a) return { a: null, resp: err('You don’t have access to Estimates', 403) };
+  if (needEdit && a !== 'edit') return { a, resp: err('Your access to Estimates is view-only', 403) };
+  return { a, resp: null };
+}
+const nowIso = () => new Date().toISOString();
+const ID_RE = /^[A-Za-z0-9_\-]{3,64}$/;
+
+async function handleEstimates(action, params, sess, env) {
+  const write = !['estAccess', 'estBootstrap', 'estGetProject'].includes(action);
+  if (action === 'estAccess') {
+    await ensureEst(env);
+    const a = await moduleAccess(sess, env, 'estimates');
+    return ok({ access: a, ai: !!env.ANTHROPIC_API_KEY });
+  }
+  const { a, resp } = await estGate(sess, env, write);
+  if (resp) return resp;
+  const who = sess.username || sess.user_id;
+
+  switch (action) {
+    case 'estBootstrap': {
+      const [rates, projs, sets, v3] = await Promise.all([
+        env.DB.prepare('SELECT rate_id, data FROM est_rates').all(),
+        env.DB.prepare('SELECT est_id, project_id, name, client, version, estimate_total, quote_total, quote_grand, bill_total, net_payable, line_count, updated_at, updated_by FROM est_projects ORDER BY updated_at DESC').all(),
+        env.DB.prepare('SELECT skey, data FROM est_settings').all(),
+        env.DB.prepare('SELECT project_id, project_name, client, location, status FROM projects ORDER BY project_name').all(),
+      ]);
+      const rmap = {}; (rates.results || []).forEach(r => { try { rmap[r.rate_id] = JSON.parse(r.data); } catch {} });
+      const smap = {}; (sets.results || []).forEach(r => { try { smap[r.skey] = JSON.parse(r.data); } catch {} });
+      return ok({ access: a, ai: !!env.ANTHROPIC_API_KEY, rates: rmap, projects: projs.results || [], settings: smap, v3projects: v3.results || [] });
+    }
+    case 'estGetProject': {
+      const row = await env.DB.prepare('SELECT data, version FROM est_projects WHERE est_id = ?').bind(params.est_id || '').first();
+      if (!row) return err('Estimate not found', 404);
+      return ok({ data: JSON.parse(row.data), version: row.version });
+    }
+    case 'estSaveProject': {
+      const { est_id, data, version } = params;
+      if (!ID_RE.test(est_id || '')) return err('Invalid est_id');
+      if (!data || typeof data !== 'object') return err('data required');
+      const body = JSON.stringify(data);
+      if (body.length > 900000) return err('Estimate too large to save (over 900 KB)');
+      let s; try { s = summarize(JSON.parse(body)); } catch (e) { return err('Could not calculate totals: ' + e.message); }
+      const t = nowIso();
+      const cols = [String(data.v3project || ''), String(data.name || 'Untitled'), String(data.client || ''), body, s.estimate_total, s.quote_total, s.quote_grand, s.bill_total, s.net_payable, s.lines, t, who];
+      if (!version) {
+        const r = await env.DB.prepare('INSERT OR IGNORE INTO est_projects (project_id,name,client,data,estimate_total,quote_total,quote_grand,bill_total,net_payable,line_count,updated_at,updated_by,est_id,version,created_at,created_by) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,1,?,?)')
+          .bind(...cols, est_id, t, who).run();
+        if (!r.meta || r.meta.changes === 0) return err('An estimate with this id already exists', 409);
+        return ok({ version: 1, summary: s, updated_at: t });
+      }
+      const r = await env.DB.prepare('UPDATE est_projects SET project_id=?,name=?,client=?,data=?,estimate_total=?,quote_total=?,quote_grand=?,bill_total=?,net_payable=?,line_count=?,updated_at=?,updated_by=?,version=version+1 WHERE est_id=? AND version=?')
+        .bind(...cols, est_id, Number(version)).run();
+      if (!r.meta || r.meta.changes === 0) {
+        const cur = await env.DB.prepare('SELECT data, version, updated_by FROM est_projects WHERE est_id = ?').bind(est_id).first();
+        if (!cur) return err('Estimate not found (it may have been deleted)', 404);
+        return json({ ok: false, error: 'conflict', conflict: true, data: JSON.parse(cur.data), version: cur.version, updated_by: cur.updated_by }, 409);
+      }
+      return ok({ version: Number(version) + 1, summary: s, updated_at: t });
+    }
+    case 'estDeleteProject': {
+      await env.DB.prepare('DELETE FROM est_projects WHERE est_id = ?').bind(params.est_id || '').run();
+      return ok();
+    }
+    case 'estSaveRate': {
+      const { rate_id, data } = params;
+      if (!ID_RE.test(rate_id || '') || !data || typeof data !== 'object') return err('rate_id and data required');
+      await env.DB.prepare('INSERT OR REPLACE INTO est_rates (rate_id, code, cat, data, updated_at, updated_by) VALUES (?,?,?,?,?,?)')
+        .bind(rate_id, String(data.code || ''), String(data.cat || ''), JSON.stringify(data), nowIso(), who).run();
+      return ok();
+    }
+    case 'estDeleteRate': {
+      await env.DB.prepare('DELETE FROM est_rates WHERE rate_id = ?').bind(params.rate_id || '').run();
+      return ok();
+    }
+    case 'estSaveSettings': {
+      const { skey, data } = params;
+      if (!['firm'].includes(skey) || !data || typeof data !== 'object') return err('Unknown setting');
+      await env.DB.prepare('INSERT OR REPLACE INTO est_settings (skey, data, updated_at, updated_by) VALUES (?,?,?,?)').bind(skey, JSON.stringify(data), nowIso(), who).run();
+      return ok();
+    }
+    case 'estImport': {
+      // One-time import of the prototype's data. Admin only. Skips ids that already exist.
+      if (sess.role !== 'Admin') return err('Admin only', 403);
+      const { rates = {}, projects = {}, settings = {} } = params;
+      const out = { rates: 0, projects: 0, settings: 0 };
+      for (const [id, d] of Object.entries(rates)) { if (!ID_RE.test(id)) continue;
+        const r = await env.DB.prepare('INSERT OR IGNORE INTO est_rates (rate_id, code, cat, data, updated_at, updated_by) VALUES (?,?,?,?,?,?)').bind(id, String(d.code || ''), String(d.cat || ''), JSON.stringify(d), nowIso(), who).run(); out.rates += r.meta?.changes || 0; }
+      for (const [id, d] of Object.entries(projects)) { if (!ID_RE.test(id)) continue; let s; try { s = summarize(JSON.parse(JSON.stringify(d))); } catch { continue; }
+        const r = await env.DB.prepare('INSERT OR IGNORE INTO est_projects (est_id,project_id,name,client,data,version,estimate_total,quote_total,quote_grand,bill_total,net_payable,line_count,created_at,created_by,updated_at,updated_by) VALUES (?,?,?,?,?,1,?,?,?,?,?,?,?,?,?,?)')
+          .bind(id, String(d.v3project || ''), String(d.name || 'Untitled'), String(d.client || ''), JSON.stringify(d), s.estimate_total, s.quote_total, s.quote_grand, s.bill_total, s.net_payable, s.lines, nowIso(), who, nowIso(), who).run(); out.projects += r.meta?.changes || 0; }
+      if (settings.firm) { const r = await env.DB.prepare('INSERT OR IGNORE INTO est_settings (skey, data, updated_at, updated_by) VALUES (?,?,?,?)').bind('firm', JSON.stringify(settings.firm), nowIso(), who).run(); out.settings += r.meta?.changes || 0; }
+      return ok({ imported: out });
+    }
+    case 'estReadDrawing': {
+      if (!env.ANTHROPIC_API_KEY) return err('AI drawing reading is not set up (ANTHROPIC_API_KEY secret missing)', 501);
+      const { image_b64, media_type, prompt } = params;
+      if (!image_b64 || !prompt) return err('image and prompt required');
+      if (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(media_type)) return err('Unsupported image type');
+      if (image_b64.length > 6_800_000) return err('Drawing image too large; crop it or use a smaller page');
+      const r = await fetch('https://api.anthropic.com/v1/messages', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json', 'x-api-key': env.ANTHROPIC_API_KEY, 'anthropic-version': '2023-06-01' },
+        body: JSON.stringify({ model: env.ANTHROPIC_MODEL || 'claude-sonnet-5-5', max_tokens: 8000,
+          messages: [{ role: 'user', content: [{ type: 'image', source: { type: 'base64', media_type, data: image_b64 } }, { type: 'text', text: String(prompt).slice(0, 60000) }] }] }),
+      });
+      const j = await r.json().catch(() => ({}));
+      if (!r.ok) return err('AI service error: ' + (j.error?.message || r.status), 502);
+      const text = (j.content || []).filter(c => c.type === 'text').map(c => c.text).join('\n');
+      return ok({ text, stop_reason: j.stop_reason });
+    }
+  }
+  return err(`Unknown action: ${action}`, 400);
 }
