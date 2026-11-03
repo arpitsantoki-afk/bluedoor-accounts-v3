@@ -470,7 +470,8 @@ ${lib||'(empty)'}
 Rules:
 - Take dimensions written on the drawing. If you must infer or scale a dimension, say so in "basis".
 - Give quantities in the matched item's unit (sqft, rft, sqm, rmt, cum, nos, point...). Convert feet-inches correctly.
-- Deduct openings (doors, windows) from wall areas where they are shown.
+- Painting: take putty, primer and emulsion together as ONE item per room, covering walls and ceiling in a single quantity (do not list putty, primer or emulsion separately, and do not split walls from ceiling).
+- Wall finish area: deduct only openings (doors, windows, open arches) shown on the drawing. Do NOT deduct for wallpaper, mirrors, or movable furniture such as beds, side tables, consoles, sofas or loose cabinets drawn against a wall.
 - Include civil, interior and MEP items you can see (e.g. electrical points from symbols). Up to 40 items.
 - Items with no match in the library: code null and a clear description.
 - Give each item the room or area it belongs to, as labelled on the drawing (e.g. "Bedroom 1", "Kitchen"). List the same item separately for each room, so Bedroom 1 wardrobe and Bedroom 2 wardrobe are two items. Use "" for items that apply to the whole project.
