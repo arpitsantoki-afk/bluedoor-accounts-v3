@@ -54,6 +54,7 @@ input,select,textarea{font:inherit;font-size:14px;color:var(--ink);background:va
 textarea{resize:vertical;min-height:64px}
 input:focus-visible,select:focus-visible,textarea:focus-visible,button:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
 td input,td select{padding:4px 6px;font-size:13px}
+select.codesel{font-family:var(--f-mono);font-size:12px;text-overflow:ellipsis}
 input.num{text-align:right;font-family:var(--f-mono);font-variant-numeric:tabular-nums}
 .btn{font:600 13px var(--f-body);border:1px solid var(--line);background:var(--surface);color:var(--ink);border-radius:4px;padding:6px 12px;cursor:pointer;white-space:nowrap}
 .btn:hover{border-color:var(--accent)}
@@ -184,6 +185,8 @@ const locLine=(l,m)=>m!=='loc'&&locOf(l)?`<span class="chip acc" style="margin-r
 function lineFromRate(r,qty,src){return{id:uid('l'),rateId:r?r.__id:null,code:r?r.code:'',cat:r?r.cat:'Other',desc:r?r.desc:'New item',unit:r?r.unit:'nos',qty:r2(num(qty)),rate:r?rateCalc(r).rate:0,src:src||'Manual'}}
 function rateById(id){const r=S.rates[id];return r?{...r,__id:id}:null}
 function sortedRates(){return Object.entries(S.rates).map(([id,r])=>({...r,__id:id})).sort((a,b)=>catOrder(a.cat)-catOrder(b.cat)||String(a.code).localeCompare(String(b.code)))}
+function codeOptions(sel){const rs=sortedRates();let h=`<option value=""${sel&&S.rates[sel]?'':' selected'}>— Custom</option>`;
+  CATS.forEach(c=>{const g=rs.filter(r=>(r.cat||'Other')===c);if(!g.length)return;h+=`<optgroup label="${c}">`+g.map(r=>`<option value="${r.__id}"${r.__id===sel?' selected':''}>${esc(r.code)} · ${esc(String(r.desc).slice(0,60))}</option>`).join('')+'</optgroup>'});return h}
 function rateOptions(sel,blankLabel){const rs=sortedRates();let h=`<option value="">${esc(blankLabel||'Choose item…')}</option>`;
   CATS.forEach(c=>{const g=rs.filter(r=>(r.cat||'Other')===c);if(!g.length)return;h+=`<optgroup label="${c}">`+g.map(r=>`<option value="${r.__id}"${r.__id===sel?' selected':''}>${esc(r.code)} · ${esc(r.desc)} (${esc(r.unit)})</option>`).join('')+'</optgroup>'});return h}
 const unitSel=(f,v)=>`<select data-f="${f}">${(UNITS.includes(v)?UNITS:[v,...UNITS]).map(u=>`<option${u===v?' selected':''}>${esc(u)}</option>`).join('')}</select>`;
@@ -239,7 +242,7 @@ function viewEstimate(){
   groupBy(c.rows).forEach(([cat,rows])=>{const sub=r2(rows.reduce((s,r)=>s+r.a,0));
     h+=`<div class="cat"><h3>${esc(cat)} <span class="mono">${inr(sub)}</span></h3><div class="scroll"><table><thead><tr><th>#</th><th>Code</th><th>Location</th><th>Description</th><th>Unit</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th>Quote as</th><th>Source</th><th></th></tr></thead><tbody>`;
     rows.forEach(({l,a})=>{const qb=l.qb||'item';sr++;const r=l.rateId&&S.rates[l.rateId];const lib=r?rateCalc(r).rate:null;const diff=lib!==null&&Math.abs(lib-num(l.rate))>0.004;
-      h+=`<tr><td class="mut">${sr}</td><td class="code">${esc(l.code||'—')}</td><td style="min-width:140px"><input id="l-${l.id}-loc" data-f="l.${l.id}.loc" list="locs" value="${esc(l.loc||'')}" placeholder="e.g. Bedroom 1" aria-label="Location"></td><td class="w-desc"><input id="l-${l.id}-desc" data-f="l.${l.id}.desc" value="${esc(l.desc)}"></td>
+      h+=`<tr><td class="mut">${sr}</td><td style="min-width:120px;max-width:150px"><select id="l-${l.id}-code" data-f="l.${l.id}.rateId" aria-label="Item code" title="${esc(l.code?l.code+' · '+l.desc:'Custom item')}" class="codesel">${codeOptions(l.rateId)}</select></td><td style="min-width:140px"><input id="l-${l.id}-loc" data-f="l.${l.id}.loc" list="locs" value="${esc(l.loc||'')}" placeholder="e.g. Bedroom 1" aria-label="Location"></td><td class="w-desc"><input id="l-${l.id}-desc" data-f="l.${l.id}.desc" value="${esc(l.desc)}"></td>
       <td class="w-unit">${unitSel(`l.${l.id}.unit`,l.unit)}</td>
       <td class="w-num">${qb==='unit'?`<input class="num" value="1" disabled title="Unit-rate items are quoted per unit, quantity fixed at 1">`:`<input id="l-${l.id}-qty" class="num" inputmode="decimal" data-f="l.${l.id}.qty" data-n="1" value="${esc(l.qty)}">`}</td>
       <td class="w-num"><input id="l-${l.id}-rate" class="num" inputmode="decimal" data-f="l.${l.id}.rate" data-n="1" value="${esc(l.rate)}"></td>
@@ -667,6 +670,9 @@ function setField(el){
       if(!j.ok){toast(j.error||'Import failed');return}const n=j.imported;toast(`Imported ${n.rates} rates, ${n.projects} estimates${n.settings?', firm settings':''}.`);S.projects={};S.ver={};initStore()})}
     else loadAiFile(file);return}
   if(k==='p'&&p){p[parts[1]]=v;touch()}
+  else if(k==='l'&&p&&parts[2]==='rateId'){const l=p.lines.find(x=>x.id===parts[1]);if(l){const r=v&&rateById(v);
+    if(r){Object.assign(l,{rateId:r.__id,code:r.code,cat:r.cat,desc:r.desc,unit:r.unit,rate:rateCalc(r).rate});if(l.qb==='unit')l.qty=1;toast(`Set to ${r.code}: description, unit and rate updated`)}
+    else{l.rateId=null;l.code=''}touch()}}
   else if(k==='l'&&p){const l=p.lines.find(x=>x.id===parts[1]);if(l){l[parts[2]]=v;if(parts[2]==='qb'&&v==='unit')l.qty=1;touch()}}
   else if(k==='x'&&p){const x=bill(p).extras.find(x=>x.id===parts[1]);if(x){x[parts[2]]=v;touch()}}
   else if(k==='e'&&p){const b=bill(p);if(el.value.trim()==='')delete b.exec[parts[1]];else b.exec[parts[1]]=num(el.value);touch()}
