@@ -12,7 +12,8 @@ export const hasV=v=>v!==undefined&&v!==null&&v!=='';
 export const locOf=l=>(l.loc||'').trim();
 export function bill(p){p.bill=p.bill||{};p.bill.exec=p.bill.exec||{};p.bill.extras=p.bill.extras||[];return p.bill}
 export function rateCalc(r){const t={M:0,L:0,E:0};(r.comps||[]).forEach(c=>{t[c.t]=(t[c.t]||0)+num(c.qty)*num(c.rate)});
-  const base=t.M+t.L+t.E,oh=base*num(r.oh)/100,pr=base*num(r.profit)/100;return{...t,base,oh,pr,rate:r2(base+oh+pr)}}
+  // Rates are pure cost; overhead and profit are applied once per project (quote.oh / quote.profit).
+  const base=t.M+t.L+t.E;return{...t,base,oh:0,pr:0,rate:r2(base)}}
 export function estCalc(p){const rows=(p.lines||[]).map(l=>({l,u:l.qb==='unit',a:l.qb==='unit'?0:r2(num(l.qty)*num(l.rate))}));const total=r2(rows.reduce((s,r)=>s+r.a,0));
   const gst=r2(total*num(p.gst)/100);return{rows,total,gst,grand:r2(total+gst)}}
 export function qset(p){p.quote=p.quote||{};const q=p.quote;q.ind=q.ind||[];q.ovr=q.ovr||{};

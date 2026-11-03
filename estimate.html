@@ -228,6 +228,8 @@ function projMeta(p){return `<div class="grid-meta">
   <label class="fld">Site<input id="p-site" data-f="p.site" value="${esc(p.site)}"></label>
   <label class="fld">Estimate date<input id="p-date" type="date" data-f="p.date" value="${esc(p.date)}"></label>
   <label class="fld">GST %<input id="p-gst" class="num" inputmode="decimal" data-f="p.gst" data-n="1" value="${esc(p.gst)}"></label>
+  <label class="fld">Overhead %<input id="p-oh" class="num" inputmode="decimal" data-f="q.oh" data-n="1" value="${esc(qset(p).oh)}"></label>
+  <label class="fld">Profit %<input id="p-pr" class="num" inputmode="decimal" data-f="q.profit" data-n="1" value="${esc(qset(p).profit)}"></label>
   <label class="fld">Linked accounts project<select id="p-v3" data-f="p.v3project"><option value="">Not linked</option>${S.v3.map(x=>`<option value="${esc(x.project_id)}"${x.project_id===p.v3project?' selected':''}>${esc(x.project_name)}${x.client?' · '+esc(x.client):''}</option>`).join('')}</select></label></div>`}
 
 function viewEstimate(){
@@ -238,6 +240,8 @@ function viewEstimate(){
     <button class="btn pri" data-a="line-add"${S.addPick?'':' disabled'}>Add</button><button class="btn" data-a="line-custom">Custom item</button><span class="grow"></span>
     ${groupToggle(p)}<button class="btn" data-a="tab:takeoff">Take off from drawing</button><button class="btn" data-a="exp:est:pdf"${c.rows.length?'':' disabled'}>PDF</button><button class="btn" data-a="exp:est:xlsx"${c.rows.length?'':' disabled'}>Excel</button></div>`;
   h+=locData(p);if(!c.rows.length)h+=`<div class="empty">No items yet. Add items from your rate analysis, or measure them from a DXF or PDF drawing in Drawing take-off.</div>`;
+  const nDiff=c.rows.filter(({l})=>{const r=l.rateId&&S.rates[l.rateId];return r&&Math.abs(rateCalc(r).rate-num(l.rate))>0.004}).length;
+  if(nDiff)h+=`<div class="note bar"><span class="grow">${nDiff} line${nDiff===1?' has a rate':'s have rates'} different from Rate analysis. Rates there are now pure cost; overhead and profit are set above for the whole project.</span><button class="btn sm" data-a="sync-all">Update ${nDiff} line${nDiff===1?'':'s'}</button></div>`;
   let sr=0;
   groupBy(c.rows).forEach(([cat,rows])=>{const sub=r2(rows.reduce((s,r)=>s+r.a,0));
     h+=`<div class="cat"><h3>${esc(cat)} <span class="mono">${inr(sub)}</span></h3><div class="scroll"><table><thead><tr><th>#</th><th>Code</th><th>Location</th><th>Description</th><th>Unit</th><th class="n">Qty</th><th class="n">Rate</th><th class="n">Amount</th><th>Quote as</th><th>Source</th><th></th></tr></thead><tbody>`;
@@ -249,7 +253,16 @@ function viewEstimate(){
       <td class="n">${qb==='unit'?'<span class="mut" title="Not included in the total">rate only</span>':inr(a)}</td><td style="min-width:150px"><select data-f="l.${l.id}.qb" aria-label="Quote as">${Object.entries(QB).map(([k,v])=>`<option value="${k}"${k===qb?' selected':''}>${v}</option>`).join('')}</select>${qb==='ls'?`<input id="l-${l.id}-lsg" data-f="l.${l.id}.lsg" value="${esc(l.lsg||'')}" placeholder="Combine under heading" title="Lumpsum lines with the same heading become one line on the quote" style="margin-top:4px">`:''}</td><td><span class="chip${/AI/.test(l.src)?' warn':/DXF/.test(l.src)?' acc':''}" title="${esc(l.src)}">${esc(String(l.src||'Manual').slice(0,22))}</span></td>
       <td style="white-space:nowrap">${diff?`<button class="iconbtn sync" data-a="line-sync:${l.id}" title="Rate analysis now gives ${inr(lib)} — update this line">↻</button>`:''}<button class="iconbtn sync" data-a="line-dup:${l.id}" title="Copy this item for another location" aria-label="Copy line">⧉</button><button class="iconbtn" data-a="line-del:${l.id}" title="Remove line" aria-label="Remove line">✕</button></td></tr>`});
     h+=`</tbody></table></div></div>`});
-  const nu=c.rows.filter(r=>r.u).length;if(c.rows.length)h+=`<div class="sum">${nu?`<span class="mut">Unit-rate items (rate only, not in total)</span><span class="n mut">${nu}</span>`:''}<span>Total before GST</span><span class="n">${inr(c.total)}</span><span>GST @ ${qf(p.gst)}%</span><span class="n">${inr(c.gst)}</span><span class="tot">Estimate total</span><span class="tot n">${inr(c.grand)}</span></div>`;
+  const nu=c.rows.filter(r=>r.u).length,qc=quoteCalc(p),pv=r2(qc.Q),pg=r2(pv*num(p.gst)/100);
+  if(c.rows.length)h+=`<div class="sum">${nu?`<span class="mut">Unit-rate items (rate only, not in total)</span><span class="n mut">${nu}</span>`:''}
+    <span>Direct cost</span><span class="n">${inr(c.total)}</span>
+    <span>Overhead @ ${qf(qc.q.oh)}%</span><span class="n">${inr(qc.O)}</span>
+    ${qc.I?`<span>Indirect expenses <span class="mut">(Client quote tab)</span></span><span class="n">${inr(qc.I)}</span>`:''}
+    <span>Profit @ ${qf(qc.q.profit)}%${qc.q.pmode==='margin'?' margin':''}</span><span class="n">${inr(r2(qc.Q-qc.C))}</span>
+    <span><b>Project value before GST</b></span><span class="n"><b>${inr(pv)}</b></span>
+    <span>GST @ ${qf(p.gst)}%</span><span class="n">${inr(pg)}</span>
+    <span class="tot">Project value incl. GST</span><span class="tot n">${inr(r2(pv+pg))}</span>
+    <span class="mut" style="grid-column:1/-1;font-size:12px;text-align:right">The client quote spreads overhead and profit into each rate and rounds them, so its total can differ by a few rupees.</span></div>`;
   return h+'</section>';
 }
 
@@ -315,13 +328,12 @@ function viewRates(){
     <div class="kv">${['All',...CATS].map(c=>`<button class="btn sm${S.rateCat===c?' pri':''}" data-a="rcat:${c}">${c}</button>`).join('')}</div>
     <div class="rlist">${rs.length?rs.map(r=>`<button class="ritem" data-a="rate-sel:${r.__id}" aria-current="${r.__id===S.rateSel}"><span class="rc">${esc(r.code||'—')}</span><span class="rd">${esc(r.desc)}</span><span class="rr">${inr(rateCalc(r).rate)} / ${esc(r.unit)}${r.sample?' · Sample':''}</span></button>`).join(''):`<div class="empty">No items match.</div>`}</div></section>`;
   const r=S.rateSel&&S.rates[S.rateSel];
-  if(!r)h+=`<section class="panel empty"><h2>Pick an item to analyse</h2><p class="hint">Each rate is built from material, labour and equipment per unit, plus overhead and profit. Estimates copy the rate when you add an item, so later changes here don’t alter existing estimates until you press ↻ on a line.</p><button class="btn pri" data-a="rate-new">New rate item</button></section>`;
+  if(!r)h+=`<section class="panel empty"><h2>Pick an item to analyse</h2><p class="hint">Each rate is the cost of material, labour and equipment per unit. Overhead and profit are added once for the whole project on the Estimate tab. Estimates copy the rate when you add an item, so later changes here don’t alter existing estimates until you press ↻ on a line.</p><button class="btn pri" data-a="rate-new">New rate item</button></section>`;
   else{const c=rateCalc(r);let used=0,projs=0;Object.values(S.projects).forEach(p=>{const n=(p.lines||[]).filter(l=>l.rateId===S.rateSel).length;used+=n;if(n)projs++});
     h+=`<section class="panel"><div class="bar"><h2 class="grow">${esc(r.code||'New item')}${r.sample?' <span class="chip warn">Sample</span>':''}</h2>
       <button class="btn sm" data-a="rate-dup">Duplicate</button>${S.confirm==='rate-del'?`<button class="btn sm danger" data-a="rate-del-yes">Confirm delete</button><button class="btn sm" data-a="confirm-no">Cancel</button>`:`<button class="btn sm danger" data-a="rate-del">Delete</button>`}</div>
       <div class="grid-meta"><label class="fld">Code<input id="r-code" data-f="r.code" value="${esc(r.code)}"></label><label class="fld">Category${catSel('r.cat',r.cat)}</label>
-      <label class="fld">Unit${unitSel('r.unit',r.unit)}</label><label class="fld">Overhead %<input id="r-oh" class="num" inputmode="decimal" data-f="r.oh" data-n="1" value="${esc(r.oh)}"></label>
-      <label class="fld">Profit %<input id="r-pr" class="num" inputmode="decimal" data-f="r.profit" data-n="1" value="${esc(r.profit)}"></label></div>
+      <label class="fld">Unit${unitSel('r.unit',r.unit)}</label></div>
       <label class="fld">Description / specification<textarea id="r-desc" data-f="r.desc">${esc(r.desc)}</textarea></label>
       <h3>Per 1 ${esc(r.unit)}</h3><div class="scroll"><table><thead><tr><th>Type</th><th>Component</th><th class="n">Qty</th><th>Unit</th><th class="n">Rate (₹)</th><th class="n">Amount</th><th></th></tr></thead><tbody>
       ${(r.comps||[]).map((k,i)=>`<tr><td style="width:120px"><select data-f="c.${i}.t">${Object.entries(CT).map(([t,l])=>`<option value="${t}"${t===k.t?' selected':''}>${l}</option>`).join('')}</select></td>
@@ -332,14 +344,14 @@ function viewRates(){
       <td class="n">${inr(num(k.qty)*num(k.rate))}</td><td><button class="iconbtn" data-a="comp-del:${i}" aria-label="Remove component">✕</button></td></tr>`).join('')||`<tr><td colspan="7" class="mut">No components yet.</td></tr>`}
       </tbody></table></div><div class="bar"><button class="btn sm" data-a="comp-add:M">+ Material</button><button class="btn sm" data-a="comp-add:L">+ Labour</button><button class="btn sm" data-a="comp-add:E">+ Equipment</button></div>
       <div class="sum"><span>Material</span><span class="n">${inr(c.M)}</span><span>Labour</span><span class="n">${inr(c.L)}</span><span>Equipment / sundries</span><span class="n">${inr(c.E)}</span>
-      <span>Base cost</span><span class="n">${inr(c.base)}</span><span>Overhead @ ${qf(r.oh)}%</span><span class="n">${inr(c.oh)}</span><span>Profit @ ${qf(r.profit)}%</span><span class="n">${inr(c.pr)}</span>
+      
       <span class="tot">Rate per ${esc(r.unit)}</span><span class="tot n">${inr(c.rate)}</span></div>
       <p class="hint">Used in ${used} line${used===1?'':'s'} of the estimates opened in this session.</p></section>`}
   return h+'</div>';
 }
 
 function viewQuote(){const p=P(),q=qset(p),c=quoteCalc(p);
-  const dbl=[...new Set((p.lines||[]).map(l=>l.rateId).filter(id=>id&&S.rates[id]&&(num(S.rates[id].oh)||num(S.rates[id].profit))))];
+  const dbl=[];
   const sel=(f,v,opts)=>`<select data-f="${f}"${typeof opts[0][0]==='number'?' data-n="1"':''}>${opts.map(([a,b])=>`<option value="${a}"${String(a)===String(v)?' selected':''}>${b}</option>`).join('')}</select>`;
   let h=sampleNote(p)+`<section class="panel"><div class="bar"><h2 class="grow">Pricing build-up <span class="chip">internal</span></h2></div>
   <p class="hint">Overheads, indirect expenses and profit are spread over all item-rate and lumpsum lines in proportion to their cost, so each quoted rate carries its share. Unit-rate items get the same loading but don’t count toward the quote total.</p>
@@ -554,7 +566,7 @@ function specEst(p){const c=estCalc(p),g=num(p.gst),rows=[];let sr=0;
     {type:'summary',rows:[['Total before GST (excl. unit-rate items)',Mn(c.total)],[`GST @ ${qf(g)}%`,Mn(c.gst)],['Estimate total',Mn(c.grand),'grand']]}];
   const ra=[];[...new Set(p.lines.map(l=>l.rateId).filter(id=>id&&S.rates[id]))].forEach(id=>{const r=S.rates[id],k=rateCalc(r);
     ra.push({k:'group',c:[`${r.code} · ${r.desc} · per 1 ${r.unit}`]});(r.comps||[]).forEach(cp=>ra.push({k:'item',c:[CT[cp.t],cp.name,Qn(num(cp.qty)),cp.unit,Mn(num(cp.rate)),Mn(num(cp.qty)*num(cp.rate))]}));
-    ra.push({k:'sub',c:['','Base cost','','','',Mn(k.base)]},{k:'item',c:['',`Overhead @ ${qf(r.oh)}%`,'','','',Mn(k.oh)]},{k:'item',c:['',`Profit @ ${qf(r.profit)}%`,'','','',Mn(k.pr)]},{k:'total',c:['','Rate per '+r.unit,'','','',Mn(k.rate)]})});
+    ra.push({k:'sub',c:['','Base cost','','','',Mn(k.base)]},{k:'total',c:['','Rate per '+r.unit,'','','',Mn(k.rate)]})});
   return{title:'ESTIMATE (INTERNAL)',orient:'landscape',file:(p.name||'Project')+' - Estimate (internal)',meta:[['Client',p.client],['Project',p.name],['Site',p.site],['Date',fdate(p.date)]],blocks:B,
     sheets:ra.length?[{name:'Rate analysis',title:'RATE ANALYSIS',blocks:[{type:'table',heading:'Rate analysis (per unit)',cols:[{h:'Type',w:12,a:'l'},{h:'Component',w:46,a:'l',wrap:true},COL.qty,{h:'Unit',w:8,a:'c'},COL.rate,COL.amt],rows:ra}]}]:[]}}
 
@@ -711,6 +723,7 @@ function act(a,arg){const p=P();if(RO()&&!RO_OK.has(a))return;
   case'gmode':p.groupBy=arg;touch();break;
   case'line-dup':{const i=p.lines.findIndex(l=>l.id===arg);if(i>=0){const c=clone(p.lines[i]);c.id=uid('l');c.loc='';p.lines.splice(i+1,0,c);touch();render();const el=document.getElementById('l-'+c.id+'-loc');if(el)el.focus();toast('Copied. Set the location for the new line.');return}break}
   case'line-del':p.lines=p.lines.filter(l=>l.id!==arg);delete bill(p).exec[arg];touch();break;
+  case'sync-all':{let n=0;p.lines.forEach(l=>{const r=l.rateId&&S.rates[l.rateId];if(r){const v=rateCalc(r).rate;if(Math.abs(v-num(l.rate))>0.004){l.rate=v;n++}}});if(n){touch();toast(`Updated ${n} line rates`)}break}
   case'line-sync':{const l=p.lines.find(x=>x.id===arg);const r=l&&S.rates[l.rateId];if(r){l.rate=rateCalc(r).rate;touch()}break}
   case'extra-add':{const r=rateById(S.extraPick);if(r){const qc=quoteCalc(p);bill(p).extras.push({id:uid('x'),rateId:r.__id,cat:r.cat,desc:r.desc,unit:r.unit,qty:1,rate:rnd(rateCalc(r).rate*qc.k,num(qc.q.rr)),note:''});touch()}break}
   case'extra-custom':bill(p).extras.push({id:uid('x'),rateId:null,cat:'Other',desc:'Extra item',unit:'nos',qty:1,rate:0,note:''});touch();break;
@@ -721,7 +734,7 @@ function act(a,arg){const p=P();if(RO()&&!RO_OK.has(a))return;
   case'exp':{const[k,f]=arg.split(':');exportDoc(k,f);return}
   case'rcat':S.rateCat=arg;break;
   case'rate-sel':S.rateSel=arg;S.confirm=null;break;
-  case'rate-new':{const id=uid('r');S.rates[id]={code:'NEW-'+(Object.keys(S.rates).length+1),cat:S.rateCat!=='All'?S.rateCat:'Interior',desc:'New item',unit:'sqft',oh:10,profit:15,comps:[{t:'M',name:'',qty:1,unit:'',rate:0},{t:'L',name:'',qty:1,unit:'',rate:0}]};S.rateSel=id;S.tab='rates';save('rates',id);break}
+  case'rate-new':{const id=uid('r');S.rates[id]={code:'NEW-'+(Object.keys(S.rates).length+1),cat:S.rateCat!=='All'?S.rateCat:'Interior',desc:'New item',unit:'sqft',comps:[{t:'M',name:'',qty:1,unit:'',rate:0},{t:'L',name:'',qty:1,unit:'',rate:0}]};S.rateSel=id;S.tab='rates';save('rates',id);break}
   case'rate-dup':{const id=uid('r');const c=clone(S.rates[S.rateSel]);c.code+='-B';delete c.sample;S.rates[id]=c;S.rateSel=id;save('rates',id);break}
   case'rate-del':S.confirm='rate-del';break;
   case'rate-del-yes':{const id=S.rateSel;delete S.rates[id];save('rates',id);S.rateSel=null;S.confirm=null;break}
