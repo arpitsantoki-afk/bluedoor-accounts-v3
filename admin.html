@@ -907,7 +907,7 @@ async function loadMasters() {
 
   // Init entry form SSes
   createSS('ae-proj-wrap', [{value:'',label:'— No Project —'},..._projs.map(p=>({value:p.project_id,label:`${p.project_name} · ${p.client||''}`}))], '— Select Project —');
-  createSS('ae-vendor-wrap', [{value:'',label:'— Optional —'},..._vendors.map(v=>({value:v.vendor_id,label:v.vendor_name}))], '— Select Vendor —');
+  createSS('ae-vendor-wrap', [{value:'',label:'— Optional —'},..._vendors.map(v=>({value:v.vendor_id,label:v.vendor_name}))], '— Select Vendor —', onVendorChange);
   createSS('ae-ch-wrap', _chs.map(c=>({value:c.ch_id,label:c.ch_name})), '— Select Cost Head —', (chId)=>onCostHeadChange(chId));
 
   // Company select for entry
@@ -1528,6 +1528,23 @@ function setEntryCat(cat, el) {
       <div class="tol">${t.label}</div>
       <div class="toh">${t.dr} → ${t.cr}</div>
     </div>`).join('');
+}
+
+async function onVendorChange(vendorId) {
+  if (!_selType || _selType.et_key !== 'credit_note' || !vendorId) return;
+  // Find last vendor_bill entry for this vendor and pre-fill cost head
+  const res = await api('listEntries', { fyid: curFY, company_id: curCo || '', limit: 500 });
+  const lastBill = (res.entries || [])
+    .filter(e => e.vendor_id === vendorId && e.entry_type === 'vendor_bill' && e.cost_head_id)
+    .sort((a, b) => new Date(b.date) - new Date(a.date))[0];
+  if (lastBill) {
+    const ch = _chs.find(c => c.ch_id === lastBill.cost_head_id);
+    if (ch) {
+      ssSet('ae-ch-wrap', ch.ch_id, ch.ch_name);
+      onCostHeadChange(ch.ch_id);
+      toast(`Cost head pre-filled: ${ch.ch_name}`);
+    }
+  }
 }
 
 function onCostHeadChange(chId) {
