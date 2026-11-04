@@ -1164,6 +1164,8 @@ async function handleMigrate(request, env) {
       "ALTER TABLE users ADD COLUMN allowed_vendors TEXT DEFAULT '[]'",
       "ALTER TABLE entries ADD COLUMN drive_file_url TEXT DEFAULT ''",
       "ALTER TABLE pending_entries ADD COLUMN drive_file_url TEXT DEFAULT ''",
+      // Fix credit_note: DR=PAYABLE CR=COST_HEAD, needs cost head
+      "UPDATE entry_types SET dr='PAYABLE', cr='COST_HEAD', needs_ch=1 WHERE et_key='credit_note'",
       // NOTE: deliberately NOT resetting roles here — user roles are managed via admin UI only
     ];
     for (const sql of migrations) {
