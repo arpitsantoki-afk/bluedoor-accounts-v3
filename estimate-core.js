@@ -2,7 +2,7 @@
 // Used by worker.js (server totals) and estimate.html (UI). Keep pure: no DOM, no globals.
 
 export const CATS=['Civil','Interior','MEP','Other'];
-export const UNITS=['sqft','sqm','rft','rmt','cum','cft','nos','point','kg','ltr','set','job','LS'];
+export const UNITS=['sqft','sqm','rft','rmt','cum','cft','nos','point','box','kg','ltr','set','job','LS'];
 export const CT={M:'Material',L:'Labour',E:'Equipment'};
 export const QB={item:'Item rate',ls:'Lumpsum',unit:'Unit rate only'};
 export const num=v=>{const n=parseFloat(String(v??'').replace(/,/g,''));return isFinite(n)?n:0};
